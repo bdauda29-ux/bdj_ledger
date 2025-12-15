@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Deleted Transactions - Bin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Deleted Transactions (Bin)</h2>
+    <a href="{{ url_for('transactions') }}" class="btn btn-secondary">Back to Transactions</a>
+</div>
+
+{% if deleted %}
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Original ID</th>
+                <th>Client</th>
+                <th>Applicant</th>
+                <th>Country</th>
+                <th>Amount</th>
+                <th>Amount N</th>
+                <th>Transaction Date</th>
+                <th>Deleted At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in deleted %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ row.original_id }}</td>
+                <td>{{ row.client_name }}</td>
+                <td>{{ row.applicant_name }}</td>
+                <td>{{ row.country_name }}</td>
+                <td>{{ "%.2f"|format(row.amount) }}</td>
+                <td>{{ "%.2f"|format(row.amount_n) }}</td>
+                <td>{{ row.transaction_date }}</td>
+                <td>{{ row.deleted_at }}</td>
+                <td>
+                    <form action="{{ url_for('restore_deleted_transaction', deleted_id=row.id) }}" method="POST" style="display:inline">
+                        <button type="submit" class="btn btn-primary btn-sm">Restore</button>
+                    </form>
+                    <form action="{{ url_for('permanently_delete_transaction', deleted_id=row.id) }}" method="POST" style="display:inline; margin-left:6px;">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Permanently delete this transaction?');">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="empty-state">Bin is empty.</p>
+{% endif %}
+
+{% endblock %}

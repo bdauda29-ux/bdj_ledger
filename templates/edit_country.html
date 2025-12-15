@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Country - Ledger System{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>Edit Country</h2>
+    
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+    
+    <form method="POST" class="form">
+        <div class="form-group">
+            <label for="name">Country Name *</label>
+            <input type="text" name="name" id="name" value="{{ country.name }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="continent">Continent *</label>
+            <select name="continent" id="continent" required>
+                <option value="">Select continent</option>
+                <option value="Africa" {% if country.continent == 'Africa' %}selected{% endif %}>Africa</option>
+                <option value="Asia" {% if country.continent == 'Asia' %}selected{% endif %}>Asia</option>
+                <option value="Europe" {% if country.continent == 'Europe' %}selected{% endif %}>Europe</option>
+                <option value="North America" {% if country.continent == 'North America' %}selected{% endif %}>North America</option>
+                <option value="South America" {% if country.continent == 'South America' %}selected{% endif %}>South America</option>
+                <option value="Oceania" {% if country.continent == 'Oceania' %}selected{% endif %}>Oceania</option>
+                <option value="Antarctica" {% if country.continent == 'Antarctica' %}selected{% endif %}>Antarctica</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="price">Price *</label>
+            <input type="number" step="0.01" name="price" id="price" value="{{ country.price }}" required>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Update Country</button>
+            <a href="{{ url_for('countries') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

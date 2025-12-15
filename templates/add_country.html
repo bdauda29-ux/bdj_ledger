@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Add Country - Ledger System{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>Add New Country</h2>
+    
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+    
+    <form method="POST" class="form">
+        <div class="form-group">
+            <label for="name">Country Name *</label>
+            <input type="text" name="name" id="name" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="continent">Continent *</label>
+            <select name="continent" id="continent" required>
+                <option value="">Select continent</option>
+                <option value="Africa">Africa</option>
+                <option value="Asia">Asia</option>
+                <option value="Europe">Europe</option>
+                <option value="North America">North America</option>
+                <option value="South America">South America</option>
+                <option value="Oceania">Oceania</option>
+                <option value="Antarctica">Antarctica</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="price">Price *</label>
+            <input type="number" step="0.01" name="price" id="price" required>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Add Country</button>
+            <a href="{{ url_for('countries') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

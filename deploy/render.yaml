@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: ledger-app
+    env: docker
+    plan: starter
+    dockerfilePath: Dockerfile
+    autoDeploy: true
+    healthCheckPath: /
+    disks:
+      - name: ledger-data
+        path: /app/data
+    envVars:
+      - key: DATABASE
+        value: /app/data/ledger.db
+      - key: SECRET_KEY
+        value: change-this-secret-key
+      - key: SMTP_USE_TLS
+        value: "1"

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Ledger System{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1>Debit & Credit Ledger</h1>
+            <span style="color:#fff; margin-left:1rem; opacity:0.9;">Model: {{ session.model_name or 'None' }}</span>
+            <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">☰</button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <li><a href="{{ url_for('transactions') }}">Transactions</a></li>
+                <li><a href="{{ url_for('clients') }}">Clients</a></li>
+                <li><a href="{{ url_for('countries') }}">Countries</a></li>
+                <li><a href="{{ url_for('models') }}">Models</a></li>
+                {% if session.permissions and session.permissions.is_admin %}
+                <li><a href="{{ url_for('list_users') }}">Users</a></li>
+                {% endif %}
+                {% if not session.username %}
+                <li><a href="{{ url_for('login') }}">Login</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+    
+    <main class="container">
+        {% if error %}
+        <div class="alert alert-error">{{ error }}</div>
+        {% endif %}
+        {% if message %}
+        <div class="alert alert-success">{{ message }}</div>
+        {% endif %}
+        
+        {% block content %}{% endblock %}
+    </main>
+    
+    <footer>
+        <div class="container" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;">
+            <p>&copy; 2024 Ledger System. All rights reserved.</p>
+            <ul class="nav-menu" style="display:flex; gap:10px; list-style:none; margin:0; padding:0;">
+                {% if session.permissions and session.permissions.is_admin %}
+                <li><a href="{{ url_for('models') }}">Models</a></li>
+                <li><a href="{{ url_for('list_users') }}">Users</a></li>
+                {% endif %}
+                {% if session.username %}
+                <li><a href="{{ url_for('change_password') }}">Change Password</a></li>
+                <li><a href="{{ url_for('logout') }}">Logout ({{ session.username }})</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </footer>
+    
+    <script>
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menuToggle');
+        const navMenu = document.getElementById('navMenu');
+        
+        if (menuToggle && navMenu) {
+            menuToggle.addEventListener('click', function() {
+                navMenu.classList.toggle('active');
+            });
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', function(event) {
+                if (window.innerWidth <= 768) {
+                    if (!event.target.closest('.navbar')) {
+                        navMenu.classList.remove('active');
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+

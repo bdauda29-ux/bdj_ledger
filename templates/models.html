@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Models - Ledger System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Models</h2>
+    <a href="{{ url_for('add_model') }}" class="btn btn-primary">Create New Model</a>
+    {% if session.permissions and session.permissions.is_admin and session.model_id %}
+    <form action="{{ url_for('clear_current_model') }}" method="POST" style="display:inline;" onsubmit="return confirm('Clear all data for current model? This cannot be undone.');">
+        <button type="submit" class="btn btn-danger">Clear Current Model Data</button>
+    </form>
+    {% endif %}
+</div>
+
+{% if session.model_id %}
+<div class="alert alert-success">Current model: {{ session.model_name }}</div>
+{% endif %}
+
+{% if models %}
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>S.No</th>
+                <th>Name</th>
+                <th>Created At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in models %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>
+                    {% if edit_id == m.id %}
+                        <form method="POST" action="{{ url_for('edit_model', model_id=m.id) }}" style="display:flex; gap:8px; align-items:center;">
+                            <input type="text" name="name" value="{{ m.name }}" required>
+                            <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                            <a href="{{ url_for('models') }}" class="btn btn-secondary btn-sm">Cancel</a>
+                        </form>
+                    {% else %}
+                        {{ m.name }}
+                    {% endif %}
+                </td>
+                <td>{{ m.created_at }}</td>
+                <td>
+                    <a class="btn btn-primary btn-sm" href="{{ url_for('select_model', model_id=m.id) }}">Select</a>
+                    {% if session.permissions and session.permissions.is_admin %}
+                    {% if edit_id != m.id %}
+                    <a class="btn btn-secondary btn-sm" href="{{ url_for('models', edit_id=m.id) }}">Edit</a>
+                    {% endif %}
+                    <form action="{{ url_for('delete_model', model_id=m.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete model \"{{ m.name }}\" and all its data?');">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+<p class="empty-state">No models yet. <a href="{{ url_for('add_model') }}">Create one</a></p>
+{% endif %}
+{% endblock %}

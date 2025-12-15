@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Create Model - Ledger System{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>Create New Model</h2>
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+    <form method="POST" class="form">
+        <div class="form-group">
+            <label for="name">Model Name</label>
+            <input type="text" name="name" id="name" required>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Create</button>
+            <a href="{{ url_for('models') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+{% endblock %}

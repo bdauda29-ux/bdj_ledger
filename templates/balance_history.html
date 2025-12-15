@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Balance History - {{ client.client_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Balance History for {{ client.client_name }}</h2>
+    <a href="{{ url_for('clients') }}" class="btn btn-secondary">Back to Clients</a>
+</div>
+
+{% if history %}
+<!-- Desktop Table View -->
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>S.No</th>
+                <th>Transaction ID</th>
+                <th>Amount</th>
+                <th>Type</th>
+                <th>Balance Before</th>
+                <th>Balance After</th>
+                <th>Description</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in history %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>
+                    {% if item.transaction_id %}
+                        <a href="{{ url_for('edit_transaction', transaction_id=item.transaction_id) }}">{{ item.transaction_id }}</a>
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td>{{ "%.2f"|format(item.amount) }}</td>
+                <td>{{ item.type }}</td>
+                <td>{{ "%.2f"|format(item.balance_before) }}</td>
+                <td>{{ "%.2f"|format(item.balance_after) }}</td>
+                <td>{{ item.description }}</td>
+                <td>{{ item.timestamp }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Mobile Card View -->
+<div class="mobile-card-view">
+    {% for item in history %}
+    <div class="mobile-card">
+        <div class="mobile-card-header">#{{ loop.index }} - {{ item.type|capitalize }}</div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Transaction ID:</span>
+            <span class="mobile-card-value">
+                {% if item.transaction_id %}
+                    <a href="{{ url_for('edit_transaction', transaction_id=item.transaction_id) }}">{{ item.transaction_id }}</a>
+                {% else %}
+                    N/A
+                {% endif %}
+            </span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Amount:</span>
+            <span class="mobile-card-value">{{ "%.2f"|format(item.amount) }}</span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Type:</span>
+            <span class="mobile-card-value">{{ item.type }}</span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Balance Before:</span>
+            <span class="mobile-card-value">{{ "%.2f"|format(item.balance_before) }}</span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Balance After:</span>
+            <span class="mobile-card-value">{{ "%.2f"|format(item.balance_after) }}</span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Description:</span>
+            <span class="mobile-card-value">{{ item.description }}</span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Date:</span>
+            <span class="mobile-card-value">{{ item.timestamp }}</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p class="empty-state">No balance history for this client.</p>
+{% endif %}
+{% endblock %}

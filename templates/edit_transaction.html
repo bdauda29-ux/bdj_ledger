@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Transaction - Ledger System{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>Edit Transaction</h2>
+    
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+    
+    <form method="POST" class="form" id="transactionForm">
+        <div class="form-group">
+            <label for="client_name">Client Name *</label>
+            <select name="client_name" id="client_name" required>
+                <option value="">Select a client</option>
+                {% for client in clients %}
+                <option value="{{ client.client_name }}" {% if transaction.client_name == client.client_name %}selected{% endif %}>
+                    {{ client.client_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        
+        
+        <div class="form-group">
+            <label for="service_type">Service Type</label>
+            <select name="service_type" id="service_type">
+                <option value="eVisa" {% if transaction.service_type == 'eVisa' %}selected{% endif %}>eVisa</option>
+                <option value="Passport" {% if transaction.service_type == 'Passport' %}selected{% endif %}>Passport</option>
+                <option value="TWP" {% if transaction.service_type == 'TWP' %}selected{% endif %}>TWP</option>
+                <option value="eCerpac" {% if transaction.service_type == 'eCerpac' %}selected{% endif %}>eCerpac</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="applicant_name">Applicant Name</label>
+            <input type="text" name="applicant_name" id="applicant_name" value="{{ transaction.applicant_name }}">
+        </div>
+        
+        <div class="form-group">
+            <label for="app_id">App ID *</label>
+            <input type="number" name="app_id" id="app_id" value="{{ transaction.app_id }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="country_name">Country *</label>
+            <select name="country_name" id="country_name" required>
+                <option value="">Select a country</option>
+                {% for country in countries %}
+                <option value="{{ country.name }}" 
+                        data-price="{{ country.price }}" 
+                        {% if transaction.country_name == country.name %}selected{% endif %}>
+                    {{ country.name }}
+                </option>
+                {% endfor %}
+            </select>
+            <small id="countryPriceDisplay"></small>
+        </div>
+        
+        <div class="form-group">
+            <label for="rate">Rate</label>
+            <input type="number" step="0.01" name="rate" id="rate" value="{{ transaction.rate }}">
+        </div>
+        
+        <div class="form-group">
+            <label for="add">Add</label>
+            <input type="number" step="0.01" name="add" id="add" value="{{ transaction.addition }}">
+        </div>
+
+        <div class="form-group">
+            <label for="transaction_date">Transaction Date</label>
+            <input type="date" name="transaction_date" id="transaction_date" value="{{ transaction.transaction_date[:10] }}">
+        </div>
+        
+        <div class="form-group">
+            <label>Amount (calculated)</label>
+            <input type="text" id="amountDisplay" readonly class="readonly-field">
+            <small>Country Price + Addition</small>
+        </div>
+        
+        <div class="form-group">
+            <label>Amount N (calculated)</label>
+            <input type="text" id="amountNDisplay" readonly class="readonly-field">
+            <small>Amount × Rate</small>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Update Transaction</button>
+            <a href="{{ url_for('transactions') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    const countrySelect = document.getElementById('country_name');
+    const rateInput = document.getElementById('rate');
+    const additionInput = document.getElementById('add');
+    const amountDisplay = document.getElementById('amountDisplay');
+    const amountNDisplay = document.getElementById('amountNDisplay');
+    const countryPriceDisplay = document.getElementById('countryPriceDisplay');
+    
+    function calculateAmounts() {
+        const selectedOption = countrySelect.options[countrySelect.selectedIndex];
+        const countryPrice = parseFloat(selectedOption.dataset.price) || 0;
+        const addition = parseFloat(additionInput.value) || 0;
+        const rate = parseFloat(rateInput.value) || 1;
+        
+        const amount = countryPrice + addition;
+        const amountN = amount * rate;
+        
+        amountDisplay.value = amount.toFixed(2);
+        amountNDisplay.value = amountN.toFixed(2);
+        
+        if (countryPrice > 0) {
+            countryPriceDisplay.textContent = `Country Price: ${countryPrice.toFixed(2)}`;
+        } else {
+            countryPriceDisplay.textContent = '';
+        }
+    }
+    
+    // Calculate on page load
+    calculateAmounts();
+    
+    countrySelect.addEventListener('change', calculateAmounts);
+    rateInput.addEventListener('input', calculateAmounts);
+    additionInput.addEventListener('input', calculateAmounts);
+</script>
+{% endblock %}
+

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Users - Ledger System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Users</h2>
+    <a href="{{ url_for('add_user') }}" class="btn btn-primary">Add User</a>
+</div>
+
+{% if users %}
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>S.No</th>
+                <th>Username</th>
+                <th>Admin</th>
+                <th>Edit Client</th>
+                <th>Delete Client</th>
+                <th>Add Txn</th>
+                <th>Edit Txn</th>
+                <th>Delete Txn</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ u.username }}</td>
+                <td>{{ u.is_admin and 'Yes' or 'No' }}</td>
+                <td>{{ u.can_edit_client and 'Yes' or 'No' }}</td>
+                <td>{{ u.can_delete_client and 'Yes' or 'No' }}</td>
+                <td>{{ u.can_add_transaction and 'Yes' or 'No' }}</td>
+                <td>{{ u.can_edit_transaction and 'Yes' or 'No' }}</td>
+                <td>{{ u.can_delete_transaction and 'Yes' or 'No' }}</td>
+                <td><a href="{{ url_for('edit_user', user_id=u.id) }}" class="btn btn-secondary btn-sm">Edit</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+<p class="empty-state">No users.</p>
+{% endif %}
+{% endblock %}

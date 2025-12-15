@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Ledger System{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>Login</h2>
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+    <form method="POST" class="form">
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" name="username" id="username" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" name="password" id="password" required>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Login</button>
+        </div>
+    </form>
+    <p style="margin-top: 0.5rem;"><a href="{{ url_for('forgot_password') }}">Forgot password?</a></p>
+    <p style="margin-top: 1rem; color:#666;">Default admin: admin / admin</p>
+{% endblock %}
