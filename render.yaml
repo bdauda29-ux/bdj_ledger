@@ -6,9 +6,6 @@ services:
     dockerfilePath: Dockerfile
     autoDeploy: true
     healthCheckPath: /
-    disks:
-      - name: ledger-data
-        path: /app/data
     envVars:
       - key: DATABASE
         value: /app/data/ledger.db
