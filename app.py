@@ -823,6 +823,11 @@ def delete_user(user_id):
 
 # ==================== CLIENT ROUTES ====================
 
+@app.errorhandler(500)
+def internal_error(error):
+    import traceback
+    return f"<pre>{traceback.format_exc()}</pre>", 500
+
 @app.route('/')
 def index():
     """Home page - shows dashboard"""
