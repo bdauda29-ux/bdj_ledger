@@ -7,8 +7,11 @@ import os
 import smtplib
 from email.message import EmailMessage
 # Postgres (optional) support
-import psycopg2
-import psycopg2.extras
+try:
+    import psycopg2
+    import psycopg2.extras
+except Exception:
+    psycopg2 = None
 
 app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
@@ -16,24 +19,27 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.secret_key = os.getenv('SECRET_KEY', 'change-this-secret-key')
 DATABASE = os.getenv('DATABASE', 'ledger.db')
 POSTGRES_URL = os.getenv('POSTGRES_URL') or os.getenv('POSTGRES_URL_NON_POOLING') or os.getenv('DATABASE_URL')
+if psycopg2 is None:
+    POSTGRES_URL = None
 
-class PGConn:
-    def __init__(self, dsn):
-        self.conn = psycopg2.connect(dsn)
-        self.conn.autocommit = False
-    def _convert_sql(self, sql):
-        sql = sql.replace('?', '%s')
-        sql = sql.replace("date('now','localtime')", 'CURRENT_DATE')
-        sql = sql.replace('date(', 'DATE(')
-        return sql
-    def execute(self, sql, params=None):
-        cur = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute(self._convert_sql(sql), params or [])
-        return cur
-    def commit(self):
-        self.conn.commit()
-    def close(self):
-        self.conn.close()
+if psycopg2 is not None:
+    class PGConn:
+        def __init__(self, dsn):
+            self.conn = psycopg2.connect(dsn)
+            self.conn.autocommit = False
+        def _convert_sql(self, sql):
+            sql = sql.replace('?', '%s')
+            sql = sql.replace("date('now','localtime')", 'CURRENT_DATE')
+            sql = sql.replace('date(', 'DATE(')
+            return sql
+        def execute(self, sql, params=None):
+            cur = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cur.execute(self._convert_sql(sql), params or [])
+            return cur
+        def commit(self):
+            self.conn.commit()
+        def close(self):
+            self.conn.close()
 
 def send_email(to_email, subject, body):
     host = os.getenv('SMTP_HOST')
