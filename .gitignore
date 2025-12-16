@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environments
+env/
+venv/
+.venv/
+
+# Vercel local metadata
+.vercel/
+
+# IDE
+.vscode/
+.idea/
+
+# Data and databases
+data/
+*.db
+ledger.db
+traceback.log
+
+# OS
+.DS_Store

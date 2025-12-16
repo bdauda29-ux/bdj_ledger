@@ -17,7 +17,6 @@
                 <li><a href="{{ url_for('transactions') }}">Transactions</a></li>
                 <li><a href="{{ url_for('clients') }}">Clients</a></li>
                 <li><a href="{{ url_for('countries') }}">Countries</a></li>
-                <li><a href="{{ url_for('models') }}">Models</a></li>
                 {% if session.permissions and session.permissions.is_admin %}
                 <li><a href="{{ url_for('list_users') }}">Users</a></li>
                 {% endif %}
@@ -55,6 +54,7 @@
         </div>
     </footer>
     
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
     <script>
         // Mobile menu toggle
         const menuToggle = document.getElementById('menuToggle');
@@ -74,6 +74,37 @@
                 }
             });
         }
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var main = document.querySelector('main.container');
+            var navMenuEl = document.getElementById('navMenu');
+            if (main) {
+                main.style.opacity = '0';
+                main.style.transition = 'opacity 150ms ease-in';
+                requestAnimationFrame(function() { main.style.opacity = '1'; });
+            }
+            if (navMenuEl) {
+                var links = navMenuEl.querySelectorAll('a');
+                var path = window.location.pathname;
+                links.forEach(function(link) {
+                    try {
+                        var linkPath = new URL(link.href, window.location.origin).pathname;
+                        if (linkPath === path) {
+                            link.classList.add('active');
+                        }
+                        link.addEventListener('click', function(e) {
+                            if (main) {
+                                e.preventDefault();
+                                navMenuEl.classList.remove('active');
+                                main.style.opacity = '0';
+                                setTimeout(function() { window.location.href = link.href; }, 120);
+                            }
+                        });
+                    } catch (_) {}
+                });
+            }
+        });
     </script>
 </body>
 </html>

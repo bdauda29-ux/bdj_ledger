@@ -230,7 +230,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS deleted_transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             original_id INTEGER,
-            client_name TEXT NOT NULL,
+            client_name TEXT,
             email TEXT,
             service_type TEXT,
             applicant_name TEXT,
@@ -245,10 +245,27 @@ def init_db():
             deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    try:
-        cursor.execute('ALTER TABLE deleted_transactions ADD COLUMN model_id INTEGER')
-    except sqlite3.OperationalError:
-        pass
+    # Ensure all expected columns exist for backward compatibility
+    for col_def in [
+        ('email', 'TEXT'),
+        ('service_type', 'TEXT'),
+        ('applicant_name', 'TEXT'),
+        ('app_id', 'INTEGER'),
+        ('country_name', 'TEXT'),
+        ('country_price', 'REAL'),
+        ('rate', 'REAL'),
+        ('addition', 'REAL'),
+        ('amount', 'REAL'),
+        ('amount_n', 'REAL'),
+        ('is_paid', 'INTEGER DEFAULT 0'),
+        ('transaction_date', 'TIMESTAMP'),
+        ('deleted_at', "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
+        ('model_id', 'INTEGER'),
+    ]:
+        try:
+            cursor.execute(f'ALTER TABLE deleted_transactions ADD COLUMN {col_def[0]} {col_def[1]}')
+        except sqlite3.OperationalError:
+            pass
 
     # --- Users Table ---
     cursor.execute('''
@@ -289,6 +306,9 @@ def init_db():
     else:
         # Ensure admin has full permissions
         cursor.execute('UPDATE users SET is_admin = 1, can_edit_client = 1, can_delete_client = 1, can_add_transaction = 1, can_edit_transaction = 1, can_delete_transaction = 1 WHERE username = ?', ('admin',))
+        # Ensure default admin password for local dev
+        default_hash = hashlib.sha256('admin'.encode()).hexdigest()
+        cursor.execute('UPDATE users SET password_hash = ? WHERE username = ?', (default_hash, 'admin'))
 
     # --- Models Table ---
     cursor.execute('''
@@ -530,7 +550,7 @@ def list_users():
         return redirect(url_for('index'))
     conn = get_db_connection()
     users = conn.execute('SELECT * FROM users ORDER BY username').fetchall()
-    return render_template('users.html', users=users)
+    return render_template('users.html', users=users, error=request.args.get('error'))
 
 @app.route('/users/add', methods=['GET','POST'])
 def add_user():
@@ -580,6 +600,26 @@ def edit_user(user_id):
     user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
     return render_template('edit_user.html', user=user)
 
+@app.route('/users/<int:user_id>/delete', methods=['POST'])
+def delete_user(user_id):
+    if not can('is_admin'):
+        return redirect(url_for('index'))
+    conn = get_db_connection()
+    # Prevent deleting your own account
+    if session.get('user_id') == user_id:
+        return redirect(url_for('list_users', error='Cannot delete your own account'))
+    user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+    if not user:
+        return redirect(url_for('list_users'))
+    # Prevent deleting the last admin
+    if user['is_admin']:
+        admin_count = conn.execute('SELECT COUNT(*) FROM users WHERE is_admin = 1').fetchone()[0]
+        if admin_count <= 1:
+            return redirect(url_for('list_users', error='Cannot delete the last admin'))
+    conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
+    conn.commit()
+    return redirect(url_for('list_users'))
+
 # ==================== CLIENT ROUTES ====================
 
 @app.route('/')
@@ -597,19 +637,28 @@ def index():
     # Get total balance of all clients
     total_balance = conn.execute('SELECT SUM(balance) FROM clients WHERE model_id = ?', (mid,)).fetchone()[0]
     
-    # Get last 5 transactions
+    # Get today's transactions
     transactions = conn.execute('''
         SELECT * FROM transactions 
         WHERE deleted = 0 AND model_id = ?
+          AND date(transaction_date) = date('now','localtime')
         ORDER BY transaction_date DESC
-        LIMIT 5
     ''', (mid,)).fetchall()
+    
+    # Today's totals
+    today_sums = conn.execute('''
+        SELECT COALESCE(SUM(amount),0) AS sum_amount, COALESCE(SUM(amount_n),0) AS sum_amount_n
+        FROM transactions
+        WHERE deleted = 0 AND model_id = ?
+          AND date(transaction_date) = date('now','localtime')
+    ''', (mid,)).fetchone()
     
     return render_template('index.html', 
                            total_clients=total_clients,
                            total_transactions=total_transactions,
                            total_balance=total_balance,
-                           transactions=transactions)
+                           transactions=transactions,
+                           today_sums=today_sums)
 
 @app.route('/clients')
 def clients():
@@ -895,7 +944,7 @@ def add_transaction():
             with open('traceback.log', 'a') as f:
                 f.write('\n\n=== EXCEPTION IN add_transaction ===\n')
                 f.write(traceback.format_exc())
-            return 'Internal Server Error', 500
+            return render_template('base.html', error='The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.'), 500
     
     clients_list = conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall()
     countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
@@ -914,80 +963,113 @@ def edit_transaction(transaction_id):
     conn = get_db_connection()
     
     if request.method == 'POST':
-        # Get original transaction
-        original_transaction = conn.execute('SELECT client_name, amount_n, model_id FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
-        original_client_name = original_transaction['client_name']
-        original_amount_n = original_transaction['amount_n']
-        if original_transaction['model_id'] != current_model_id():
-            return redirect(url_for('transactions'))
+        try:
+            # Get original transaction
+            original_transaction = conn.execute('SELECT client_name, amount_n, model_id FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
+            if not original_transaction or original_transaction['model_id'] != current_model_id():
+                return redirect(url_for('transactions'))
+            original_client_name = original_transaction['client_name']
+            original_amount_n = original_transaction['amount_n']
         
-        client_name = request.form['client_name']
-        applicant_name = request.form.get('applicant_name', '')
-        email = request.form.get('email', '')
-        service_type = request.form.get('service_type', 'eVisa')
-        app_id = int(request.form['app_id'])
-        country_name = request.form['country_name']
-        rate = float(request.form.get('rate') or 1.0)
-        addition = float(request.form.get('add') or 0.0)
-        transaction_date_str = request.form.get('transaction_date')
-        transaction_date = None
-        if transaction_date_str:
+            client_name = request.form['client_name']
+            applicant_name = request.form.get('applicant_name', '')
+            email = request.form.get('email', '')
+            service_type = request.form.get('service_type', 'eVisa')
             try:
-                dt = datetime.strptime(transaction_date_str, '%Y-%m-%d')
-                transaction_date = dt.strftime('%Y-%m-%d %H:%M:%S')
-            except ValueError:
-                transaction_date = None
+                app_id = int(request.form.get('app_id', '0'))
+            except (TypeError, ValueError):
+                app_id = 0
+            country_name = request.form['country_name']
+            rate = float(request.form.get('rate') or 1.0)
+            addition = float(request.form.get('add') or 0.0)
+            transaction_date_str = request.form.get('transaction_date')
+            transaction_date = None
+            if transaction_date_str:
+                try:
+                    dt = datetime.strptime(transaction_date_str, '%Y-%m-%d')
+                    transaction_date = dt.strftime('%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    transaction_date = None
         
-        # Get country price
-        country = conn.execute('SELECT price FROM countries WHERE name = ?', (country_name,)).fetchone()
-        if not country:
+            # Get country price
+            country = conn.execute('SELECT price FROM countries WHERE name = ?', (country_name,)).fetchone()
+            if not country:
+                transaction = conn.execute('SELECT * FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
+                clients_list = conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall()
+                countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
+                return render_template('edit_transaction.html', 
+                                     transaction=transaction,
+                                     clients=clients_list, 
+                                     countries=countries_list,
+                                     error='Country not found')
+        
+            country_price = country['price']
+            amount = country_price + addition
+            amount_n = amount * rate
+        
+            if transaction_date:
+                conn.execute('''
+                    UPDATE transactions 
+                    SET client_name = ?, email = ?, service_type = ?, applicant_name = ?, app_id = ?, country_name = ?, 
+                        country_price = ?, rate = ?, addition = ?, amount = ?, amount_n = ?, transaction_date = ?
+                    WHERE id = ?
+                ''', (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, transaction_id))
+            else:
+                conn.execute('''
+                    UPDATE transactions 
+                    SET client_name = ?, email = ?, service_type = ?, applicant_name = ?, app_id = ?, country_name = ?, 
+                        country_price = ?, rate = ?, addition = ?, amount = ?, amount_n = ?
+                    WHERE id = ?
+                ''', (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_id))
+        
+        
+            original_client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (original_client_name, current_model_id())).fetchone()
+            if original_client:
+                balance_before_orig = original_client['balance']
+                balance_after_orig = balance_before_orig + original_amount_n
+                conn.execute('UPDATE clients SET balance = ? WHERE client_name = ? AND model_id = ?', (balance_after_orig, original_client_name, current_model_id()))
+                description_orig = f'Reversal of transaction {transaction_id} for client {original_client_name}'
+                conn.execute('INSERT INTO balance_history (client_id, transaction_id, amount, type, balance_before, balance_after, description, model_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                             (original_client['id'], transaction_id, original_amount_n, 'credit', balance_before_orig, balance_after_orig, description_orig, current_model_id()))
+
+            new_client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (client_name, current_model_id())).fetchone()
+            if new_client:
+                balance_before_new = new_client['balance']
+                balance_after_new = balance_before_new - amount_n
+                conn.execute('UPDATE clients SET balance = ? WHERE client_name = ? AND model_id = ?', (balance_after_new, client_name, current_model_id()))
+                description_new = f'Transaction {transaction_id} for client {client_name}'
+                conn.execute('INSERT INTO balance_history (client_id, transaction_id, amount, type, balance_before, balance_after, description, model_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                             (new_client['id'], transaction_id, amount_n, 'debit', balance_before_new, balance_after_new, description_new, current_model_id()))
+            else:
+                transaction = conn.execute('SELECT * FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
+                clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
+                countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
+                conn.rollback()
+                return render_template('edit_transaction.html', 
+                                     transaction=transaction,
+                                     clients=clients_list, 
+                                     countries=countries_list,
+                                     error='Selected client not found in current model')
+        
+            conn.commit()
+            return redirect(url_for('transactions'))
+        except Exception:
+            import traceback
+            with open('traceback.log', 'a') as f:
+                f.write('\n\n=== EXCEPTION IN edit_transaction ===\n')
+                f.write(traceback.format_exc())
+            try:
+                conn.rollback()
+            except Exception:
+                pass
             transaction = conn.execute('SELECT * FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
-            clients_list = conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall()
+            clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
             countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
             return render_template('edit_transaction.html', 
                                  transaction=transaction,
                                  clients=clients_list, 
                                  countries=countries_list,
-                                 error='Country not found')
-        
-        country_price = country['price']
-        amount = country_price + addition
-        amount_n = amount * rate
-        
-        if transaction_date:
-            conn.execute('''
-                UPDATE transactions 
-                SET client_name = ?, email = ?, service_type = ?, applicant_name = ?, app_id = ?, country_name = ?, 
-                    country_price = ?, rate = ?, addition = ?, amount = ?, amount_n = ?, transaction_date = ?
-                WHERE id = ?
-            ''', (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, transaction_id))
-        else:
-            conn.execute('''
-                UPDATE transactions 
-                SET client_name = ?, email = ?, service_type = ?, applicant_name = ?, app_id = ?, country_name = ?, 
-                    country_price = ?, rate = ?, addition = ?, amount = ?, amount_n = ?
-                WHERE id = ?
-            ''', (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_id))
-        
-        
-        original_client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (original_client_name, current_model_id())).fetchone()
-        balance_before_orig = original_client['balance']
-        balance_after_orig = balance_before_orig + original_amount_n
-        conn.execute('UPDATE clients SET balance = ? WHERE client_name = ? AND model_id = ?', (balance_after_orig, original_client_name, current_model_id()))
-        description_orig = f'Reversal of transaction {transaction_id} for client {original_client_name}'
-        conn.execute('INSERT INTO balance_history (client_id, transaction_id, amount, type, balance_before, balance_after, description, model_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                     (original_client['id'], transaction_id, original_amount_n, 'credit', balance_before_orig, balance_after_orig, description_orig, current_model_id()))
-
-        new_client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (client_name, current_model_id())).fetchone()
-        balance_before_new = new_client['balance']
-        balance_after_new = balance_before_new - amount_n
-        conn.execute('UPDATE clients SET balance = ? WHERE client_name = ? AND model_id = ?', (balance_after_new, client_name, current_model_id()))
-        description_new = f'Transaction {transaction_id} for client {client_name}'
-        conn.execute('INSERT INTO balance_history (client_id, transaction_id, amount, type, balance_before, balance_after, description, model_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                     (new_client['id'], transaction_id, amount_n, 'debit', balance_before_new, balance_after_new, description_new, current_model_id()))
-        
-        conn.commit()
-        return redirect(url_for('transactions'))
+                                 error='An unexpected error occurred while updating. Please review inputs.')
     
     transaction = conn.execute('SELECT * FROM transactions WHERE id = ? AND model_id = ?', (transaction_id, current_model_id())).fetchone()
     clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
@@ -1085,24 +1167,37 @@ def delete_transaction(transaction_id):
     if not perms.get('can_delete_transaction') and not perms.get('is_admin'):
         return redirect(url_for('transactions'))
     conn = get_db_connection()
-    # move the transaction to deleted_transactions (bin) without modifying balances
-    transaction = conn.execute('SELECT * FROM transactions WHERE id = ? AND model_id = ?', (transaction_id, current_model_id())).fetchone()
-    if not transaction:
+    try:
+        transaction = conn.execute('SELECT * FROM transactions WHERE id = ? AND model_id = ?', (transaction_id, current_model_id())).fetchone()
+        if not transaction:
+            return redirect(url_for('transactions'))
+        if transaction['is_paid']:
+            client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (transaction['client_name'], current_model_id())).fetchone()
+            if client:
+                new_balance = client['balance'] + (transaction['amount_n'] or 0)
+                conn.execute('UPDATE clients SET balance = ? WHERE id = ? AND model_id = ?', (new_balance, client['id'], current_model_id()))
+        conn.execute('''
+            INSERT INTO deleted_transactions (original_id, client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, is_paid, transaction_date, model_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            transaction['id'], transaction['client_name'], transaction['email'], transaction['service_type'], transaction['applicant_name'], transaction['app_id'],
+            transaction['country_name'], transaction['country_price'], transaction['rate'], transaction['addition'],
+            transaction['amount'], transaction['amount_n'], transaction['is_paid'], transaction['transaction_date'], current_model_id()
+        ))
+        conn.execute('DELETE FROM transactions WHERE id = ? AND model_id = ?', (transaction_id, current_model_id()))
+        conn.execute('DELETE FROM balance_history WHERE transaction_id = ?', (transaction_id,))
+        conn.commit()
         return redirect(url_for('transactions'))
-
-    conn.execute('''
-        INSERT INTO deleted_transactions (original_id, client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, model_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (
-        transaction['id'], transaction['client_name'], transaction['email'], transaction['service_type'], transaction['applicant_name'], transaction['app_id'],
-        transaction['country_name'], transaction['country_price'], transaction['rate'], transaction['addition'],
-        transaction['amount'], transaction['amount_n'], transaction['transaction_date'], current_model_id()
-    ))
-
-    conn.execute('DELETE FROM transactions WHERE id = ? AND model_id = ?', (transaction_id, current_model_id()))
-    conn.execute('DELETE FROM balance_history WHERE transaction_id = ?', (transaction_id,))
-    conn.commit()
-    return redirect(url_for('transactions'))
+    except Exception:
+        import traceback
+        with open('traceback.log', 'a') as f:
+            f.write('\n\n=== EXCEPTION IN delete_transaction ===\n')
+            f.write(traceback.format_exc())
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return redirect(url_for('transactions', error='Failed to delete transaction'))
 
 
 @app.route('/transactions/bin')
@@ -1117,41 +1212,56 @@ def transactions_bin():
 def restore_deleted_transaction(deleted_id):
     """Restore a deleted transaction back into transactions and apply balance effect"""
     conn = get_db_connection()
-    row = conn.execute('SELECT * FROM deleted_transactions WHERE id = ? AND model_id = ?', (deleted_id, current_model_id())).fetchone()
-    if not row:
-        return redirect(url_for('transactions_bin'))
-
-    # Insert back into transactions
-    conn.execute('''
-        INSERT INTO transactions (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, model_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (row['client_name'], row['email'], row['service_type'], row['applicant_name'], row['app_id'], row['country_name'], row['country_price'], row['rate'], row['addition'], row['amount'], row['amount_n'], row['transaction_date'], current_model_id()))
-
-    new_transaction_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
-
-    # Apply balance effect (debit amount_n)
-    client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (row['client_name'], current_model_id())).fetchone()
-    if client:
-        balance_before = client['balance']
-        balance_after = balance_before - row['amount_n']
-        conn.execute('UPDATE clients SET balance = ? WHERE client_name = ? AND model_id = ?', (balance_after, row['client_name'], current_model_id()))
-        description = f'Restore transaction {new_transaction_id} for client {row["client_name"]}'
-        conn.execute('INSERT INTO balance_history (client_id, transaction_id, amount, type, balance_before, balance_after, description, model_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                     (client['id'], new_transaction_id, row['amount_n'], 'debit', balance_before, balance_after, description, current_model_id()))
-
-    # remove from bin
-    conn.execute('DELETE FROM deleted_transactions WHERE id = ? AND model_id = ?', (deleted_id, current_model_id()))
-    conn.commit()
-    return redirect(url_for('transactions'))
+    try:
+        row = conn.execute('SELECT * FROM deleted_transactions WHERE id = ? AND model_id = ?', (deleted_id, current_model_id())).fetchone()
+        if not row:
+            return redirect(url_for('transactions_bin'))
+        conn.execute('''
+            INSERT INTO transactions (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, is_paid, transaction_date, model_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (row['client_name'], row['email'], row['service_type'], row['applicant_name'], row['app_id'], row['country_name'], row['country_price'], row['rate'], row['addition'], row['amount'], row['amount_n'], int(row['is_paid'] or 0), row['transaction_date'], current_model_id()))
+        new_transaction_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
+        client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (row['client_name'], current_model_id())).fetchone()
+        if client and int(row['is_paid'] or 0) == 1:
+            balance_before = client['balance']
+            balance_after = balance_before - (row['amount_n'] or 0)
+            conn.execute('UPDATE clients SET balance = ? WHERE client_name = ? AND model_id = ?', (balance_after, row['client_name'], current_model_id()))
+            description = f'Restore transaction {new_transaction_id} for client {row["client_name"]}'
+            conn.execute('INSERT INTO balance_history (client_id, transaction_id, amount, type, balance_before, balance_after, description, model_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                         (client['id'], new_transaction_id, (row['amount_n'] or 0), 'debit', balance_before, balance_after, description, current_model_id()))
+        conn.execute('DELETE FROM deleted_transactions WHERE id = ? AND model_id = ?', (deleted_id, current_model_id()))
+        conn.commit()
+        return redirect(url_for('transactions'))
+    except Exception:
+        import traceback
+        with open('traceback.log', 'a') as f:
+            f.write('\n\n=== EXCEPTION IN restore_deleted_transaction ===\n')
+            f.write(traceback.format_exc())
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return redirect(url_for('transactions_bin', error='Failed to restore transaction'))
 
 
 @app.route('/transactions/bin/<int:deleted_id>/delete', methods=['POST'])
 def permanently_delete_transaction(deleted_id):
     """Permanently remove a transaction from the bin"""
     conn = get_db_connection()
-    conn.execute('DELETE FROM deleted_transactions WHERE id = ? AND model_id = ?', (deleted_id, current_model_id()))
-    conn.commit()
-    return redirect(url_for('transactions_bin'))
+    try:
+        conn.execute('DELETE FROM deleted_transactions WHERE id = ? AND model_id = ?', (deleted_id, current_model_id()))
+        conn.commit()
+        return redirect(url_for('transactions_bin'))
+    except Exception:
+        import traceback
+        with open('traceback.log', 'a') as f:
+            f.write('\n\n=== EXCEPTION IN permanently_delete_transaction ===\n')
+            f.write(traceback.format_exc())
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return redirect(url_for('transactions_bin', error='Failed to permanently delete'))
 
 # ==================== EXPORT ROUTES ====================
 
@@ -1366,6 +1476,10 @@ def get_country_price(country_name):
     if country:
         return jsonify({'price': country['price']})
     return jsonify({'error': 'Country not found'}), 404
+
+@app.errorhandler(500)
+def internal_server_error(error):
+    return render_template('base.html', error='The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.'), 500
 
 if __name__ == '__main__':
     init_db()

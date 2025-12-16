@@ -21,6 +21,17 @@
         </div>
     </div>
 
+    <div class="today-summary" style="margin-top: 20px; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
+        <h3>Today’s totals</h3>
+        <div style="padding: 10px; background-color: white; border-radius: 3px; border-left: 4px solid #28a745;">
+            <strong style="font-size: 16px;">Transactions:</strong> <span style="font-size: 16px;">{{ transactions|length }}</span>
+            <br>
+            <strong style="font-size: 16px;">Sum Amount:</strong> <span style="font-size: 16px; color: #28a745;">{{ "%.2f"|format(today_sums['sum_amount']) }}</span>
+            <br>
+            <strong style="font-size: 16px;">Sum Amount N:</strong> <span style="font-size: 16px; color: #28a745;">{{ "%.2f"|format(today_sums['sum_amount_n']) }}</span>
+        </div>
+    </div>
+
     <h2>Recent Transactions</h2>
     
     {% if transactions %}
