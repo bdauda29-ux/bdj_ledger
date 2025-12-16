@@ -6,12 +6,34 @@ import hashlib
 import os
 import smtplib
 from email.message import EmailMessage
+# Postgres (optional) support
+import psycopg2
+import psycopg2.extras
 
 app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.secret_key = os.getenv('SECRET_KEY', 'change-this-secret-key')
 DATABASE = os.getenv('DATABASE', 'ledger.db')
+POSTGRES_URL = os.getenv('POSTGRES_URL') or os.getenv('POSTGRES_URL_NON_POOLING') or os.getenv('DATABASE_URL')
+
+class PGConn:
+    def __init__(self, dsn):
+        self.conn = psycopg2.connect(dsn)
+        self.conn.autocommit = False
+    def _convert_sql(self, sql):
+        sql = sql.replace('?', '%s')
+        sql = sql.replace("date('now','localtime')", 'CURRENT_DATE')
+        sql = sql.replace('date(', 'DATE(')
+        return sql
+    def execute(self, sql, params=None):
+        cur = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(self._convert_sql(sql), params or [])
+        return cur
+    def commit(self):
+        self.conn.commit()
+    def close(self):
+        self.conn.close()
 
 def send_email(to_email, subject, body):
     host = os.getenv('SMTP_HOST')
@@ -36,6 +58,118 @@ def send_email(to_email, subject, body):
 
 def init_db():
     """Initialize the database with required tables and columns"""
+    if POSTGRES_URL:
+        conn = psycopg2.connect(POSTGRES_URL)
+        conn.autocommit = False
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS clients (
+                id SERIAL PRIMARY KEY,
+                client_name TEXT NOT NULL,
+                phone_number TEXT NOT NULL,
+                balance REAL NOT NULL DEFAULT 0.0,
+                model_id INTEGER
+            )
+        ''')
+        cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_clients_unique ON clients(client_name, model_id)')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS countries (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                price REAL NOT NULL,
+                model_id INTEGER,
+                continent TEXT
+            )
+        ''')
+        cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_countries_unique ON countries(name, model_id)')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS transactions (
+                id SERIAL PRIMARY KEY,
+                client_name TEXT NOT NULL,
+                email TEXT,
+                service_type TEXT DEFAULT 'eVisa',
+                app_id INTEGER NOT NULL,
+                country_name TEXT NOT NULL,
+                country_price REAL,
+                rate REAL,
+                addition REAL,
+                amount REAL NOT NULL,
+                amount_n REAL,
+                transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                deleted INTEGER DEFAULT 0,
+                is_paid INTEGER DEFAULT 0,
+                model_id INTEGER
+            )
+        ''')
+        cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_app_unique ON transactions(app_id, model_id)')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS balance_history (
+                id SERIAL PRIMARY KEY,
+                client_id INTEGER NOT NULL,
+                transaction_id INTEGER,
+                amount REAL NOT NULL,
+                type TEXT NOT NULL,
+                balance_before REAL NOT NULL,
+                balance_after REAL NOT NULL,
+                description TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                model_id INTEGER
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS deleted_transactions (
+                id SERIAL PRIMARY KEY,
+                original_id INTEGER,
+                client_name TEXT,
+                email TEXT,
+                service_type TEXT,
+                applicant_name TEXT,
+                app_id INTEGER,
+                country_name TEXT,
+                country_price REAL,
+                rate REAL,
+                addition REAL,
+                amount REAL,
+                amount_n REAL,
+                is_paid INTEGER DEFAULT 0,
+                transaction_date TIMESTAMP,
+                deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                model_id INTEGER
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                email TEXT,
+                can_edit_client INTEGER DEFAULT 1,
+                can_delete_client INTEGER DEFAULT 1,
+                can_add_transaction INTEGER DEFAULT 1,
+                can_edit_transaction INTEGER DEFAULT 1,
+                can_delete_transaction INTEGER DEFAULT 1,
+                is_admin INTEGER DEFAULT 1
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS models (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        user = None
+        try:
+            cursor.execute('SELECT * FROM users WHERE username = %s', ('admin',))
+            user = cursor.fetchone()
+        except Exception:
+            user = None
+        if not user:
+            default_hash = hashlib.sha256('admin'.encode()).hexdigest()
+            cursor.execute('INSERT INTO users (username, password_hash, is_admin) VALUES (%s, %s, 1)', ('admin', default_hash))
+        conn.commit()
+        conn.close()
+        return
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
 
@@ -203,6 +337,10 @@ def init_db():
         cursor.execute('ALTER TABLE transactions ADD COLUMN model_id INTEGER')
     except sqlite3.OperationalError:
         pass
+    try:
+        cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_app_unique ON transactions(app_id, model_id)')
+    except sqlite3.OperationalError:
+        pass
 
     # --- Balance History Table ---
     cursor.execute('''
@@ -325,8 +463,11 @@ def init_db():
 def get_db_connection():
     """Get database connection"""
     if 'db' not in g:
-        g.db = sqlite3.connect(DATABASE, timeout=20)
-        g.db.row_factory = sqlite3.Row
+        if POSTGRES_URL:
+            g.db = PGConn(POSTGRES_URL)
+        else:
+            g.db = sqlite3.connect(DATABASE, timeout=20)
+            g.db.row_factory = sqlite3.Row
     return g.db
 
 @app.teardown_appcontext
@@ -933,6 +1074,11 @@ def add_transaction():
             country_price = country['price']
             amount = country_price + addition
             amount_n = amount * rate
+            exists = conn.execute('SELECT id FROM transactions WHERE app_id = ? AND model_id = ?', (app_id, current_model_id())).fetchone()
+            if exists:
+                clients_list = conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall()
+                countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
+                return render_template('add_transaction.html', clients=clients_list, countries=countries_list, error='App ID already exists')
             
             if transaction_date:
                 conn.execute('''
@@ -1018,6 +1164,16 @@ def edit_transaction(transaction_id):
             country_price = country['price']
             amount = country_price + addition
             amount_n = amount * rate
+            dup = conn.execute('SELECT id FROM transactions WHERE app_id = ? AND model_id = ? AND id != ?', (app_id, current_model_id(), transaction_id)).fetchone()
+            if dup:
+                transaction = conn.execute('SELECT * FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
+                clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
+                countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
+                return render_template('edit_transaction.html', 
+                                     transaction=transaction,
+                                     clients=clients_list, 
+                                     countries=countries_list,
+                                     error='App ID already exists')
         
             if transaction_date:
                 conn.execute('''
@@ -1095,14 +1251,21 @@ def edit_transaction(transaction_id):
                          clients=clients_list, 
                          countries=countries_list)
 
+@app.route('/health/db')
+def health_db():
+    conn = get_db_connection()
+    try:
+        row = conn.execute('SELECT 1 AS ok').fetchone()
+        return jsonify({'status': 'ok', 'db': 'postgres' if POSTGRES_URL else 'sqlite', 'ok': (row['ok'] if row else None)})
+    except Exception as e:
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
 @app.route('/transactions/<int:transaction_id>/pay', methods=['POST'])
 def pay_transaction(transaction_id):
     """Pay a transaction by deducting amount_n from client balance"""
     if not can('can_edit_transaction'):
         return redirect(url_for('transactions'))
-    # Use a fresh connection for this operation to ensure changes are committed
-    conn = sqlite3.connect(DATABASE, timeout=20)
-    conn.row_factory = sqlite3.Row
+    conn = get_db_connection()
     
     try:
         # Get the transaction
@@ -1139,10 +1302,7 @@ def pay_transaction(transaction_id):
             client['id'], transaction_id, amount_to_deduct, 'debit', balance_before, balance_after,
             f'Payment for transaction #{transaction_id}', current_model_id()
         ))
-        
         conn.commit()
-    finally:
-        conn.close()
     
     return redirect(url_for('transactions'))
 
@@ -1151,8 +1311,7 @@ def undo_pay_transaction(transaction_id):
     """Undo payment: revert is_paid and restore client balance"""
     if not can('can_edit_transaction'):
         return redirect(url_for('transactions'))
-    conn = sqlite3.connect(DATABASE, timeout=20)
-    conn.row_factory = sqlite3.Row
+    conn = get_db_connection()
     try:
         transaction = conn.execute('SELECT * FROM transactions WHERE id = ? AND model_id = ?', (transaction_id, current_model_id())).fetchone()
         if not transaction:
@@ -1169,8 +1328,6 @@ def undo_pay_transaction(transaction_id):
         conn.execute('UPDATE transactions SET is_paid = 0 WHERE id = ?', (transaction_id,))
         conn.execute('DELETE FROM balance_history WHERE transaction_id = ?', (transaction_id,))
         conn.commit()
-    finally:
-        conn.close()
     return redirect(url_for('transactions'))
 @app.route('/transactions/<int:transaction_id>/delete', methods=['POST'])
 def delete_transaction(transaction_id):

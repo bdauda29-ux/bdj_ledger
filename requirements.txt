@@ -4,3 +4,4 @@ reportlab==4.0.7
 waitress==2.1.2
 gunicorn==23.0.0
 pillow==10.3.0
+psycopg2-binary==2.9.9
