@@ -893,23 +893,32 @@ def update_balance(client_id):
         return redirect(url_for('clients'))
 
     conn = get_db_connection()
-    
-    balance_before = conn.execute('SELECT balance FROM clients WHERE id = ? AND model_id = ?', (client_id, current_model_id())).fetchone()[0]
-    
-    if type == 'credit':
-        conn.execute('UPDATE clients SET balance = balance + ? WHERE id = ? AND model_id = ?', (amount, client_id, current_model_id()))
-    else: # debit
-        conn.execute('UPDATE clients SET balance = balance - ? WHERE id = ? AND model_id = ?', (amount, client_id, current_model_id()))
-
-    balance_after = conn.execute('SELECT balance FROM clients WHERE id = ? AND model_id = ?', (client_id, current_model_id())).fetchone()[0]
-    
-    description = f'{type.capitalize()} of {amount} to client {client_id}'
-
-    conn.execute('INSERT INTO balance_history (client_id, amount, type, balance_before, balance_after, description, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                 (client_id, amount, type, balance_before, balance_after, description, current_model_id()))
-    
-    conn.commit()
-    return redirect(url_for('clients'))
+    try:
+        row = conn.execute('SELECT balance FROM clients WHERE id = ? AND model_id = ?', (client_id, current_model_id())).fetchone()
+        if not row:
+            return redirect(url_for('clients'))
+        balance_before = row['balance']
+        if type == 'credit':
+            conn.execute('UPDATE clients SET balance = balance + ? WHERE id = ? AND model_id = ?', (amount, client_id, current_model_id()))
+        else:
+            conn.execute('UPDATE clients SET balance = balance - ? WHERE id = ? AND model_id = ?', (amount, client_id, current_model_id()))
+        row2 = conn.execute('SELECT balance FROM clients WHERE id = ? AND model_id = ?', (client_id, current_model_id())).fetchone()
+        balance_after = row2['balance'] if row2 else balance_before
+        description = f'{type.capitalize()} of {amount} to client {client_id}'
+        conn.execute('INSERT INTO balance_history (client_id, amount, type, balance_before, balance_after, description, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                     (client_id, amount, type, balance_before, balance_after, description, current_model_id()))
+        conn.commit()
+        return redirect(url_for('clients'))
+    except Exception:
+        import traceback
+        with open('traceback.log', 'a') as f:
+            f.write('\n\n=== EXCEPTION IN update_balance ===\n')
+            f.write(traceback.format_exc())
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return redirect(url_for('clients'))
 
 @app.route('/clients/<int:client_id>/transactions')
 def client_transactions(client_id):
