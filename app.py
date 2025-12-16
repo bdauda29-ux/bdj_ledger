@@ -1013,6 +1013,29 @@ def transactions():
     error = request.args.get('error')
     paid = request.args.get('paid')
 
+    # Ensure country_price is populated for any legacy rows
+    try:
+        if POSTGRES_URL:
+            conn.execute('''
+                UPDATE transactions t
+                SET country_price = c.price
+                FROM countries c
+                WHERE t.country_price IS NULL
+                  AND t.country_name = c.name
+                  AND t.model_id = ?
+            ''', (current_model_id(),))
+        else:
+            conn.execute('''
+                UPDATE transactions
+                SET country_price = (
+                    SELECT price FROM countries WHERE name = transactions.country_name
+                )
+                WHERE country_price IS NULL AND model_id = ?
+            ''', (current_model_id(),))
+        conn.commit()
+    except Exception:
+        pass
+
     where_clauses = []
     params = []
     if client:
