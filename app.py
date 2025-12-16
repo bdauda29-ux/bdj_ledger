@@ -1291,27 +1291,31 @@ def edit_transaction(transaction_id):
 
 @app.route('/health/db')
 def health_db():
-    conn = get_db_connection()
+    # Check for startup errors first
+    startup_error = app.config.get('STARTUP_ERROR')
+    if startup_error:
+        return jsonify({
+            'status': 'error', 
+            'source': 'startup_init', 
+            'error': startup_error,
+            'db_configured': 'postgres' if POSTGRES_URL else 'sqlite'
+        }), 500
+
     try:
+        conn = get_db_connection()
         row = conn.execute('SELECT 1 AS ok').fetchone()
-        
-        # Debug info
-        import os
-        pg_url_exists = bool(os.getenv('POSTGRES_URL') or os.getenv('POSTGRES_URL_NON_POOLING') or os.getenv('DATABASE_URL'))
-        psycopg2_loaded = psycopg2 is not None
-        
         return jsonify({
             'status': 'ok', 
             'db': 'postgres' if POSTGRES_URL else 'sqlite', 
-            'ok': (row['ok'] if row else None),
-            'debug': {
-                'pg_url_exists': pg_url_exists,
-                'psycopg2_loaded': psycopg2_loaded,
-                'postgres_url_var': 'Set' if POSTGRES_URL else 'None'
-            }
+            'ok': (row['ok'] if row else None)
         })
     except Exception as e:
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({
+            'status': 'error', 
+            'source': 'connection_check', 
+            'error': str(e),
+            'db_configured': 'postgres' if POSTGRES_URL else 'sqlite'
+        }), 500
 
 @app.route('/transactions/<int:transaction_id>/pay', methods=['POST'])
 def pay_transaction(transaction_id):
