@@ -1294,7 +1294,22 @@ def health_db():
     conn = get_db_connection()
     try:
         row = conn.execute('SELECT 1 AS ok').fetchone()
-        return jsonify({'status': 'ok', 'db': 'postgres' if POSTGRES_URL else 'sqlite', 'ok': (row['ok'] if row else None)})
+        
+        # Debug info
+        import os
+        pg_url_exists = bool(os.getenv('POSTGRES_URL') or os.getenv('POSTGRES_URL_NON_POOLING') or os.getenv('DATABASE_URL'))
+        psycopg2_loaded = psycopg2 is not None
+        
+        return jsonify({
+            'status': 'ok', 
+            'db': 'postgres' if POSTGRES_URL else 'sqlite', 
+            'ok': (row['ok'] if row else None),
+            'debug': {
+                'pg_url_exists': pg_url_exists,
+                'psycopg2_loaded': psycopg2_loaded,
+                'postgres_url_var': 'Set' if POSTGRES_URL else 'None'
+            }
+        })
     except Exception as e:
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
