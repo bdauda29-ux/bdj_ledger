@@ -1268,33 +1268,21 @@ def pay_transaction(transaction_id):
     conn = get_db_connection()
     
     try:
-        # Get the transaction
         transaction = conn.execute('SELECT * FROM transactions WHERE id = ? AND model_id = ?', (transaction_id, current_model_id())).fetchone()
         if not transaction:
             return redirect(url_for('transactions'))
-        
-        # Check if already paid
         if transaction['is_paid']:
             return redirect(url_for('transactions'))
-        
-        # Get client balance before
         client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (transaction['client_name'], current_model_id())).fetchone()
         if not client:
             return redirect(url_for('transactions'))
-        
         balance_before = client['balance']
         amount_to_deduct = transaction['amount_n']
         if amount_to_deduct > balance_before:
             return redirect(url_for('transactions', error='Insufficient balance to pay this transaction'))
-        
-        # Deduct amount_n from client balance
         balance_after = balance_before - amount_to_deduct
         conn.execute('UPDATE clients SET balance = ? WHERE id = ? AND model_id = ?', (balance_after, client['id'], current_model_id()))
-        
-        # Mark transaction as paid
         conn.execute('UPDATE transactions SET is_paid = 1 WHERE id = ?', (transaction_id,))
-        
-        # Record in balance_history
         conn.execute('''
             INSERT INTO balance_history (client_id, transaction_id, amount, type, balance_before, balance_after, description, model_id)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -1303,8 +1291,17 @@ def pay_transaction(transaction_id):
             f'Payment for transaction #{transaction_id}', current_model_id()
         ))
         conn.commit()
-    
-    return redirect(url_for('transactions'))
+        return redirect(url_for('transactions'))
+    except Exception:
+        import traceback
+        with open('traceback.log', 'a') as f:
+            f.write('\n\n=== EXCEPTION IN pay_transaction ===\n')
+            f.write(traceback.format_exc())
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return redirect(url_for('transactions', error='Failed to mark transaction as paid'))
 
 @app.route('/transactions/<int:transaction_id>/undo_pay', methods=['POST'])
 def undo_pay_transaction(transaction_id):
@@ -1328,7 +1325,17 @@ def undo_pay_transaction(transaction_id):
         conn.execute('UPDATE transactions SET is_paid = 0 WHERE id = ?', (transaction_id,))
         conn.execute('DELETE FROM balance_history WHERE transaction_id = ?', (transaction_id,))
         conn.commit()
-    return redirect(url_for('transactions'))
+        return redirect(url_for('transactions'))
+    except Exception:
+        import traceback
+        with open('traceback.log', 'a') as f:
+            f.write('\n\n=== EXCEPTION IN undo_pay_transaction ===\n')
+            f.write(traceback.format_exc())
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return redirect(url_for('transactions', error='Failed to undo payment'))
 @app.route('/transactions/<int:transaction_id>/delete', methods=['POST'])
 def delete_transaction(transaction_id):
     """Delete a transaction"""
