@@ -1347,19 +1347,27 @@ def add_transaction():
                     return render_template('add_transaction.html', clients=clients_list, countries=countries_list, error='App ID already exists')
                 
                 if transaction_date:
-                    conn.execute('''
+                    sql = '''
                         INSERT INTO transactions 
                         (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, model_id, email_link)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ''', (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, current_model_id(), email_link))
+                    '''
+                    params = (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, current_model_id(), email_link)
                 else:
-                    conn.execute('''
+                    sql = '''
                         INSERT INTO transactions 
                         (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, model_id, email_link)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ''', (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, current_model_id(), email_link))
+                    '''
+                    params = (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, current_model_id(), email_link)
                 
-                transaction_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
+                if POSTGRES_URL:
+                    sql += ' RETURNING id'
+                    cursor = conn.execute(sql, params)
+                    transaction_id = cursor.fetchone()['id']
+                else:
+                    conn.execute(sql, params)
+                    transaction_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
 
                 conn.commit()
                 return redirect(url_for('transactions'))
@@ -1685,11 +1693,19 @@ def restore_deleted_transaction(deleted_id):
         row = conn.execute('SELECT * FROM deleted_transactions WHERE id = ? AND model_id = ?', (deleted_id, current_model_id())).fetchone()
         if not row:
             return redirect(url_for('transactions_bin'))
-        conn.execute('''
+        sql = '''
             INSERT INTO transactions (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, is_paid, transaction_date, model_id, email_link)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (row['client_name'], row['email'], row['service_type'], row['applicant_name'], row['app_id'], row['country_name'], row['country_price'], row['rate'], row['addition'], row['amount'], row['amount_n'], int(row['is_paid'] or 0), row['transaction_date'], current_model_id(), row['email_link']))
-        new_transaction_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
+        '''
+        params = (row['client_name'], row['email'], row['service_type'], row['applicant_name'], row['app_id'], row['country_name'], row['country_price'], row['rate'], row['addition'], row['amount'], row['amount_n'], int(row['is_paid'] or 0), row['transaction_date'], current_model_id(), row['email_link'])
+
+        if POSTGRES_URL:
+            sql += ' RETURNING id'
+            cursor = conn.execute(sql, params)
+            new_transaction_id = cursor.fetchone()['id']
+        else:
+            conn.execute(sql, params)
+            new_transaction_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
         client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (row['client_name'], current_model_id())).fetchone()
         if client and int(row['is_paid'] or 0) == 1:
             balance_before = client['balance']
