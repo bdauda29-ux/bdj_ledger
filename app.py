@@ -1066,13 +1066,34 @@ def balance_history(client_id):
 @app.route('/countries')
 def countries():
     """View all countries"""
-    conn = get_db_connection()
-    countries_list = conn.execute('SELECT * FROM countries ORDER BY name').fetchall()
     try:
-        edit_id = int(request.args.get('edit_id')) if request.args.get('edit_id') else None
-    except ValueError:
-        edit_id = None
-    return render_template('countries.html', countries=countries_list, edit_id=edit_id, error=request.args.get('error'), message=request.args.get('message'))
+        conn = get_db_connection()
+        countries_list = conn.execute('SELECT id, name, COALESCE(price, 0.0) AS price, continent FROM countries ORDER BY name').fetchall()
+        try:
+            edit_id = int(request.args.get('edit_id')) if request.args.get('edit_id') else None
+        except ValueError:
+            edit_id = None
+        return render_template('countries.html', countries=countries_list, edit_id=edit_id, error=request.args.get('error'), message=request.args.get('message'))
+    except Exception as e:
+        import traceback
+        debug_info = []
+        try:
+            conn_debug = get_db_connection()
+            if POSTGRES_URL:
+                tables = conn_debug.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public'").fetchall()
+                table_names = [t['table_name'] for t in tables]
+                debug_info.append(f"Tables found: {table_names}")
+                if 'countries' in table_names:
+                    c_count = conn_debug.execute("SELECT count(*) FROM countries").fetchone()
+                    debug_info.append(f"Countries count: {c_count}")
+            else:
+                tables = conn_debug.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+                table_names = [t['name'] for t in tables]
+                debug_info.append(f"Tables found: {table_names}")
+        except Exception as db_e:
+            debug_info.append(f"Debug check failed: {db_e}")
+        debug_html = "<br>".join(str(x) for x in debug_info)
+        return f"<h1>Countries Error</h1><pre>{traceback.format_exc()}</pre><h3>Debug Info</h3><pre>{debug_html}</pre>", 500
 
 @app.route('/countries/add', methods=['GET', 'POST'])
 def add_country():
