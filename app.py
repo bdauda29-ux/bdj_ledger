@@ -10,6 +10,7 @@ from email.message import EmailMessage
 try:
     import psycopg2
     import psycopg2.extras
+    import psycopg2.extensions
 except Exception:
     psycopg2 = None
 
@@ -38,9 +39,18 @@ if psycopg2 is not None:
             sql = sql.replace('date(', 'DATE(')
             return sql
         def execute(self, sql, params=None):
-            cur = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute(self._convert_sql(sql), params or [])
-            return cur
+            try:
+                if self.conn.get_transaction_status() == psycopg2.extensions.TRANSACTION_STATUS_INERROR:
+                    self.conn.rollback()
+                cur = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                cur.execute(self._convert_sql(sql), params or [])
+                return cur
+            except Exception as e:
+                try:
+                    self.conn.rollback()
+                except Exception:
+                    pass
+                raise e
         def commit(self):
             self.conn.commit()
         def close(self):
