@@ -24,6 +24,7 @@
                 <th>Addition</th>
                 <th>Amount</th>
                 <th>Amount N</th>
+                <th>Email/Link</th>
                 <th>Date</th>
                 <th>Actions</th>
             </tr>
@@ -93,6 +94,10 @@
         <div class="mobile-card-row">
             <span class="mobile-card-label">Amount N:</span>
             <span class="mobile-card-value"><strong>{{ "%.2f"|format(transaction.amount_n) }}</strong></span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Email/Link:</span>
+            <span class="mobile-card-value">{{ transaction.email_link or '' }}</span>
         </div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Date:</span>

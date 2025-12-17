@@ -1602,9 +1602,9 @@ def restore_deleted_transaction(deleted_id):
         if not row:
             return redirect(url_for('transactions_bin'))
         conn.execute('''
-            INSERT INTO transactions (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, is_paid, transaction_date, model_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (row['client_name'], row['email'], row['service_type'], row['applicant_name'], row['app_id'], row['country_name'], row['country_price'], row['rate'], row['addition'], row['amount'], row['amount_n'], int(row['is_paid'] or 0), row['transaction_date'], current_model_id()))
+            INSERT INTO transactions (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, is_paid, transaction_date, model_id, email_link)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (row['client_name'], row['email'], row['service_type'], row['applicant_name'], row['app_id'], row['country_name'], row['country_price'], row['rate'], row['addition'], row['amount'], row['amount_n'], int(row['is_paid'] or 0), row['transaction_date'], current_model_id(), row['email_link']))
         new_transaction_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
         client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (row['client_name'], current_model_id())).fetchone()
         if client and int(row['is_paid'] or 0) == 1:

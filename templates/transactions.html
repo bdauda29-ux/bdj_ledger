@@ -102,6 +102,7 @@
                 <td>{{ transaction.service_type }}</td>
                 <td>$ {{ "%.2f"|format(transaction.amount) }}</td>
                 <td><strong>₦ {{ "%.2f"|format(transaction.amount_n) }}</strong></td>
+                <td>{{ transaction.email_link or '' }}</td>
                 <td>{{ transaction.transaction_date }}</td>
                 <td>
                     <a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" class="btn btn-secondary btn-sm">Edit</a>
