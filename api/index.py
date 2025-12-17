@@ -5,8 +5,8 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 # Vercel serverless functions have ephemeral storage; write to /tmp
+# Note: For persistent data, use POSTGRES_URL environment variable
 os.environ.setdefault('DATABASE', '/tmp/ledger.db')
-os.environ.setdefault('DISABLE_AUTH', '1')
 
 try:
     from wsgi import application as app
