@@ -18,7 +18,12 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.secret_key = os.getenv('SECRET_KEY', 'change-this-secret-key')
 DATABASE = os.getenv('DATABASE', 'ledger.db')
-POSTGRES_URL = os.getenv('POSTGRES_URL') or os.getenv('POSTGRES_URL_NON_POOLING') or os.getenv('DATABASE_URL')
+POSTGRES_URL = (
+    os.getenv('POSTGRES_URL')
+    or os.getenv('POSTGRES_URL_NON_POOLING')
+    or os.getenv('DATABASE_URL_NON_POOLING')
+    or os.getenv('DATABASE_URL')
+)
 if psycopg2 is None:
     POSTGRES_URL = None
 
