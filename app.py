@@ -206,10 +206,10 @@ def init_db():
         for sql in migrations:
             try:
                 cursor.execute(sql)
-                conn.commit()
             except Exception as e:
-                # If IF NOT EXISTS is not supported or other error, rollback and ignore (assume exists)
-                conn.rollback()
+                import sys
+                print(f"Migration Warning: {sql} failed: {e}", file=sys.stderr)
+                # Continue with next migration
 
         conn.autocommit = False
         conn.commit()
