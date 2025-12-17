@@ -42,6 +42,9 @@
         <div class="container" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;">
             <p>&copy; 2024 Ledger System. All rights reserved.</p>
             <ul class="nav-menu" style="display:flex; gap:10px; list-style:none; margin:0; padding:0;">
+                {% if session.model_name %}
+                <li><a href="{{ url_for('models') }}">Model: {{ session.model_name }}</a></li>
+                {% endif %}
                 {% if session.permissions and session.permissions.is_admin %}
                 <li><a href="{{ url_for('models') }}">Models</a></li>
                 <li><a href="{{ url_for('list_users') }}">Users</a></li>
