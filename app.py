@@ -1240,10 +1240,26 @@ def add_transaction():
             applicant_name = request.form.get('applicant_name', '')
             email = request.form.get('email', '')
             service_type = request.form.get('service_type', 'eVisa')
-            app_id = int(request.form['app_id'])
+            try:
+                app_id = int(request.form['app_id'])
+            except (ValueError, TypeError):
+                 return render_template('add_transaction.html', 
+                                     clients=conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall(), 
+                                     countries=conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall(),
+                                     error='Invalid App ID')
+
             country_name = request.form['country_name']
-            rate = float(request.form.get('rate') or 1.0)
-            addition = float(request.form.get('add') or 0.0)
+            
+            try:
+                rate = float(request.form.get('rate') or 1.0)
+            except ValueError:
+                rate = 1.0
+                
+            try:
+                addition = float(request.form.get('add') or 0.0)
+            except ValueError:
+                addition = 0.0
+
             transaction_date_str = request.form.get('transaction_date')
             transaction_date = None
             if transaction_date_str:
@@ -1293,10 +1309,13 @@ def add_transaction():
             return redirect(url_for('transactions'))
         except Exception as e:
             import traceback
+            import sys
+            print(f"ERROR in add_transaction: {e}", file=sys.stderr)
+            traceback.print_exc()
             with open('traceback.log', 'a') as f:
                 f.write('\n\n=== EXCEPTION IN add_transaction ===\n')
                 f.write(traceback.format_exc())
-            return render_template('base.html', error='The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.'), 500
+            return render_template('base.html', error=f'Error: {str(e)}'), 500
     
     clients_list = conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall()
     countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
@@ -1329,8 +1348,16 @@ def edit_transaction(transaction_id):
             except (TypeError, ValueError):
                 app_id = 0
             country_name = request.form['country_name']
-            rate = float(request.form.get('rate') or 1.0)
-            addition = float(request.form.get('add') or 0.0)
+            try:
+                rate = float(request.form.get('rate') or 1.0)
+            except ValueError:
+                rate = 1.0
+            
+            try:
+                addition = float(request.form.get('add') or 0.0)
+            except ValueError:
+                addition = 0.0
+
             transaction_date_str = request.form.get('transaction_date')
             transaction_date = None
             if transaction_date_str:
@@ -1411,8 +1438,11 @@ def edit_transaction(transaction_id):
         
             conn.commit()
             return redirect(url_for('transactions'))
-        except Exception:
+        except Exception as e:
             import traceback
+            import sys
+            print(f"ERROR in edit_transaction: {e}", file=sys.stderr)
+            traceback.print_exc()
             with open('traceback.log', 'a') as f:
                 f.write('\n\n=== EXCEPTION IN edit_transaction ===\n')
                 f.write(traceback.format_exc())
@@ -1427,7 +1457,7 @@ def edit_transaction(transaction_id):
                                  transaction=transaction,
                                  clients=clients_list, 
                                  countries=countries_list,
-                                 error='An unexpected error occurred while updating. Please review inputs.')
+                                 error=f'An unexpected error occurred: {str(e)}')
     
     transaction = conn.execute('SELECT * FROM transactions WHERE id = ? AND model_id = ?', (transaction_id, current_model_id())).fetchone()
     clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
