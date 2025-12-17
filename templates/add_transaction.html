@@ -145,6 +145,12 @@
             countrySelect.value = "";
             calculateAmounts(); // Recalculate (will clear values)
         }
+        
+        // Sync Tom Select if it exists
+        if (countrySelect.tomselect) {
+            countrySelect.tomselect.sync();
+            countrySelect.tomselect.setValue(countrySelect.value, true);
+        }
     }
 
     serviceTypeSelect.addEventListener('change', filterCountries);

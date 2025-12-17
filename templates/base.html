@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Ledger System{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <style>
+        /* Tom Select Dark Mode/Theme Adjustments if needed */
+        .ts-control {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 8px;
+        }
+        .ts-wrapper.single .ts-control {
+            box-shadow: none;
+            background-image: none;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -58,6 +71,21 @@
     </footer>
     
     <script src="{{ url_for('static', filename='main.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('select').forEach(function(el) {
+                if (el.tomselect) return;
+                new TomSelect(el, {
+                    create: false,
+                    sortField: {
+                        field: "text",
+                        direction: "asc"
+                    }
+                });
+            });
+        });
+    </script>
     <script>
         // Mobile menu toggle
         const menuToggle = document.getElementById('menuToggle');

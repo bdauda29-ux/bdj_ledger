@@ -168,6 +168,12 @@
         
         // Trigger calculation updates if selection changed or stayed same
         calculateAmounts();
+        
+        // Sync Tom Select if it exists
+        if (countrySelect.tomselect) {
+            countrySelect.tomselect.sync();
+            countrySelect.tomselect.setValue(countrySelect.value, true);
+        }
     }
 
     serviceTypeSelect.addEventListener('change', filterCountries);
