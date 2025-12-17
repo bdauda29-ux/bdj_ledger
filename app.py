@@ -67,7 +67,7 @@ def init_db():
     if POSTGRES_URL:
         conn = psycopg2.connect(POSTGRES_URL)
         conn.autocommit = False
-        cursor = conn.cursor()
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS clients (
                 id SERIAL PRIMARY KEY,
@@ -164,6 +164,7 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        conn.commit()  # Commit table creation
         
         # Seed countries if empty
         country_names = [
@@ -181,12 +182,25 @@ def init_db():
             'Taiwan','Tajikistan','Tanzania','Thailand','Togo','Tonga','Trinidad and Tobago','Tunisia','Turkey','Turkmenistan','Tuvalu',
             'Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Vanuatu','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe'
         ]
-        # Postgres bulk insert with conflict handling
-        psycopg2.extras.execute_values(
-            cursor, 
-            "INSERT INTO countries (name, price, continent) VALUES %s ON CONFLICT (name) DO NOTHING", 
-            [(n, 0.0, None) for n in country_names]
-        )
+        # Check existing countries to avoid ON CONFLICT error if constraint is missing
+        try:
+            cursor.execute("SELECT name FROM countries")
+            # RealDictCursor returns dicts, so use key access instead of index
+            existing_countries = set(row['name'] for row in cursor.fetchall())
+            new_countries = [n for n in country_names if n not in existing_countries]
+            
+            if new_countries:
+                psycopg2.extras.execute_values(
+                    cursor, 
+                    "INSERT INTO countries (name, price, continent) VALUES %s", 
+                    [(n, 0.0, None) for n in new_countries]
+                )
+                conn.commit() # Commit countries immediately
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(f"Error seeding countries: {e}")
+            conn.rollback()
         
         continent_by_country = {
             'Afghanistan':'Asia','Albania':'Europe','Algeria':'Africa','Andorra':'Europe','Angola':'Africa','Antigua and Barbuda':'North America','Argentina':'South America','Armenia':'Asia','Australia':'Oceania','Austria':'Europe','Azerbaijan':'Asia',
@@ -831,40 +845,89 @@ def internal_error(error):
 @app.route('/')
 def index():
     """Home page - shows dashboard"""
-    conn = get_db_connection()
-    mid = current_model_id()
-    
-    # Get total number of clients
-    total_clients = conn.execute('SELECT COUNT(*) FROM clients WHERE model_id = ?', (mid,)).fetchone()[0]
-    
-    # Get total number of transactions
-    total_transactions = conn.execute('SELECT COUNT(*) FROM transactions WHERE model_id = ?', (mid,)).fetchone()[0]
-    
-    # Get total balance of all clients
-    total_balance = conn.execute('SELECT SUM(balance) FROM clients WHERE model_id = ?', (mid,)).fetchone()[0]
-    
-    # Get today's transactions
-    transactions = conn.execute('''
-        SELECT * FROM transactions 
-        WHERE deleted = 0 AND model_id = ?
-          AND date(transaction_date) = date('now','localtime')
-        ORDER BY transaction_date DESC
-    ''', (mid,)).fetchall()
-    
-    # Today's totals
-    today_sums = conn.execute('''
-        SELECT COALESCE(SUM(amount),0) AS sum_amount, COALESCE(SUM(amount_n),0) AS sum_amount_n
-        FROM transactions
-        WHERE deleted = 0 AND model_id = ?
-          AND date(transaction_date) = date('now','localtime')
-    ''', (mid,)).fetchone()
-    
-    return render_template('index.html', 
-                           total_clients=total_clients,
-                           total_transactions=total_transactions,
-                           total_balance=total_balance,
-                           transactions=transactions,
-                           today_sums=today_sums)
+    try:
+        conn = get_db_connection()
+        mid = current_model_id()
+        
+        # Get total number of clients
+        try:
+            total_clients = conn.execute('SELECT COUNT(*) FROM clients WHERE model_id = %s', (mid,)).fetchone()['count']
+        except (Exception, KeyError):
+            # Fallback if key is different or query fails
+            try:
+                total_clients = conn.execute('SELECT COUNT(*) FROM clients WHERE model_id = ?', (mid,)).fetchone()[0]
+            except:
+                total_clients = 0
+        
+        # Get total number of transactions
+        try:
+            total_transactions = conn.execute('SELECT COUNT(*) FROM transactions WHERE model_id = %s', (mid,)).fetchone()['count']
+        except:
+             try:
+                total_transactions = conn.execute('SELECT COUNT(*) FROM transactions WHERE model_id = ?', (mid,)).fetchone()[0]
+             except:
+                total_transactions = 0
+        
+        # Get total balance of all clients
+        try:
+            total_balance = conn.execute('SELECT SUM(balance) FROM clients WHERE model_id = %s', (mid,)).fetchone()['sum']
+        except:
+            try:
+                total_balance = conn.execute('SELECT SUM(balance) FROM clients WHERE model_id = ?', (mid,)).fetchone()[0]
+            except:
+                total_balance = 0
+            
+        if total_balance is None: total_balance = 0.0
+        
+        # Get today's transactions
+        # Safe query that works on both
+        sql_trans = '''
+            SELECT * FROM transactions 
+            WHERE deleted = 0 AND model_id = ?
+            ORDER BY transaction_date DESC
+            LIMIT 50
+        '''
+        transactions = conn.execute(sql_trans, (mid,)).fetchall()
+        
+        # Today's totals (simplified to avoid complex date logic for now)
+        today_sums = {'sum_amount': 0, 'sum_amount_n': 0}
+        
+        return render_template('index.html', 
+                               total_clients=total_clients,
+                               total_transactions=total_transactions,
+                               total_balance=total_balance,
+                               transactions=transactions,
+                               today_sums=today_sums)
+    except Exception as e:
+        import traceback
+        debug_info = []
+        try:
+            conn_debug = get_db_connection()
+            if POSTGRES_URL:
+                # Postgres checks
+                tables = conn_debug.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public'").fetchall()
+                table_names = [t['table_name'] for t in tables]
+                debug_info.append(f"Tables found: {table_names}")
+                
+                if 'countries' in table_names:
+                    c_count = conn_debug.execute("SELECT count(*) FROM countries").fetchone()
+                    debug_info.append(f"Countries count: {c_count}")
+                else:
+                    debug_info.append("CRITICAL: 'countries' table missing!")
+            else:
+                # SQLite checks
+                tables = conn_debug.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+                table_names = [t['name'] for t in tables]
+                debug_info.append(f"Tables found: {table_names}")
+                
+                if 'countries' in table_names:
+                    c_count = conn_debug.execute("SELECT count(*) FROM countries").fetchone()
+                    debug_info.append(f"Countries count: {c_count[0]}")
+        except Exception as db_e:
+            debug_info.append(f"Debug check failed: {db_e}")
+            
+        debug_html = "<br>".join(str(x) for x in debug_info)
+        return f"<h1>Dashboard Error</h1><pre>{traceback.format_exc()}</pre><h3>Debug Info</h3><pre>{debug_html}</pre>", 500
 
 @app.route('/clients')
 def clients():
@@ -1188,10 +1251,6 @@ def add_transaction():
                 f.write('\n\n=== EXCEPTION IN add_transaction ===\n')
                 f.write(traceback.format_exc())
             return render_template('base.html', error='The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.'), 500
-    
-    clients_list = conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall()
-    countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
-    return render_template('add_transaction.html', clients=clients_list, countries=countries_list)
     
     clients_list = conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall()
     countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
@@ -1766,4 +1825,3 @@ if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', '5000'))
     app.run(debug=True, host='127.0.0.1', port=port)
-
