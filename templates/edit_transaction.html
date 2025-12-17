@@ -96,12 +96,85 @@
 
 <script>
     const countrySelect = document.getElementById('country_name');
+    const serviceTypeSelect = document.getElementById('service_type');
     const rateInput = document.getElementById('rate');
     const additionInput = document.getElementById('add');
     const amountDisplay = document.getElementById('amountDisplay');
     const amountNDisplay = document.getElementById('amountNDisplay');
     const countryPriceDisplay = document.getElementById('countryPriceDisplay');
     
+    // Store original options
+    // Note: We need to capture all possible options, not just what's currently visible if we filtered server-side (which we didn't)
+    // But since we are in edit mode, we want to make sure the current country is preserved even if it doesn't match the service type (though it should).
+    // The server renders all countries in the loop, so we have them all.
+    const allCountryOptions = Array.from(countrySelect.options).slice(1); // Skip "Select a country"
+
+    function filterCountries() {
+        const serviceType = serviceTypeSelect.value;
+        const currentSelected = countrySelect.value;
+        
+        // Clear current options (keep first one)
+        while (countrySelect.options.length > 1) {
+            countrySelect.remove(1);
+        }
+        
+        const excludedForEVisa = ['32pgs', '32pgs COD', '64pgs', '64pgs COD', 'TWP'];
+        const allowedForTWP = ['TWP'];
+        const allowedForPassport = ['32pgs', '32pgs COD', '64pgs', '64pgs COD'];
+        
+        allCountryOptions.forEach(option => {
+            let shouldShow = true;
+            const name = option.text.trim(); // Trim whitespace
+            
+            if (serviceType === 'eVisa') {
+                if (excludedForEVisa.includes(name)) shouldShow = false;
+            } else if (serviceType === 'TWP') {
+                if (!allowedForTWP.includes(name)) shouldShow = false;
+            } else if (serviceType === 'Passport') {
+                if (!allowedForPassport.includes(name)) shouldShow = false;
+            }
+            // eCerpac shows all
+            
+            if (shouldShow) {
+                countrySelect.add(option.cloneNode(true));
+            }
+        });
+        
+        // Restore selection if valid, otherwise reset
+        const newOptions = Array.from(countrySelect.options);
+        const exists = newOptions.some(opt => opt.value === currentSelected);
+        if (exists) {
+            countrySelect.value = currentSelected;
+        } else {
+            // If the current country is not in the filtered list, we might want to add it back temporarily or just clear it.
+            // Usually, if we change service type, we might expect country to change.
+            // But if we just loaded the page, the service type and country should match.
+            // If they don't match (e.g. data inconsistency), let's keep it selected by force adding it?
+            // For now, let's clear it if it doesn't match the filter.
+            if (currentSelected) {
+                // Check if it was filtered out
+                const originalOption = allCountryOptions.find(opt => opt.value === currentSelected);
+                if (originalOption) {
+                    // Force add it back so the user sees the invalid state or can keep it
+                     countrySelect.add(originalOption.cloneNode(true));
+                     countrySelect.value = currentSelected;
+                } else {
+                     countrySelect.value = "";
+                }
+            } else {
+                countrySelect.value = "";
+            }
+        }
+        
+        // Trigger calculation updates if selection changed or stayed same
+        calculateAmounts();
+    }
+
+    serviceTypeSelect.addEventListener('change', filterCountries);
+    
+    // Initial filter
+    filterCountries();
+
     function calculateAmounts() {
         const selectedOption = countrySelect.options[countrySelect.selectedIndex];
         const countryPrice = parseFloat(selectedOption.dataset.price) || 0;

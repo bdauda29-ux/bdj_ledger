@@ -561,6 +561,16 @@ footer p {
     }
 }
 
+/* Hide spinner for number inputs */
+.no-spinner::-webkit-inner-spin-button, 
+.no-spinner::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+}
+.no-spinner {
+    -moz-appearance: textfield;
+}
+
 /* Small mobile */
 @media (max-width: 480px) {
     .navbar h1 {

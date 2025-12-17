@@ -90,12 +90,63 @@
 
 <script>
     const countrySelect = document.getElementById('country_name');
+    const serviceTypeSelect = document.getElementById('service_type');
     const rateInput = document.getElementById('rate');
     const additionInput = document.getElementById('add');
     const amountDisplay = document.getElementById('amountDisplay');
     const amountNDisplay = document.getElementById('amountNDisplay');
     const countryPriceDisplay = document.getElementById('countryPriceDisplay');
     
+    // Store original options
+    const allCountryOptions = Array.from(countrySelect.options).slice(1); // Skip "Select a country"
+
+    function filterCountries() {
+        const serviceType = serviceTypeSelect.value;
+        const currentSelected = countrySelect.value;
+        
+        // Clear current options (keep first one)
+        while (countrySelect.options.length > 1) {
+            countrySelect.remove(1);
+        }
+        
+        const excludedForEVisa = ['32pgs', '32pgs COD', '64pgs', '64pgs COD', 'TWP'];
+        const allowedForTWP = ['TWP'];
+        const allowedForPassport = ['32pgs', '32pgs COD', '64pgs', '64pgs COD'];
+        
+        allCountryOptions.forEach(option => {
+            let shouldShow = true;
+            const name = option.text;
+            
+            if (serviceType === 'eVisa') {
+                if (excludedForEVisa.includes(name)) shouldShow = false;
+            } else if (serviceType === 'TWP') {
+                if (!allowedForTWP.includes(name)) shouldShow = false;
+            } else if (serviceType === 'Passport') {
+                if (!allowedForPassport.includes(name)) shouldShow = false;
+            }
+            // eCerpac shows all
+            
+            if (shouldShow) {
+                countrySelect.add(option.cloneNode(true));
+            }
+        });
+        
+        // Restore selection if valid, otherwise reset
+        const newOptions = Array.from(countrySelect.options);
+        const exists = newOptions.some(opt => opt.value === currentSelected);
+        if (exists) {
+            countrySelect.value = currentSelected;
+        } else {
+            countrySelect.value = "";
+            calculateAmounts(); // Recalculate (will clear values)
+        }
+    }
+
+    serviceTypeSelect.addEventListener('change', filterCountries);
+    
+    // Initial filter
+    filterCountries();
+
     function calculateAmounts() {
         const selectedOption = countrySelect.options[countrySelect.selectedIndex];
         const countryPrice = parseFloat(selectedOption.dataset.price) || 0;

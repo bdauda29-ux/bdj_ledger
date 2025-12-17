@@ -353,9 +353,11 @@ def init_db():
         'Oman':'Asia','Pakistan':'Asia','Palau':'Oceania','Panama':'North America','Papua New Guinea':'Oceania','Paraguay':'South America','Peru':'South America','Philippines':'Asia','Poland':'Europe','Portugal':'Europe','Qatar':'Asia',
         'Romania':'Europe','Russia':'Europe','Rwanda':'Africa','Saint Kitts and Nevis':'North America','Saint Lucia':'North America','Saint Vincent and the Grenadines':'North America','Samoa':'Oceania','San Marino':'Europe','Sao Tome and Principe':'Africa','Saudi Arabia':'Asia','Senegal':'Africa','Serbia':'Europe','Seychelles':'Africa','Sierra Leone':'Africa','Singapore':'Asia','Slovakia':'Europe','Slovenia':'Europe','Solomon Islands':'Oceania','Somalia':'Africa','South Africa':'Africa','South Korea':'Asia','South Sudan':'Africa','Spain':'Europe','Sri Lanka':'Asia','Sudan':'Africa','Suriname':'South America','Sweden':'Europe','Switzerland':'Europe','Syria':'Asia',
         'Taiwan':'Asia','Tajikistan':'Asia','Tanzania':'Africa','Thailand':'Asia','Togo':'Africa','Tonga':'Oceania','Trinidad and Tobago':'North America','Tunisia':'Africa','Turkey':'Asia','Turkmenistan':'Asia','Tuvalu':'Oceania',
-        'Uganda':'Africa','Ukraine':'Europe','United Arab Emirates':'Asia','United Kingdom':'Europe','United States':'North America','Uruguay':'South America','Uzbekistan':'Asia','Vanuatu':'Oceania','Venezuela':'South America','Vietnam':'Asia','Yemen':'Asia','Zambia':'Africa','Zimbabwe':'Africa'
+        'Uganda':'Africa','Ukraine':'Europe','United Arab Emirates':'Asia','United Kingdom':'Europe','United States':'North America','Uruguay':'South America','Uzbekistan':'Asia','Vanuatu':'Oceania','Venezuela':'South America','Vietnam':'Asia','Yemen':'Asia','Zambia':'Africa','Zimbabwe':'Africa',
+        'TWP':'Africa', '32pgs':'Africa', '32pgs COD':'Africa', '64pgs':'Africa', '64pgs COD':'Africa'
     }
     for n, cont in continent_by_country.items():
+        cursor.execute('INSERT OR IGNORE INTO countries (name, price, continent) VALUES (?, ?, ?)', (n, 0.0, cont))
         cursor.execute('UPDATE countries SET continent = ? WHERE name = ? AND (continent IS NULL OR continent = "")', (cont, n))
 
     # --- Transactions Table ---
@@ -409,6 +411,10 @@ def init_db():
         pass
     try:
         cursor.execute('ALTER TABLE transactions ADD COLUMN is_paid INTEGER DEFAULT 0')
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute('ALTER TABLE transactions ADD COLUMN email_link TEXT')
     except sqlite3.OperationalError:
         pass
     try:
@@ -474,6 +480,7 @@ def init_db():
         ('amount', 'REAL'),
         ('amount_n', 'REAL'),
         ('is_paid', 'INTEGER DEFAULT 0'),
+        ('email_link', 'TEXT'),
         ('transaction_date', 'TIMESTAMP'),
         ('deleted_at', "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
         ('model_id', 'INTEGER'),
@@ -1259,6 +1266,8 @@ def add_transaction():
             country_price = country['price']
             amount = country_price + addition
             amount_n = amount * rate
+            email_link = request.form.get('email_link', '')
+            
             exists = conn.execute('SELECT id FROM transactions WHERE app_id = ? AND model_id = ?', (app_id, current_model_id())).fetchone()
             if exists:
                 clients_list = conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall()
@@ -1268,15 +1277,15 @@ def add_transaction():
             if transaction_date:
                 conn.execute('''
                     INSERT INTO transactions 
-                    (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, model_id)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, current_model_id()))
+                    (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, model_id, email_link)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, current_model_id(), email_link))
             else:
                 conn.execute('''
                     INSERT INTO transactions 
-                    (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, model_id)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, current_model_id()))
+                    (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, model_id, email_link)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, current_model_id(), email_link))
             
             transaction_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
 
@@ -1313,6 +1322,7 @@ def edit_transaction(transaction_id):
             client_name = request.form['client_name']
             applicant_name = request.form.get('applicant_name', '')
             email = request.form.get('email', '')
+            email_link = request.form.get('email_link', '')
             service_type = request.form.get('service_type', 'eVisa')
             try:
                 app_id = int(request.form.get('app_id', '0'))
@@ -1360,17 +1370,16 @@ def edit_transaction(transaction_id):
                 conn.execute('''
                     UPDATE transactions 
                     SET client_name = ?, email = ?, service_type = ?, applicant_name = ?, app_id = ?, country_name = ?, 
-                        country_price = ?, rate = ?, addition = ?, amount = ?, amount_n = ?, transaction_date = ?
+                        country_price = ?, rate = ?, addition = ?, amount = ?, amount_n = ?, transaction_date = ?, email_link = ?
                     WHERE id = ?
-                ''', (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, transaction_id))
+                ''', (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, email_link, transaction_id))
             else:
                 conn.execute('''
                     UPDATE transactions 
                     SET client_name = ?, email = ?, service_type = ?, applicant_name = ?, app_id = ?, country_name = ?, 
-                        country_price = ?, rate = ?, addition = ?, amount = ?, amount_n = ?
+                        country_price = ?, rate = ?, addition = ?, amount = ?, amount_n = ?, email_link = ?
                     WHERE id = ?
-                ''', (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_id))
-        
+                ''', (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, email_link, transaction_id))
         
             original_client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (original_client_name, current_model_id())).fetchone()
             if original_client:
