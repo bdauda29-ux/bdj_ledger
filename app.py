@@ -1811,15 +1811,13 @@ def export_pdf(transactions, sums):
     elements.append(Spacer(1, 0.2))
     
     # Create table data
-    data = [['S.No', 'Applicant', 'App ID', 'Country', 'Service', 'Email', 'Amount ($)', 'Rate', 'Amount N (₦)', 'Date']]
+    data = [['S.No', 'Applicant', 'App ID', 'Country', 'Amount ($)', 'Rate', 'Amount N (₦)', 'Date']]
     for idx, trans in enumerate(transactions, start=1):
         data.append([
             str(idx),
             trans['applicant_name'] or '',
             str(trans['app_id']),
             trans['country_name'],
-            trans['service_type'] or '',
-            trans['email'] or '',
             f"${trans['amount']:.2f}",
             f"{trans['rate']:.2f}",
             f"₦{trans['amount_n']:.2f}",
@@ -1827,7 +1825,7 @@ def export_pdf(transactions, sums):
         ])
     
     # Add sums row
-    data.append(['', '', '', '', '', 'TOTAL:', f"${sums['sum_amount']:.2f}", '', f"₦{sums['sum_amount_n']:.2f}", ''])
+    data.append(['', '', '', 'TOTAL:', f"${sums['sum_amount']:.2f}", '', f"₦{sums['sum_amount_n']:.2f}", ''])
     
     table = Table(data)
     style_cmds = [
@@ -1885,8 +1883,8 @@ def export_jpeg(transactions, sums):
     y += 30
     
     # Headers
-    headers = ['S.No', 'Applicant', 'App ID', 'Country', 'Service', 'Email', 'Amount ($)', 'Rate', 'Amount N (₦)', 'Date']
-    x_positions = [10, 80, 220, 320, 460, 560, 700, 780, 900, 1020]
+    headers = ['S.No', 'Applicant', 'App ID', 'Country', 'Amount ($)', 'Rate', 'Amount N (₦)', 'Date']
+    x_positions = [10, 80, 280, 380, 560, 680, 800, 960]
     
     for i, header in enumerate(headers):
         draw.text((x_positions[i], y), header, fill='black', font=font)
@@ -1900,11 +1898,9 @@ def export_jpeg(transactions, sums):
             draw.rectangle([(10, y-3), (width-10, y+22)], fill=(230, 255, 237))
         row_data = [
             str(idx),
-            (trans['applicant_name'] or '')[:15],
+            (trans['applicant_name'] or '')[:25],
             str(trans['app_id']),
-            trans['country_name'][:15],
-            (trans['service_type'] or '')[:12],
-            (trans['email'] or '')[:14],
+            trans['country_name'][:20],
             f"${trans['amount']:.2f}",
             f"{trans['rate']:.2f}",
             f"₦{trans['amount_n']:.2f}",
@@ -1919,9 +1915,9 @@ def export_jpeg(transactions, sums):
     y += 10
     draw.line([(10, y), (width-10, y)], fill='black', width=1)
     y += 10
-    draw.text((x_positions[4], y), f'TOTAL:', fill='black', font=font)
-    draw.text((x_positions[6], y), f'${sums["sum_amount"]:.2f}', fill='black', font=font)
-    draw.text((x_positions[8], y), f'₦{sums["sum_amount_n"]:.2f}', fill='black', font=font)
+    draw.text((x_positions[3], y), f'TOTAL:', fill='black', font=font)
+    draw.text((x_positions[4], y), f'${sums["sum_amount"]:.2f}', fill='black', font=font)
+    draw.text((x_positions[6], y), f'₦{sums["sum_amount_n"]:.2f}', fill='black', font=font)
     
     buffer = BytesIO()
     img.save(buffer, format='JPEG')
