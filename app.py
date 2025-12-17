@@ -1857,6 +1857,22 @@ def get_country_price(country_name):
 def internal_server_error(error):
     return render_template('base.html', error='The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.'), 500
 
+@app.route('/health/init')
+def health_init():
+    try:
+        init_db()
+        conn = get_db_connection()
+        if POSTGRES_URL:
+            rows = conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public'").fetchall()
+            names = [r['table_name'] for r in rows]
+        else:
+            rows = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+            names = [r['name'] for r in rows]
+        return jsonify({'status': 'ok', 'tables': names})
+    except Exception as e:
+        import traceback
+        return jsonify({'status': 'error', 'error': str(e), 'traceback': traceback.format_exc()}), 500
+
 if __name__ == '__main__':
     init_db()
     import os
