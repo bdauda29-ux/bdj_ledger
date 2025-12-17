@@ -179,11 +179,40 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_models_name ON models(name)')
+        
+        # --- Postgres Migrations (Ensure columns exist) ---
+        migrations = [
+            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS applicant_name TEXT',
+            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS email_link TEXT',
+            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS service_type TEXT DEFAULT \'eVisa\'',
+            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS country_price REAL',
+            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS rate REAL',
+            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS addition REAL',
+            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS amount_n REAL',
+            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS deleted INTEGER DEFAULT 0',
+            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS is_paid INTEGER DEFAULT 0',
+            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS model_id INTEGER',
+            'ALTER TABLE balance_history ADD COLUMN IF NOT EXISTS model_id INTEGER',
+            'ALTER TABLE clients ADD COLUMN IF NOT EXISTS model_id INTEGER',
+            'ALTER TABLE countries ADD COLUMN IF NOT EXISTS model_id INTEGER',
+            'ALTER TABLE countries ADD COLUMN IF NOT EXISTS continent TEXT'
+        ]
+        
+        for sql in migrations:
+            try:
+                cursor.execute(sql)
+                conn.commit()
+            except Exception as e:
+                # If IF NOT EXISTS is not supported or other error, rollback and ignore (assume exists)
+                conn.rollback()
+
         conn.autocommit = False
         conn.commit()
         
         # Seed countries if empty
         country_names = [
+            'TWP', '32pgs', '32pgs COD', '64pgs', '64pgs COD',
             'Afghanistan','Albania','Algeria','Andorra','Angola','Antigua and Barbuda','Argentina','Armenia','Australia','Austria','Azerbaijan',
             'Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium','Belize','Benin','Bhutan','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Brunei','Bulgaria','Burkina Faso','Burundi',
             'Cabo Verde','Cambodia','Cameroon','Canada','Central African Republic','Chad','Chile','China','Colombia','Comoros','Congo','Costa Rica','Côte d’Ivoire','Croatia','Cuba','Cyprus','Czechia',
@@ -231,7 +260,8 @@ def init_db():
             'Oman':'Asia','Pakistan':'Asia','Palau':'Oceania','Panama':'North America','Papua New Guinea':'Oceania','Paraguay':'South America','Peru':'South America','Philippines':'Asia','Poland':'Europe','Portugal':'Europe','Qatar':'Asia',
             'Romania':'Europe','Russia':'Europe','Rwanda':'Africa','Saint Kitts and Nevis':'North America','Saint Lucia':'North America','Saint Vincent and the Grenadines':'North America','Samoa':'Oceania','San Marino':'Europe','Sao Tome and Principe':'Africa','Saudi Arabia':'Asia','Senegal':'Africa','Serbia':'Europe','Seychelles':'Africa','Sierra Leone':'Africa','Singapore':'Asia','Slovakia':'Europe','Slovenia':'Europe','Solomon Islands':'Oceania','Somalia':'Africa','South Africa':'Africa','South Korea':'Asia','South Sudan':'Africa','Spain':'Europe','Sri Lanka':'Asia','Sudan':'Africa','Suriname':'South America','Sweden':'Europe','Switzerland':'Europe','Syria':'Asia',
             'Taiwan':'Asia','Tajikistan':'Asia','Tanzania':'Africa','Thailand':'Asia','Togo':'Africa','Tonga':'Oceania','Trinidad and Tobago':'North America','Tunisia':'Africa','Turkey':'Asia','Turkmenistan':'Asia','Tuvalu':'Oceania',
-            'Uganda':'Africa','Ukraine':'Europe','United Arab Emirates':'Asia','United Kingdom':'Europe','United States':'North America','Uruguay':'South America','Uzbekistan':'Asia','Vanuatu':'Oceania','Venezuela':'South America','Vietnam':'Asia','Yemen':'Asia','Zambia':'Africa','Zimbabwe':'Africa'
+            'Uganda':'Africa','Ukraine':'Europe','United Arab Emirates':'Asia','United Kingdom':'Europe','United States':'North America','Uruguay':'South America','Uzbekistan':'Asia','Vanuatu':'Oceania','Venezuela':'South America','Vietnam':'Asia','Yemen':'Asia','Zambia':'Africa','Zimbabwe':'Africa',
+            'TWP':'Africa', '32pgs':'Africa', '32pgs COD':'Africa', '64pgs':'Africa', '64pgs COD':'Africa'
         }
         for n, cont in continent_by_country.items():
             cursor.execute('UPDATE countries SET continent = %s WHERE name = %s AND (continent IS NULL OR continent = %s)', (cont, n, ''))
@@ -325,6 +355,7 @@ def init_db():
     except sqlite3.OperationalError:
         pass
     country_names = [
+        'TWP', '32pgs', '32pgs COD', '64pgs', '64pgs COD',
         'Afghanistan','Albania','Algeria','Andorra','Angola','Antigua and Barbuda','Argentina','Armenia','Australia','Austria','Azerbaijan',
         'Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium','Belize','Benin','Bhutan','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Brunei','Bulgaria','Burkina Faso','Burundi',
         'Cabo Verde','Cambodia','Cameroon','Canada','Central African Republic','Chad','Chile','China','Colombia','Comoros','Congo','Costa Rica','Côte d’Ivoire','Croatia','Cuba','Cyprus','Czechia',
