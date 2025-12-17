@@ -109,6 +109,7 @@ def init_db():
                 client_name TEXT NOT NULL,
                 email TEXT,
                 service_type TEXT DEFAULT 'eVisa',
+                applicant_name TEXT,
                 app_id INTEGER NOT NULL,
                 country_name TEXT NOT NULL,
                 country_price REAL,
@@ -119,7 +120,8 @@ def init_db():
                 transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 deleted INTEGER DEFAULT 0,
                 is_paid INTEGER DEFAULT 0,
-                model_id INTEGER
+                model_id INTEGER,
+                email_link TEXT
             )
         ''')
         cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_app_unique ON transactions(app_id, model_id)')
@@ -155,7 +157,8 @@ def init_db():
                 is_paid INTEGER DEFAULT 0,
                 transaction_date TIMESTAMP,
                 deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                model_id INTEGER
+                model_id INTEGER,
+                email_link TEXT
             )
         ''')
         cursor.execute('''
@@ -196,7 +199,8 @@ def init_db():
             'ALTER TABLE balance_history ADD COLUMN IF NOT EXISTS model_id INTEGER',
             'ALTER TABLE clients ADD COLUMN IF NOT EXISTS model_id INTEGER',
             'ALTER TABLE countries ADD COLUMN IF NOT EXISTS model_id INTEGER',
-            'ALTER TABLE countries ADD COLUMN IF NOT EXISTS continent TEXT'
+            'ALTER TABLE countries ADD COLUMN IF NOT EXISTS continent TEXT',
+            'ALTER TABLE deleted_transactions ADD COLUMN IF NOT EXISTS email_link TEXT'
         ]
         
         for sql in migrations:
@@ -1260,6 +1264,10 @@ def transactions():
 @app.route('/transactions/add', methods=['GET', 'POST'])
 def add_transaction():
     """Add a new transaction"""
+    startup_error = app.config.get('STARTUP_ERROR')
+    if startup_error:
+        return render_template('base.html', error=f'Database Startup Error: {startup_error}'), 500
+
     perms = session.get('permissions', {})
     if not perms.get('can_add_transaction') and not perms.get('is_admin'):
         return redirect(url_for('transactions'))

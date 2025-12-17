@@ -21,6 +21,8 @@ data/
 *.db
 ledger.db
 traceback.log
+reproduce_*.py
+test_*.py
 
 # OS
 .DS_Store
