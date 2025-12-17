@@ -1353,9 +1353,7 @@ def add_transaction():
                 import sys
                 print(f"ERROR in add_transaction: {e}", file=sys.stderr)
                 traceback.print_exc()
-                with open('traceback.log', 'a') as f:
-                    f.write('\n\n=== EXCEPTION IN add_transaction ===\n')
-                    f.write(traceback.format_exc())
+                # Removed file logging for Vercel compatibility
                 return render_template('base.html', error=f'Error processing transaction: {str(e)}'), 500
         
         clients_list = conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall()
@@ -1488,9 +1486,7 @@ def edit_transaction(transaction_id):
             import sys
             print(f"ERROR in edit_transaction: {e}", file=sys.stderr)
             traceback.print_exc()
-            with open('traceback.log', 'a') as f:
-                f.write('\n\n=== EXCEPTION IN edit_transaction ===\n')
-                f.write(traceback.format_exc())
+            # Removed file logging for Vercel compatibility
             try:
                 conn.rollback()
             except Exception:
@@ -1578,9 +1574,8 @@ def pay_transaction(transaction_id):
         return redirect(url_for('transactions'))
     except Exception:
         import traceback
-        with open('traceback.log', 'a') as f:
-            f.write('\n\n=== EXCEPTION IN pay_transaction ===\n')
-            f.write(traceback.format_exc())
+        import sys
+        traceback.print_exc()
         try:
             conn.rollback()
         except Exception:
@@ -1612,9 +1607,8 @@ def undo_pay_transaction(transaction_id):
         return redirect(url_for('transactions'))
     except Exception:
         import traceback
-        with open('traceback.log', 'a') as f:
-            f.write('\n\n=== EXCEPTION IN undo_pay_transaction ===\n')
-            f.write(traceback.format_exc())
+        import sys
+        traceback.print_exc()
         try:
             conn.rollback()
         except Exception:
