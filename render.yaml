@@ -2,25 +2,14 @@ services:
   - type: web
     name: ledger-app
     env: docker
-    plan: free
+    plan: starter
     dockerfilePath: Dockerfile
     autoDeploy: true
     healthCheckPath: /
     envVars:
+      - key: DATABASE
+        value: /app/data/ledger.db
       - key: SECRET_KEY
-        generateValue: true
-      - key: POSTGRES_URL
-        fromDatabase:
-          name: ledger-db
-          property: connectionString
-      - key: WEB_CONCURRENCY
-        value: "2"
+        value: change-this-secret-key
       - key: SMTP_USE_TLS
         value: "1"
-
-databases:
-  - name: ledger-db
-    databaseName: ledger
-    user: ledger
-    plan: free # Note: Free tier Postgres expires after 90 days. Change to 'starter' for permanent storage.
-    ipAllowList: [] # Allow internal access only by default

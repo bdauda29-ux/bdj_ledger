@@ -148,7 +148,7 @@ def init_db():
                 email TEXT,
                 service_type TEXT,
                 applicant_name TEXT,
-                app_id BIGINT,
+                app_id INTEGER,
                 country_name TEXT,
                 country_price REAL,
                 rate REAL,
@@ -594,103 +594,6 @@ def init_db():
 
     conn.commit()
     conn.close()
-
-    # Migration for app_id from INTEGER to TEXT in transactions
-    try:
-        conn = sqlite3.connect(DATABASE)
-        cursor = conn.cursor()
-        cursor.execute("PRAGMA table_info(transactions)")
-        columns = cursor.fetchall()
-        app_id_type = ""
-        for col in columns:
-            if col[1] == "app_id":
-                app_id_type = col[2]
-                break
-        if app_id_type == "INTEGER":
-            print("Migrating transactions.app_id from INTEGER to TEXT")
-            # Rename the existing table
-            cursor.execute("ALTER TABLE transactions RENAME TO transactions_old")
-            # Create the new table with app_id as TEXT
-            cursor.execute('''
-                CREATE TABLE transactions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    client_name TEXT NOT NULL,
-                    email TEXT,
-                    service_type TEXT DEFAULT 'eVisa',
-                    applicant_name TEXT,
-                    app_id TEXT NOT NULL,
-                    country_name TEXT NOT NULL,
-                    country_price REAL,
-                    rate REAL,
-                    addition REAL,
-                    amount REAL NOT NULL,
-                    amount_n REAL,
-                    transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    deleted INTEGER DEFAULT 0,
-                    is_paid INTEGER DEFAULT 0,
-                    model_id INTEGER,
-                    email_link TEXT
-                )
-            ''')
-            # Copy the data from the old table to the new table
-            cursor.execute("INSERT INTO transactions SELECT * FROM transactions_old")
-            # Drop the old table
-            cursor.execute("DROP TABLE transactions_old")
-            conn.commit()
-    except sqlite3.OperationalError:
-        pass # Ignore errors if the table doesn't exist or other issues
-    finally:
-        if conn:
-            conn.close()
-
-    # Migration for app_id from INTEGER to TEXT in deleted_transactions
-    try:
-        conn = sqlite3.connect(DATABASE)
-        cursor = conn.cursor()
-        cursor.execute("PRAGMA table_info(deleted_transactions)")
-        columns = cursor.fetchall()
-        app_id_type = ""
-        for col in columns:
-            if col[1] == "app_id":
-                app_id_type = col[2]
-                break
-        if app_id_type == "INTEGER":
-            print("Migrating deleted_transactions.app_id from INTEGER to TEXT")
-            # Rename the existing table
-            cursor.execute("ALTER TABLE deleted_transactions RENAME TO deleted_transactions_old")
-            # Create the new table with app_id as TEXT
-            cursor.execute('''
-                CREATE TABLE deleted_transactions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    original_id INTEGER,
-                    client_name TEXT,
-                    email TEXT,
-                    service_type TEXT,
-                    applicant_name TEXT,
-                    app_id TEXT,
-                    country_name TEXT,
-                    country_price REAL,
-                    rate REAL,
-                    addition REAL,
-                    amount REAL,
-                    amount_n REAL,
-                    is_paid INTEGER DEFAULT 0,
-                    transaction_date TIMESTAMP,
-                    deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    model_id INTEGER,
-                    email_link TEXT
-                )
-            ''')
-            # Copy the data from the old table to the new table
-            cursor.execute("INSERT INTO deleted_transactions SELECT * FROM deleted_transactions_old")
-            # Drop the old table
-            cursor.execute("DROP TABLE deleted_transactions_old")
-            conn.commit()
-    except sqlite3.OperationalError:
-        pass # Ignore errors if the table doesn't exist or other issues
-    finally:
-        if conn:
-            conn.close()
 
 def get_db_connection():
     """Get database connection"""
