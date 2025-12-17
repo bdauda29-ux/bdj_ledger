@@ -226,6 +226,26 @@ def init_db():
         for table, col, dtype in required_columns:
             ensure_column(table, col, dtype)
 
+        # Migrate app_id to BIGINT if it is INTEGER
+        for table in ['transactions', 'deleted_transactions']:
+            try:
+                cursor.execute("""
+                    SELECT data_type 
+                    FROM information_schema.columns 
+                    WHERE table_name = %s AND column_name = 'app_id'
+                """, (table,))
+                row = cursor.fetchone()
+                if row:
+                    dtype = str(row['data_type']).lower()
+                    print(f"Current type of {table}.app_id: {dtype}", file=sys.stderr)
+                    if dtype == 'integer':
+                        print(f"Migrating {table}.app_id to BIGINT...", file=sys.stderr)
+                        cursor.execute(f"ALTER TABLE {table} ALTER COLUMN app_id TYPE BIGINT")
+                else:
+                    print(f"Could not find column {table}.app_id in information_schema", file=sys.stderr)
+            except Exception as e:
+                print(f"Error migrating {table}.app_id: {e}", file=sys.stderr)
+
         conn.autocommit = False
         conn.commit()
         
@@ -1991,6 +2011,40 @@ def health_init():
     except Exception as e:
         import traceback
         return jsonify({'status': 'error', 'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+@app.route('/debug/schema')
+def debug_schema():
+    """Debug route to check table schema"""
+    try:
+        conn = get_db_connection()
+        info = []
+        
+        if POSTGRES_URL:
+            # Check transactions table schema
+            cols = conn.execute("""
+                SELECT column_name, data_type 
+                FROM information_schema.columns 
+                WHERE table_name = 'transactions'
+            """).fetchall()
+            info.append("<h3>Postgres - transactions table columns:</h3>")
+            info.append("<ul>")
+            for c in cols:
+                info.append(f"<li>{c['column_name']}: {c['data_type']}</li>")
+            info.append("</ul>")
+        else:
+            # Check SQLite schema
+            cols = conn.execute("PRAGMA table_info(transactions)").fetchall()
+            info.append("<h3>SQLite - transactions table columns:</h3>")
+            info.append("<ul>")
+            for c in cols:
+                # cid, name, type, notnull, dflt_value, pk
+                info.append(f"<li>{c['name']}: {c['type']}</li>")
+            info.append("</ul>")
+            
+        return "<br>".join(info)
+    except Exception as e:
+        import traceback
+        return f"<pre>{traceback.format_exc()}</pre>"
 
 if __name__ == '__main__':
     init_db()
