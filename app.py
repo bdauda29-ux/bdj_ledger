@@ -1829,6 +1829,13 @@ def export_pdf(transactions, sums):
     # Create table data
     data = [['S.No', 'Applicant', 'App ID', 'Country', 'Amount ($)', 'Rate', 'Amount N (₦)', 'Date']]
     for idx, trans in enumerate(transactions, start=1):
+        # Handle date formatting (Postgres returns datetime, SQLite returns string)
+        date_val = trans['transaction_date']
+        if hasattr(date_val, 'strftime'):
+            date_str = date_val.strftime('%Y-%m-%d')
+        else:
+            date_str = str(date_val)[:10]
+
         data.append([
             str(idx),
             trans['applicant_name'] or '',
@@ -1837,7 +1844,7 @@ def export_pdf(transactions, sums):
             f"${trans['amount']:.2f}",
             f"{trans['rate']:.2f}",
             f"₦{trans['amount_n']:.2f}",
-            trans['transaction_date'][:10]
+            date_str
         ])
     
     # Add sums row
@@ -1912,6 +1919,13 @@ def export_jpeg(transactions, sums):
     for idx, trans in enumerate(transactions, start=1):
         if trans['is_paid']:
             draw.rectangle([(10, y-3), (width-10, y+22)], fill=(230, 255, 237))
+        # Handle date formatting (Postgres returns datetime, SQLite returns string)
+        date_val = trans['transaction_date']
+        if hasattr(date_val, 'strftime'):
+            date_str = date_val.strftime('%Y-%m-%d')
+        else:
+            date_str = str(date_val)[:10]
+
         row_data = [
             str(idx),
             (trans['applicant_name'] or '')[:25],
@@ -1920,7 +1934,7 @@ def export_jpeg(transactions, sums):
             f"${trans['amount']:.2f}",
             f"{trans['rate']:.2f}",
             f"₦{trans['amount_n']:.2f}",
-            trans['transaction_date'][:10]
+            date_str
         ]
         
         for i, text in enumerate(row_data):
