@@ -81,7 +81,7 @@ def init_db():
     """Initialize the database with required tables and columns"""
     if POSTGRES_URL:
         conn = psycopg2.connect(POSTGRES_URL)
-        conn.autocommit = False
+        conn.autocommit = True
         cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS clients (
@@ -179,7 +179,8 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        conn.commit()  # Commit table creation
+        conn.autocommit = False
+        conn.commit()
         
         # Seed countries if empty
         country_names = [
