@@ -1271,94 +1271,100 @@ def add_transaction():
     perms = session.get('permissions', {})
     if not perms.get('can_add_transaction') and not perms.get('is_admin'):
         return redirect(url_for('transactions'))
-    conn = get_db_connection()
     
-    if request.method == 'POST':
-        try:
-            client_name = request.form['client_name']
-            applicant_name = request.form.get('applicant_name', '')
-            email = request.form.get('email', '')
-            service_type = request.form.get('service_type', 'eVisa')
+    try:
+        conn = get_db_connection()
+        
+        if request.method == 'POST':
             try:
-                app_id = int(request.form['app_id'])
-            except (ValueError, TypeError):
-                 return render_template('add_transaction.html', 
-                                     clients=conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall(), 
-                                     countries=conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall(),
-                                     error='Invalid App ID')
-
-            country_name = request.form['country_name']
-            
-            try:
-                rate = float(request.form.get('rate') or 1.0)
-            except ValueError:
-                rate = 1.0
-                
-            try:
-                addition = float(request.form.get('add') or 0.0)
-            except ValueError:
-                addition = 0.0
-
-            transaction_date_str = request.form.get('transaction_date')
-            transaction_date = None
-            if transaction_date_str:
+                client_name = request.form['client_name']
+                applicant_name = request.form.get('applicant_name', '')
+                email = request.form.get('email', '')
+                service_type = request.form.get('service_type', 'eVisa')
                 try:
-                    dt = datetime.strptime(transaction_date_str, '%Y-%m-%d')
-                    transaction_date = dt.strftime('%Y-%m-%d %H:%M:%S')
-                except ValueError:
-                    transaction_date = None
-            
-            # Get country price
-            country = conn.execute('SELECT price FROM countries WHERE name = ?', (country_name,)).fetchone()
-            if not country:
-                clients_list = conn.execute('SELECT client_name FROM clients').fetchall()
-                countries_list = conn.execute('SELECT name FROM countries').fetchall()
-                return render_template('add_transaction.html', 
-                                     clients=clients_list, 
-                                     countries=countries_list,
-                                     error='Country not found')
-            
-            country_price = country['price']
-            amount = country_price + addition
-            amount_n = amount * rate
-            email_link = request.form.get('email_link', '')
-            
-            exists = conn.execute('SELECT id FROM transactions WHERE app_id = ? AND model_id = ?', (app_id, current_model_id())).fetchone()
-            if exists:
-                clients_list = conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall()
-                countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
-                return render_template('add_transaction.html', clients=clients_list, countries=countries_list, error='App ID already exists')
-            
-            if transaction_date:
-                conn.execute('''
-                    INSERT INTO transactions 
-                    (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, model_id, email_link)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, current_model_id(), email_link))
-            else:
-                conn.execute('''
-                    INSERT INTO transactions 
-                    (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, model_id, email_link)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, current_model_id(), email_link))
-            
-            transaction_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
+                    app_id = int(request.form['app_id'])
+                except (ValueError, TypeError):
+                     return render_template('add_transaction.html', 
+                                         clients=conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall(), 
+                                         countries=conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall(),
+                                         error='Invalid App ID')
 
-            conn.commit()
-            return redirect(url_for('transactions'))
-        except Exception as e:
-            import traceback
-            import sys
-            print(f"ERROR in add_transaction: {e}", file=sys.stderr)
-            traceback.print_exc()
-            with open('traceback.log', 'a') as f:
-                f.write('\n\n=== EXCEPTION IN add_transaction ===\n')
-                f.write(traceback.format_exc())
-            return render_template('base.html', error=f'Error: {str(e)}'), 500
-    
-    clients_list = conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall()
-    countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
-    return render_template('add_transaction.html', clients=clients_list, countries=countries_list)
+                country_name = request.form['country_name']
+                
+                try:
+                    rate = float(request.form.get('rate') or 1.0)
+                except ValueError:
+                    rate = 1.0
+                    
+                try:
+                    addition = float(request.form.get('add') or 0.0)
+                except ValueError:
+                    addition = 0.0
+
+                transaction_date_str = request.form.get('transaction_date')
+                transaction_date = None
+                if transaction_date_str:
+                    try:
+                        dt = datetime.strptime(transaction_date_str, '%Y-%m-%d')
+                        transaction_date = dt.strftime('%Y-%m-%d %H:%M:%S')
+                    except ValueError:
+                        transaction_date = None
+                
+                # Get country price
+                country = conn.execute('SELECT price FROM countries WHERE name = ?', (country_name,)).fetchone()
+                if not country:
+                    clients_list = conn.execute('SELECT client_name FROM clients').fetchall()
+                    countries_list = conn.execute('SELECT name FROM countries').fetchall()
+                    return render_template('add_transaction.html', 
+                                         clients=clients_list, 
+                                         countries=countries_list,
+                                         error='Country not found')
+                
+                country_price = country['price']
+                amount = country_price + addition
+                amount_n = amount * rate
+                email_link = request.form.get('email_link', '')
+                
+                exists = conn.execute('SELECT id FROM transactions WHERE app_id = ? AND model_id = ?', (app_id, current_model_id())).fetchone()
+                if exists:
+                    clients_list = conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall()
+                    countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
+                    return render_template('add_transaction.html', clients=clients_list, countries=countries_list, error='App ID already exists')
+                
+                if transaction_date:
+                    conn.execute('''
+                        INSERT INTO transactions 
+                        (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, model_id, email_link)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, current_model_id(), email_link))
+                else:
+                    conn.execute('''
+                        INSERT INTO transactions 
+                        (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, model_id, email_link)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, current_model_id(), email_link))
+                
+                transaction_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
+
+                conn.commit()
+                return redirect(url_for('transactions'))
+            except Exception as e:
+                import traceback
+                import sys
+                print(f"ERROR in add_transaction: {e}", file=sys.stderr)
+                traceback.print_exc()
+                with open('traceback.log', 'a') as f:
+                    f.write('\n\n=== EXCEPTION IN add_transaction ===\n')
+                    f.write(traceback.format_exc())
+                return render_template('base.html', error=f'Error processing transaction: {str(e)}'), 500
+        
+        clients_list = conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall()
+        countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
+        return render_template('add_transaction.html', clients=clients_list, countries=countries_list)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return render_template('base.html', error=f'System Error (GET add_transaction): {str(e)}'), 500
 
 @app.route('/transactions/<int:transaction_id>/edit', methods=['GET', 'POST'])
 def edit_transaction(transaction_id):
