@@ -5,6 +5,7 @@ import secrets
 import hashlib
 import os
 import smtplib
+import sys
 from email.message import EmailMessage
 # Postgres (optional) support
 try:
@@ -184,32 +185,46 @@ def init_db():
         ''')
         cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_models_name ON models(name)')
         
-        # --- Postgres Migrations (Ensure columns exist) ---
-        migrations = [
-            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS applicant_name TEXT',
-            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS email_link TEXT',
-            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS service_type TEXT DEFAULT \'eVisa\'',
-            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS country_price REAL',
-            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS rate REAL',
-            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS addition REAL',
-            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS amount_n REAL',
-            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS deleted INTEGER DEFAULT 0',
-            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS is_paid INTEGER DEFAULT 0',
-            'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS model_id INTEGER',
-            'ALTER TABLE balance_history ADD COLUMN IF NOT EXISTS model_id INTEGER',
-            'ALTER TABLE clients ADD COLUMN IF NOT EXISTS model_id INTEGER',
-            'ALTER TABLE countries ADD COLUMN IF NOT EXISTS model_id INTEGER',
-            'ALTER TABLE countries ADD COLUMN IF NOT EXISTS continent TEXT',
-            'ALTER TABLE deleted_transactions ADD COLUMN IF NOT EXISTS email_link TEXT'
-        ]
+        # --- Postgres Migrations (Robust) ---
+        print("Checking Postgres schema migrations...", file=sys.stderr)
         
-        for sql in migrations:
+        def ensure_column(table, column, col_type):
             try:
-                cursor.execute(sql)
+                # Check if column exists
+                cursor.execute("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = %s AND column_name = %s
+                """, (table, column))
+                if not cursor.fetchone():
+                    print(f"Adding missing column: {table}.{column}", file=sys.stderr)
+                    cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+                    # Force commit for DDL
+                    # conn.commit() # Autocommit is True, so not needed but good to be aware
             except Exception as e:
-                import sys
-                print(f"Migration Warning: {sql} failed: {e}", file=sys.stderr)
-                # Continue with next migration
+                print(f"Error ensuring column {table}.{column}: {e}", file=sys.stderr)
+
+        # List of (table, column, type)
+        required_columns = [
+            ('transactions', 'applicant_name', 'TEXT'),
+            ('transactions', 'email_link', 'TEXT'),
+            ('transactions', 'service_type', "TEXT DEFAULT 'eVisa'"),
+            ('transactions', 'country_price', 'REAL'),
+            ('transactions', 'rate', 'REAL'),
+            ('transactions', 'addition', 'REAL'),
+            ('transactions', 'amount_n', 'REAL'),
+            ('transactions', 'deleted', 'INTEGER DEFAULT 0'),
+            ('transactions', 'is_paid', 'INTEGER DEFAULT 0'),
+            ('transactions', 'model_id', 'INTEGER'),
+            ('balance_history', 'model_id', 'INTEGER'),
+            ('clients', 'model_id', 'INTEGER'),
+            ('countries', 'model_id', 'INTEGER'),
+            ('countries', 'continent', 'TEXT'),
+            ('deleted_transactions', 'email_link', 'TEXT')
+        ]
+
+        for table, col, dtype in required_columns:
+            ensure_column(table, col, dtype)
 
         conn.autocommit = False
         conn.commit()
