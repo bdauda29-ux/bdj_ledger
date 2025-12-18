@@ -50,7 +50,7 @@
                     {% endif %}
                 </td>
                 <td>{{ country.continent or 'Unknown' }}</td>
-                <td>{{ "%.2f"|format(country.price) }}</td>
+                <td>{{ country.price|comma2 }}</td>
                 <td>
                     {% if edit_id != country.id %}
                     <a href="{{ url_for('countries', edit_id=country.id) }}" class="btn btn-secondary btn-sm">Edit</a>
@@ -83,7 +83,7 @@
         </div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Price:</span>
-            <span class="mobile-card-value">{{ "%.2f"|format(country.price) }}</span>
+            <span class="mobile-card-value">{{ country.price|comma2 }}</span>
         </div>
         <div class="mobile-card-actions">
             <a href="{{ url_for('edit_country', country_id=country.id) }}" class="btn btn-secondary btn-sm">Edit</a>

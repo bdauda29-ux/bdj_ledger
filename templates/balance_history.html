@@ -35,10 +35,10 @@
                         N/A
                     {% endif %}
                 </td>
-                <td>{{ "%.2f"|format(item.amount) }}</td>
+                <td>{{ item.amount|comma2 }}</td>
                 <td>{{ item.type }}</td>
-                <td>{{ "%.2f"|format(item.balance_before) }}</td>
-                <td>{{ "%.2f"|format(item.balance_after) }}</td>
+                <td>{{ item.balance_before|comma2 }}</td>
+                <td>{{ item.balance_after|comma2 }}</td>
                 <td>{{ item.description }}</td>
                 <td>{{ item.timestamp }}</td>
             </tr>
@@ -64,7 +64,7 @@
         </div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Amount:</span>
-            <span class="mobile-card-value">{{ "%.2f"|format(item.amount) }}</span>
+            <span class="mobile-card-value">{{ item.amount|comma2 }}</span>
         </div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Type:</span>
@@ -72,11 +72,11 @@
         </div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Balance Before:</span>
-            <span class="mobile-card-value">{{ "%.2f"|format(item.balance_before) }}</span>
+            <span class="mobile-card-value">{{ item.balance_before|comma2 }}</span>
         </div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Balance After:</span>
-            <span class="mobile-card-value">{{ "%.2f"|format(item.balance_after) }}</span>
+            <span class="mobile-card-value">{{ item.balance_after|comma2 }}</span>
         </div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Description:</span>

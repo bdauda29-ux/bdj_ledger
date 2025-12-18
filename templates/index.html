@@ -6,6 +6,18 @@
 <div class="dashboard">
     <h2>Dashboard</h2>
     
+    {% if session.permissions and session.permissions.is_admin and wallet %}
+    <div class="wallet-preview" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #2196f3;">
+        <h3 style="margin-top: 0; color: #1976d2; font-size: 1.1em;">Wallet Overview</h3>
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            <div><strong>Dollars:</strong> ${{ (wallet.dollars or 0)|comma2 }}</div>
+            <div><strong>Naira:</strong> ₦{{ (wallet.naira or 0)|comma2 }}</div>
+            <div><strong>Rate:</strong> {{ wallet.rate or 0 }}</div>
+            <div><strong>Total (N):</strong> <strong>₦{{ ((wallet.dollars or 0) * (wallet.rate or 0) + (wallet.naira or 0))|comma2 }}</strong></div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="summary-boxes">
         <div class="summary-box">
             <h3>Total Clients</h3>
@@ -17,22 +29,23 @@
         </div>
         <div class="summary-box">
             <h3>Total Balance</h3>
-            <p>{{ "%.2f"|format(total_balance or 0) }}</p>
+            <p>{{ (total_balance or 0)|comma2 }}</p>
         </div>
     </div>
 
     <div class="today-summary" style="margin-top: 20px; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
-        <h3>Today’s totals</h3>
+        <h3>Totals for {{ selected_date|date_format }}</h3>
         <div style="padding: 10px; background-color: white; border-radius: 3px; border-left: 4px solid #28a745;">
             <strong style="font-size: 16px;">Transactions:</strong> <span style="font-size: 16px;">{{ transactions|length }}</span>
             <br>
-            <strong style="font-size: 16px;">Sum Amount:</strong> <span style="font-size: 16px; color: #28a745;">{{ "%.2f"|format(today_sums['sum_amount']) }}</span>
+            <strong style="font-size: 16px;">Sum Amount:</strong> <span style="font-size: 16px; color: #28a745;">{{ (today_sums['sum_amount'] or 0)|comma2 }}</span>
             <br>
-            <strong style="font-size: 16px;">Sum Amount N:</strong> <span style="font-size: 16px; color: #28a745;">{{ "%.2f"|format(today_sums['sum_amount_n']) }}</span>
+            <strong style="font-size: 16px;">Sum Amount N:</strong> <span style="font-size: 16px; color: #28a745;">{{ (today_sums['sum_amount_n'] or 0)|comma2 }}</span>
         </div>
     </div>
 
-    <h2>Recent Transactions</h2>
+
+    <h2>Transactions for {{ selected_date|date_format }}</h2>
     
     {% if transactions %}
     <!-- Desktop Table View -->
@@ -41,36 +54,24 @@
             <thead>
                 <tr>
                     <th>S.No</th>
-                    <th>ID</th>
                     <th>Client Name</th>
                     <th>Applicant Name</th>
                     <th>App ID</th>
                     <th>Country</th>
                     <th>Amount N</th>
                     <th>Date</th>
-                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for transaction in transactions %}
                 <tr>
                     <td>{{ loop.index }}</td>
-                    <td>{{ transaction.id }}</td>
                     <td>{{ transaction.client_name }}</td>
                     <td>{{ transaction.applicant_name }}</td>
                     <td>{{ transaction.app_id }}</td>
-                    <td>{{ transaction.country_name }}</td>
-                    <td><strong>{{ "%.2f"|format(transaction.amount_n) }}</strong></td>
-                    <td>{{ transaction.transaction_date }}</td>
-                    <td>
-                        <a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" class="btn btn-secondary btn-sm">Edit</a>
-                        <form action="{{ url_for('delete_transaction', transaction_id=transaction.id) }}" 
-                              method="POST" 
-                              style="display: inline;"
-                              onsubmit="return confirm('Are you sure you want to delete this transaction?');">
-                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                        </form>
-                    </td>
+                <td>{{ transaction.country_name }}</td>
+                <td><strong>{{ (transaction.amount_n or 0)|comma2 }}</strong></td>
+                <td>{{ transaction.transaction_date|date_format }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -81,7 +82,7 @@
     <div class="mobile-card-view">
         {% for transaction in transactions %}
         <div class="mobile-card">
-            <div class="mobile-card-header">#{{ loop.index }} - Transaction #{{ transaction.id }}</div>
+            <div class="mobile-card-header">#{{ loop.index }}</div>
             <div class="mobile-card-row">
                 <span class="mobile-card-label">Client Name:</span>
                 <span class="mobile-card-value">{{ transaction.client_name }}</span>
@@ -100,20 +101,11 @@
             </div>
             <div class="mobile-card-row">
                 <span class="mobile-card-label">Amount N:</span>
-                <span class="mobile-card-value"><strong>{{ "%.2f"|format(transaction.amount_n) }}</strong></span>
+                <span class="mobile-card-value"><strong>{{ transaction.amount_n|comma2 }}</strong></span>
             </div>
             <div class="mobile-card-row">
                 <span class="mobile-card-label">Date:</span>
-                <span class="mobile-card-value">{{ transaction.transaction_date }}</span>
-            </div>
-            <div class="mobile-card-actions">
-                <a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" class="btn btn-secondary btn-sm">Edit</a>
-                <form action="{{ url_for('delete_transaction', transaction_id=transaction.id) }}" 
-                      method="POST" 
-                      style="display: inline; flex: 1;"
-                      onsubmit="return confirm('Are you sure you want to delete this transaction?');">
-                    <button type="submit" class="btn btn-danger btn-sm" style="width: 100%;">Delete</button>
-                </form>
+                <span class="mobile-card-value">{{ transaction.transaction_date|date_format }}</span>
             </div>
         </div>
         {% endfor %}

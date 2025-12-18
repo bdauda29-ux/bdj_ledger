@@ -29,6 +29,28 @@ POSTGRES_URL = (
 if psycopg2 is None:
     POSTGRES_URL = None
 
+@app.template_filter('comma2')
+def comma2(val):
+    try:
+        v = float(val or 0)
+        return f"{v:,.0f}"
+    except Exception:
+        return val
+
+@app.template_filter('date_format')
+def date_format(value):
+    if not value: return ''
+    s = str(value)
+    # Try different formats
+    formats = ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d', '%Y-%m-%d %H:%M:%S.%f']
+    for fmt in formats:
+        try:
+            date_obj = datetime.strptime(s, fmt)
+            return date_obj.strftime('%d %B, %Y')
+        except ValueError:
+            continue
+    return value
+
 if psycopg2 is not None:
     class PGConn:
         def __init__(self, dsn):
@@ -623,6 +645,21 @@ def init_db():
         )
     ''')
 
+    # --- Wallet Table ---
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS wallet (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            dollars REAL DEFAULT 0,
+            naira REAL DEFAULT 0,
+            rate REAL DEFAULT 0,
+            model_id INTEGER
+        )
+    ''')
+    try:
+        cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_wallet_model ON wallet(model_id)')
+    except sqlite3.OperationalError:
+        pass
+
     conn.commit()
     conn.close()
 
@@ -946,13 +983,49 @@ def internal_error(error):
     import traceback
     return f"<pre>{traceback.format_exc()}</pre>", 500
 
+@app.route('/wallet', methods=['GET', 'POST'])
+def wallet_view():
+    if not can('is_admin'):
+        return redirect(url_for('index'))
+    conn = get_db_connection()
+    mid = current_model_id()
+    
+    if request.method == 'POST':
+        dollars = request.form.get('dollars', 0)
+        naira = request.form.get('naira', 0)
+        rate = request.form.get('rate', 0)
+        
+        # Upsert
+        exists = conn.execute('SELECT 1 FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+        if exists:
+            conn.execute('UPDATE wallet SET dollars = ?, naira = ?, rate = ? WHERE model_id = ?', 
+                         (dollars, naira, rate, mid))
+        else:
+            conn.execute('INSERT INTO wallet (dollars, naira, rate, model_id) VALUES (?, ?, ?, ?)',
+                         (dollars, naira, rate, mid))
+        conn.commit()
+        return redirect(url_for('wallet_view', message='Wallet updated'))
+        
+    wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+    return render_template('wallet.html', wallet=wallet, message=request.args.get('message'))
+
 @app.route('/')
 def index():
     """Home page - shows dashboard"""
     try:
         conn = get_db_connection()
         mid = current_model_id()
+        selected_date = request.args.get('date')
+        if not selected_date:
+            selected_date = (datetime.utcnow() + timedelta(hours=1)).date().strftime('%Y-%m-%d')
         
+        # Get wallet info
+        wallet = None
+        try:
+             wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+        except:
+             pass
+
         # Get total number of clients
         try:
             total_clients = conn.execute('SELECT COUNT(*) FROM clients WHERE model_id = %s', (mid,)).fetchone()['count']
@@ -983,27 +1056,53 @@ def index():
             
         if total_balance is None: total_balance = 0.0
         
-        # Get today's transactions
-        # Safe query that works on both
+        # Get only today's transactions (SQLite and Postgres compatible via PGConn)
         sql_trans = '''
             SELECT * FROM transactions 
-            WHERE deleted = 0 AND model_id = ?
+            WHERE deleted = 0 
+              AND model_id = ?
+              AND DATE(transaction_date) = DATE(?)
             ORDER BY transaction_date DESC
-            LIMIT 50
         '''
-        transactions = conn.execute(sql_trans, (mid,)).fetchall()
+        transactions = conn.execute(sql_trans, (mid, selected_date)).fetchall()
         
-        # Today's totals (simplified to avoid complex date logic for now)
-        today_sums = {'sum_amount': 0, 'sum_amount_n': 0}
+        # Today's totals (same date filter)
+        sql_sums = '''
+            SELECT 
+              COALESCE(SUM(amount), 0) AS sum_amount, 
+              COALESCE(SUM(amount_n), 0) AS sum_amount_n
+            FROM transactions
+            WHERE deleted = 0 
+              AND model_id = ?
+              AND DATE(transaction_date) = DATE(?)
+        '''
+        sums_row = conn.execute(sql_sums, (mid, selected_date)).fetchone()
+        try:
+            today_sums = {
+                'sum_amount': (sums_row['sum_amount'] if sums_row and sums_row['sum_amount'] is not None else 0),
+                'sum_amount_n': (sums_row['sum_amount_n'] if sums_row and sums_row['sum_amount_n'] is not None else 0),
+            }
+        except (TypeError, KeyError, IndexError):
+            # Fallback for tuple-style rows
+            if sums_row:
+                today_sums = {
+                    'sum_amount': sums_row[0] or 0,
+                    'sum_amount_n': sums_row[1] or 0,
+                }
+            else:
+                today_sums = {'sum_amount': 0, 'sum_amount_n': 0}
         
         return render_template('index.html', 
                                total_clients=total_clients,
                                total_transactions=total_transactions,
                                total_balance=total_balance,
                                transactions=transactions,
-                               today_sums=today_sums)
+                               today_sums=today_sums,
+                               selected_date=selected_date,
+                               wallet=wallet)
     except Exception as e:
         import traceback
+        traceback.print_exc()
         debug_info = []
         try:
             conn_debug = get_db_connection()
@@ -1246,7 +1345,7 @@ def transactions():
     date_from = request.args.get('date_from')
     date_to = request.args.get('date_to')
     error = request.args.get('error')
-    paid = request.args.get('paid')
+    paid = request.args.get('paid', '0') # Default to Pending (0)
 
     # Ensure country_price is populated for any legacy rows
     try:
@@ -1353,6 +1452,7 @@ def add_transaction():
                     try:
                         dt = datetime.strptime(transaction_date_str, '%Y-%m-%d')
                         transaction_date = dt.strftime('%Y-%m-%d %H:%M:%S')
+                        session['selected_date'] = transaction_date_str
                     except ValueError:
                         transaction_date = None
                 
@@ -1468,6 +1568,7 @@ def edit_transaction(transaction_id):
                 try:
                     dt = datetime.strptime(transaction_date_str, '%Y-%m-%d')
                     transaction_date = dt.strftime('%Y-%m-%d %H:%M:%S')
+                    session['selected_date'] = transaction_date_str
                 except ValueError:
                     transaction_date = None
         
@@ -1846,13 +1947,54 @@ def export_transactions():
         import traceback
         return f'Error exporting: {str(e)}<br><pre>{traceback.format_exc()}</pre>', 500
 
+def load_naira_icon():
+    """Return a BytesIO of the Naira icon PNG if available, else draw a fallback."""
+    from io import BytesIO
+    import os
+    # Try static image files first
+    candidates = ['static/naira.png', 'static/naira_icon.png']
+    base_dir = os.path.dirname(__file__)
+    for rel in candidates:
+        try:
+            fp = os.path.join(base_dir, rel)
+            with open(fp, 'rb') as f:
+                buf = BytesIO(f.read())
+                buf.seek(0)
+                return buf
+        except Exception:
+            pass
+    # Fallback: draw a simple Naira-like icon
+    try:
+        from PIL import Image as PILImage, ImageDraw
+        icon = PILImage.new('RGBA', (20, 20), (255, 255, 255, 0))
+        d = ImageDraw.Draw(icon)
+        d.line((5, 3, 5, 17), fill=(30, 30, 30), width=3)
+        d.line((13, 3, 13, 17), fill=(30, 30, 30), width=3)
+        d.line((2, 8, 18, 8), fill=(30, 30, 30), width=3)
+        d.line((2, 12, 18, 12), fill=(30, 30, 30), width=3)
+        # Also persist to static/naira.png for future use
+        try:
+            static_dir = os.path.join(base_dir, 'static')
+            os.makedirs(static_dir, exist_ok=True)
+            save_path = os.path.join(static_dir, 'naira.png')
+            icon.save(save_path, format='PNG')
+        except Exception:
+            pass
+        buf = BytesIO()
+        icon.save(buf, format='PNG')
+        buf.seek(0)
+        return buf
+    except Exception:
+        return None
+
 def export_pdf(transactions, sums):
     """Export transactions to PDF"""
     from reportlab.lib.pagesizes import letter, landscape
     from reportlab.lib import colors
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as RLImage
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from io import BytesIO
+    naira_buf = load_naira_icon()
     
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))
@@ -1872,7 +2014,7 @@ def export_pdf(transactions, sums):
     elements.append(Spacer(1, 0.2))
     
     # Create table data
-    data = [['S.No', 'Applicant', 'App ID', 'Country', 'Amount ($)', 'Rate', 'Amount N (N)', 'Date']]
+    data = [['S.No', 'Applicant', 'App ID', 'Country', 'Amount ($)', 'Rate', 'Amount N', 'Date']]
     for idx, trans in enumerate(transactions, start=1):
         # Handle date formatting (Postgres returns datetime, SQLite returns string)
         date_val = trans['transaction_date']
@@ -1881,19 +2023,35 @@ def export_pdf(transactions, sums):
         else:
             date_str = str(date_val)[:10]
 
+        amount_str = f"${trans['amount']:,.0f}"
+        amountn_str = f"{trans['amount_n']:,.0f}"
+        amountn_cell = amountn_str
+        if naira_buf:
+            amountn_cell = Table([[RLImage(naira_buf, width=10, height=10), Paragraph(amountn_str, styles['Normal'])]],
+                                 style=TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                                   ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                                                   ('RIGHTPADDING', (0, 0), (-1, -1), 0)]))
         data.append([
             str(idx),
             trans['applicant_name'] or '',
             str(trans['app_id']),
             trans['country_name'],
-            f"${trans['amount']:.2f}",
-            f"{trans['rate']:.2f}",
-            f"N{trans['amount_n']:.2f}",
+            amount_str,
+            f"{trans['rate']:,.0f}",
+            amountn_cell,
             date_str
         ])
     
     # Add sums row
-    data.append(['', '', '', 'TOTAL:', f"${sums['sum_amount']:.2f}", '', f"N{sums['sum_amount_n']:.2f}", ''])
+    sums_amount = f"${(sums['sum_amount'] or 0):,.0f}"
+    sums_amountn = f"{(sums['sum_amount_n'] or 0):,.0f}"
+    sums_amountn_cell = sums_amountn
+    if naira_buf:
+        sums_amountn_cell = Table([[RLImage(naira_buf, width=10, height=10), Paragraph(sums_amountn, styles['Normal'])]],
+                                  style=TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                                                    ('RIGHTPADDING', (0, 0), (-1, -1), 0)]))
+    data.append(['', '', '', 'TOTAL:', sums_amount, '', sums_amountn_cell, ''])
     
     table = Table(data)
     style_cmds = [
@@ -1932,6 +2090,21 @@ def export_jpeg(transactions, sums):
         from io import BytesIO
     except Exception:
         return export_pdf(transactions, sums)
+    # Load icon from static or fallback
+    icon_buf = load_naira_icon()
+    icon = None
+    if icon_buf:
+        try:
+            icon = Image.open(icon_buf).convert('RGBA')
+        except Exception:
+            icon = None
+    if icon is None:
+        icon = Image.new('RGBA', (20, 20), (255, 255, 255, 0))
+        d_icon = ImageDraw.Draw(icon)
+        d_icon.line((5, 3, 5, 17), fill=(30, 30, 30), width=3)
+        d_icon.line((13, 3, 13, 17), fill=(30, 30, 30), width=3)
+        d_icon.line((2, 8, 18, 8), fill=(30, 30, 30), width=3)
+        d_icon.line((2, 12, 18, 12), fill=(30, 30, 30), width=3)
     
     # Create image
     width, height = 1200, 100 + len(transactions) * 30 + 50
@@ -1951,7 +2124,7 @@ def export_jpeg(transactions, sums):
     y += 30
     
     # Headers
-    headers = ['S.No', 'Applicant', 'App ID', 'Country', 'Amount ($)', 'Rate', 'Amount N (N)', 'Date']
+    headers = ['S.No', 'Applicant', 'App ID', 'Country', 'Amount ($)', 'Rate', 'Amount N', 'Date']
     x_positions = [10, 80, 280, 380, 560, 680, 800, 960]
     
     for i, header in enumerate(headers):
@@ -1971,19 +2144,28 @@ def export_jpeg(transactions, sums):
         else:
             date_str = str(date_val)[:10]
 
+        amount_str = f"${trans['amount']:,.0f}"
+        rate_str = f"{trans['rate']:,.0f}"
+        amountn_str = f"{trans['amount_n']:,.0f}"
         row_data = [
             str(idx),
             (trans['applicant_name'] or '')[:25],
             str(trans['app_id']),
             trans['country_name'][:20],
-            f"${trans['amount']:.2f}",
-            f"{trans['rate']:.2f}",
-            f"N{trans['amount_n']:.2f}",
+            amount_str,
+            rate_str,
+            amountn_str,
             date_str
         ]
         
         for i, text in enumerate(row_data):
             draw.text((x_positions[i], y), text, fill='black', font=font)
+        try:
+            img_x = x_positions[6] - 18
+            img_y = y
+            img.paste(icon, (img_x, img_y), icon)
+        except Exception:
+            pass
         y += 25
     
     # Total line
@@ -1991,8 +2173,14 @@ def export_jpeg(transactions, sums):
     draw.line([(10, y), (width-10, y)], fill='black', width=1)
     y += 10
     draw.text((x_positions[3], y), f'TOTAL:', fill='black', font=font)
-    draw.text((x_positions[4], y), f'${sums["sum_amount"]:.2f}', fill='black', font=font)
-    draw.text((x_positions[6], y), f'N{sums["sum_amount_n"]:.2f}', fill='black', font=font)
+    sum_amt = f'${(sums["sum_amount"] or 0):,.0f}'
+    sum_amtn = f'{(sums["sum_amount_n"] or 0):,.0f}'
+    draw.text((x_positions[4], y), sum_amt, fill='black', font=font)
+    draw.text((x_positions[6], y), sum_amtn, fill='black', font=font)
+    try:
+        img.paste(icon, (x_positions[6] - 18, y), icon)
+    except Exception:
+        pass
     
     buffer = BytesIO()
     img.save(buffer, format='JPEG')

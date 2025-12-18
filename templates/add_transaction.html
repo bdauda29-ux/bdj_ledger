@@ -167,11 +167,11 @@
         const amount = countryPrice + addition;
         const amountN = amount * rate;
         
-        amountDisplay.value = amount.toFixed(2);
-        amountNDisplay.value = amountN.toFixed(2);
+        amountDisplay.value = Math.round(amount).toLocaleString();
+        amountNDisplay.value = Math.round(amountN).toLocaleString();
         
         if (countryPrice > 0) {
-            countryPriceDisplay.textContent = `Country Price: ${countryPrice.toFixed(2)}`;
+            countryPriceDisplay.textContent = `Country Price: ${Math.round(countryPrice).toLocaleString()}`;
         } else {
             countryPriceDisplay.textContent = '';
         }

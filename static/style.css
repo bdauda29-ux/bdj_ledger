@@ -225,7 +225,7 @@ body {
 }
 
 .row-paid {
-    background-color: #e6ffed;
+    background-color: #c8e6c9;
 }
 
 .data-table tbody tr:last-child td {
@@ -246,7 +246,7 @@ body {
 }
 
 .mobile-card.card-paid {
-    background: #e6ffed;
+    background: #c8e6c9;
 }
 
 .mobile-card-header {

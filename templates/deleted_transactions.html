@@ -33,8 +33,8 @@
                 <td>{{ row.client_name }}</td>
                 <td>{{ row.applicant_name }}</td>
                 <td>{{ row.country_name }}</td>
-                <td>{{ "%.2f"|format(row.amount) }}</td>
-                <td>{{ "%.2f"|format(row.amount_n) }}</td>
+                <td>{{ row.amount|comma2 }}</td>
+                <td>{{ row.amount_n|comma2 }}</td>
                 <td>{{ row.email_link or '' }}</td>
                 <td>{{ row.transaction_date }}</td>
                 <td>{{ row.deleted_at }}</td>

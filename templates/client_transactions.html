@@ -31,20 +31,35 @@
         </thead>
         <tbody>
             {% for transaction in transactions %}
-            <tr>
+            <tr class="{% if transaction.is_paid %}row-paid{% endif %}">
                 <td>{{ loop.index }}</td>
                 <td>{{ transaction.id }}</td>
                 <td>{{ transaction.applicant_name }}</td>
                 <td>{{ transaction.app_id }}</td>
                 <td>{{ transaction.country_name }}</td>
-                <td>{{ "%.2f"|format(transaction.country_price) }}</td>
-                <td>{{ "%.2f"|format(transaction.rate) }}</td>
-                <td>{{ "%.2f"|format(transaction.addition) }}</td>
-                <td>{{ "%.2f"|format(transaction.amount) }}</td>
-                <td><strong>{{ "%.2f"|format(transaction.amount_n) }}</strong></td>
-                <td>{{ transaction.transaction_date }}</td>
+                <td>{{ (transaction.country_price or 0)|comma2 }}</td>
+                <td>{{ (transaction.rate or 0)|comma2 }}</td>
+                <td>{{ (transaction.addition or 0)|comma2 }}</td>
+                <td>$ {{ (transaction.amount or 0)|comma2 }}</td>
+                <td><strong>₦ {{ (transaction.amount_n or 0)|comma2 }}</strong></td>
+                <td>{{ transaction.transaction_date|date_format }}</td>
                 <td>
                     <a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" class="btn btn-secondary btn-sm">Edit</a>
+                    {% if not transaction.is_paid %}
+                    <form action="{{ url_for('pay_transaction', transaction_id=transaction.id) }}" 
+                          method="POST" 
+                          style="display: inline;"
+                          onsubmit="return confirm('Pay {{ transaction.amount_n|comma2 }} from client balance?');">
+                        <button type="submit" class="btn btn-success btn-sm">Pay</button>
+                    </form>
+                    {% else %}
+                    <form action="{{ url_for('undo_pay_transaction', transaction_id=transaction.id) }}" 
+                          method="POST" 
+                          style="display: inline;"
+                          onsubmit="return confirm('Undo payment and restore client balance?');">
+                        <button type="submit" class="btn btn-secondary btn-sm">Undo Pay</button>
+                    </form>
+                    {% endif %}
                     <form action="{{ url_for('delete_transaction', transaction_id=transaction.id) }}" 
                           method="POST" 
                           style="display: inline;"
@@ -61,7 +76,7 @@
 <!-- Mobile Card View -->
 <div class="mobile-card-view">
     {% for transaction in transactions %}
-    <div class="mobile-card">
+    <div class="mobile-card {% if transaction.is_paid %}card-paid{% endif %}">
         <div class="mobile-card-header">#{{ loop.index }} - Transaction #{{ transaction.id }}</div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Applicant Name:</span>
@@ -77,23 +92,23 @@
         </div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Country Price:</span>
-            <span class="mobile-card-value">{{ "%.2f"|format(transaction.country_price) }}</span>
+            <span class="mobile-card-value">{{ (transaction.country_price or 0)|comma2 }}</span>
         </div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Rate:</span>
-            <span class="mobile-card-value">{{ "%.2f"|format(transaction.rate) }}</span>
+            <span class="mobile-card-value">{{ (transaction.rate or 0)|comma2 }}</span>
         </div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Addition:</span>
-            <span class="mobile-card-value">{{ "%.2f"|format(transaction.addition) }}</span>
+            <span class="mobile-card-value">{{ (transaction.addition or 0)|comma2 }}</span>
         </div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Amount:</span>
-            <span class="mobile-card-value">{{ "%.2f"|format(transaction.amount) }}</span>
+            <span class="mobile-card-value">$ {{ (transaction.amount or 0)|comma2 }}</span>
         </div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Amount N:</span>
-            <span class="mobile-card-value"><strong>{{ "%.2f"|format(transaction.amount_n) }}</strong></span>
+            <span class="mobile-card-value"><strong>₦ {{ (transaction.amount_n or 0)|comma2 }}</strong></span>
         </div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Email/Link:</span>
@@ -101,10 +116,25 @@
         </div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Date:</span>
-            <span class="mobile-card-value">{{ transaction.transaction_date }}</span>
+            <span class="mobile-card-value">{{ transaction.transaction_date|date_format }}</span>
         </div>
         <div class="mobile-card-actions">
             <a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" class="btn btn-secondary btn-sm">Edit</a>
+            {% if not transaction.is_paid %}
+            <form action="{{ url_for('pay_transaction', transaction_id=transaction.id) }}" 
+                  method="POST" 
+                  style="display: inline; flex: 1;"
+                  onsubmit="return confirm('Pay {{ transaction.amount_n|comma2 }} from client balance?');">
+                <button type="submit" class="btn btn-success btn-sm" style="width: 100%;">Pay</button>
+            </form>
+            {% else %}
+            <form action="{{ url_for('undo_pay_transaction', transaction_id=transaction.id) }}" 
+                  method="POST" 
+                  style="display: inline; flex: 1;"
+                  onsubmit="return confirm('Undo payment and restore client balance?');">
+                <button type="submit" class="btn btn-secondary btn-sm" style="width: 100%;">Undo Pay</button>
+            </form>
+            {% endif %}
             <form action="{{ url_for('delete_transaction', transaction_id=transaction.id) }}" 
                   method="POST" 
                   style="display: inline; flex: 1;"
