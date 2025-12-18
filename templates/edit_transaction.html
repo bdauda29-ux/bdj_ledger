@@ -72,7 +72,7 @@
 
         <div class="form-group">
             <label for="transaction_date">Transaction Date</label>
-            <input type="date" name="transaction_date" id="transaction_date" value="{{ (transaction.transaction_date and transaction.transaction_date[:10]) or '' }}">
+            <input type="date" name="transaction_date" id="transaction_date" value="{% if transaction.transaction_date %}{{ (transaction.transaction_date|string)[:10] }}{% endif %}">
         </div>
         
         <div class="form-group">
