@@ -987,27 +987,33 @@ def internal_error(error):
 def wallet_view():
     if not can('is_admin'):
         return redirect(url_for('index'))
-    conn = get_db_connection()
-    mid = current_model_id()
     
-    if request.method == 'POST':
-        dollars = request.form.get('dollars', 0)
-        naira = request.form.get('naira', 0)
-        rate = request.form.get('rate', 0)
+    try:
+        conn = get_db_connection()
+        mid = current_model_id()
         
-        # Upsert
-        exists = conn.execute('SELECT 1 FROM wallet WHERE model_id = ?', (mid,)).fetchone()
-        if exists:
-            conn.execute('UPDATE wallet SET dollars = ?, naira = ?, rate = ? WHERE model_id = ?', 
-                         (dollars, naira, rate, mid))
-        else:
-            conn.execute('INSERT INTO wallet (dollars, naira, rate, model_id) VALUES (?, ?, ?, ?)',
-                         (dollars, naira, rate, mid))
-        conn.commit()
-        return redirect(url_for('wallet_view', message='Wallet updated'))
-        
-    wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
-    return render_template('wallet.html', wallet=wallet, message=request.args.get('message'))
+        if request.method == 'POST':
+            dollars = request.form.get('dollars', 0)
+            naira = request.form.get('naira', 0)
+            rate = request.form.get('rate', 0)
+            
+            # Upsert
+            exists = conn.execute('SELECT 1 FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+            if exists:
+                conn.execute('UPDATE wallet SET dollars = ?, naira = ?, rate = ? WHERE model_id = ?', 
+                             (dollars, naira, rate, mid))
+            else:
+                conn.execute('INSERT INTO wallet (dollars, naira, rate, model_id) VALUES (?, ?, ?, ?)',
+                             (dollars, naira, rate, mid))
+            conn.commit()
+            return redirect(url_for('wallet_view', message='Wallet updated'))
+            
+        wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+        return render_template('wallet.html', wallet=wallet, message=request.args.get('message'))
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return redirect(url_for('index', error=f"Error accessing wallet: {str(e)}"))
 
 @app.route('/')
 def index():

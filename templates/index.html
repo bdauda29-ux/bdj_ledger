@@ -6,7 +6,8 @@
 <div class="dashboard">
     <h2>Dashboard</h2>
     
-    {% if session.permissions and session.permissions.is_admin and wallet %}
+    {% if session.permissions and session.permissions.is_admin %}
+    {% if wallet %}
     <div class="wallet-preview" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #2196f3;">
         <h3 style="margin-top: 0; color: #1976d2; font-size: 1.1em;">Wallet Overview</h3>
         <div style="display: flex; gap: 20px; flex-wrap: wrap;">
@@ -16,6 +17,13 @@
             <div><strong>Total (N):</strong> <strong>₦{{ ((wallet.dollars or 0) * (wallet.rate or 0) + (wallet.naira or 0))|comma2 }}</strong></div>
         </div>
     </div>
+    {% else %}
+    <div class="wallet-preview" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #2196f3;">
+        <h3 style="margin-top: 0; color: #1976d2; font-size: 1.1em;">Wallet Overview</h3>
+        <p style="margin-bottom: 10px;">No wallet data configured.</p>
+        <a href="{{ url_for('wallet_view') }}" class="btn" style="background-color: #1976d2; color: white; padding: 5px 10px; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Setup Wallet</a>
+    </div>
+    {% endif %}
     {% endif %}
 
     <div class="summary-boxes">
