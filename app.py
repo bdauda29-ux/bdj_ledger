@@ -240,7 +240,18 @@ def init_db():
                     print(f"Current type of {table}.app_id: {dtype}", file=sys.stderr)
                     if dtype == 'integer':
                         print(f"Migrating {table}.app_id to BIGINT...", file=sys.stderr)
+                        # Try to drop index first to avoid dependency issues
+                        if table == 'transactions':
+                            try:
+                                cursor.execute("DROP INDEX IF EXISTS idx_transactions_app_unique")
+                            except Exception:
+                                pass
+                        
                         cursor.execute(f"ALTER TABLE {table} ALTER COLUMN app_id TYPE BIGINT")
+                        
+                        # Recreate index
+                        if table == 'transactions':
+                             cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_app_unique ON transactions(app_id, model_id)')
                 else:
                     print(f"Could not find column {table}.app_id in information_schema", file=sys.stderr)
             except Exception as e:
