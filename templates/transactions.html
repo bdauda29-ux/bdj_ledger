@@ -38,10 +38,10 @@
             {% endfor %}
         </select>
 
-        <label>From:</label>
-        <input type="date" name="date_from" value="{{ filters.date_from }}">
-        <label>To:</label>
-        <input type="date" name="date_to" value="{{ filters.date_to }}">
+        <label>Date Range:</label>
+        <input type="text" id="date_range" class="form-control" style="width: 220px;" placeholder="Select date range">
+        <input type="hidden" name="date_from" id="date_from" value="{{ filters.date_from }}">
+        <input type="hidden" name="date_to" id="date_to" value="{{ filters.date_to }}">
         
         <label>Paid:</label>
         <select name="paid">
@@ -102,7 +102,6 @@
                 <td>{{ transaction.service_type }}</td>
                 <td>$ {{ (transaction.amount or 0)|comma2 }}</td>
                 <td><strong>₦ {{ (transaction.amount_n or 0)|comma2 }}</strong></td>
-                <td>{{ transaction.email_link or '' }}</td>
                 <td>{{ transaction.transaction_date|date_format }}</td>
                 <td>
                     <a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" class="btn btn-secondary btn-sm">Edit</a>
@@ -239,4 +238,32 @@
     </div>
 </div>
 {% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateFrom = document.getElementById('date_from').value;
+        const dateTo = document.getElementById('date_to').value;
+        const defaultDate = [];
+        if (dateFrom) defaultDate.push(dateFrom);
+        if (dateTo) defaultDate.push(dateTo);
+
+        flatpickr("#date_range", {
+            mode: "range",
+            dateFormat: "Y-m-d",
+            defaultDate: defaultDate,
+            onClose: function(selectedDates, dateStr, instance) {
+                if (selectedDates.length === 2) {
+                    document.getElementById('date_from').value = instance.formatDate(selectedDates[0], "Y-m-d");
+                    document.getElementById('date_to').value = instance.formatDate(selectedDates[1], "Y-m-d");
+                } else if (selectedDates.length === 1) {
+                    document.getElementById('date_from').value = instance.formatDate(selectedDates[0], "Y-m-d");
+                    document.getElementById('date_to').value = instance.formatDate(selectedDates[0], "Y-m-d");
+                } else {
+                    document.getElementById('date_from').value = "";
+                    document.getElementById('date_to').value = "";
+                }
+            }
+        });
+    });
+</script>
 {% endblock %}
