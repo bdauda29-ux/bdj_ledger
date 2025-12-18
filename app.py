@@ -207,6 +207,17 @@ def init_db():
         ''')
         cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_models_name ON models(name)')
         
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS wallet (
+                id SERIAL PRIMARY KEY,
+                dollars REAL DEFAULT 0,
+                naira REAL DEFAULT 0,
+                rate REAL DEFAULT 0,
+                model_id INTEGER
+            )
+        ''')
+        cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_wallet_model ON wallet(model_id)')
+        
         # --- Postgres Migrations (Robust) ---
         print("Checking Postgres schema migrations...", file=sys.stderr)
         
@@ -837,8 +848,10 @@ def add_model():
             conn.execute('INSERT INTO models (name) VALUES (?)', (name,))
             conn.commit()
             return redirect(url_for('models'))
-        except sqlite3.IntegrityError:
-            return render_template('add_model.html', error='Model name already exists')
+        except Exception as e:
+            if 'unique' in str(e).lower() or isinstance(e, sqlite3.IntegrityError):
+                return render_template('add_model.html', error='Model name already exists')
+            raise e
     return render_template('add_model.html')
 
 @app.route('/models/select/<int:model_id>')
@@ -880,8 +893,10 @@ def edit_model(model_id):
             if session.get('model_id') == model_id:
                 session['model_name'] = name
             return redirect(url_for('models', message='Model updated'))
-        except sqlite3.IntegrityError:
-            return redirect(url_for('models', edit_id=model_id, error='Model name already exists'))
+        except Exception as e:
+            if 'unique' in str(e).lower() or isinstance(e, sqlite3.IntegrityError):
+                return redirect(url_for('models', edit_id=model_id, error='Model name already exists'))
+            raise e
     return redirect(url_for('models', edit_id=model_id))
 
 @app.route('/models/<int:model_id>/delete', methods=['POST'])
@@ -931,8 +946,10 @@ def add_user():
                          (username, hashlib.sha256(password.encode()).hexdigest(), flags['is_admin'], flags['can_edit_client'], flags['can_delete_client'], flags['can_add_transaction'], flags['can_edit_transaction'], flags['can_delete_transaction']))
             conn.commit()
             return redirect(url_for('list_users'))
-        except sqlite3.IntegrityError:
-            return render_template('add_user.html', error='Username already exists')
+        except Exception as e:
+            if 'unique' in str(e).lower() or isinstance(e, sqlite3.IntegrityError):
+                return render_template('add_user.html', error='Username already exists')
+            raise e
     return render_template('add_user.html')
 
 @app.route('/users/<int:user_id>/edit', methods=['GET','POST'])
@@ -1162,8 +1179,13 @@ def add_client():
                         (client_name, phone_number, current_model_id()))
             conn.commit()
             return redirect(url_for('clients'))
-        except sqlite3.IntegrityError:
-            return render_template('add_client.html', error='Client name already exists')
+        except Exception as e:
+            if 'unique' in str(e).lower() or isinstance(e, sqlite3.IntegrityError):
+                return render_template('add_client.html', error='Client name already exists')
+            # If it's a different error, we might want to show it or let it bubble up
+            import traceback
+            traceback.print_exc()
+            return render_template('add_client.html', error=f'Error adding client: {str(e)}')
     
     return render_template('add_client.html')
 
@@ -1184,9 +1206,11 @@ def edit_client(client_id):
                         (client_name, phone_number, client_id, current_model_id()))
             conn.commit()
             return redirect(url_for('clients'))
-        except sqlite3.IntegrityError:
-            client = conn.execute('SELECT * FROM clients WHERE id = ? AND model_id = ?', (client_id, current_model_id())).fetchone()
-            return render_template('edit_client.html', client=client, error='Client name already exists')
+        except Exception as e:
+            if 'unique' in str(e).lower() or isinstance(e, sqlite3.IntegrityError):
+                client = conn.execute('SELECT * FROM clients WHERE id = ? AND model_id = ?', (client_id, current_model_id())).fetchone()
+                return render_template('edit_client.html', client=client, error='Client name already exists')
+            raise e
     
     client = conn.execute('SELECT * FROM clients WHERE id = ? AND model_id = ?', (client_id, current_model_id())).fetchone()
     return render_template('edit_client.html', client=client)
