@@ -2059,35 +2059,97 @@ def debug_schema():
 
 @app.route('/fix_db')
 def fix_db():
+    logs = []
     try:
-        # Re-run init_db to trigger migrations
-        init_db()
+        logs.append("Starting database fix...")
         
-        # Verify the change
-        conn = get_db_connection()
         if POSTGRES_URL:
-            # Check column type
-            row = conn.execute("""
+            logs.append("Detected Postgres database.")
+            conn = psycopg2.connect(POSTGRES_URL)
+            conn.autocommit = True
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            
+            # 1. Check current type
+            cursor.execute("""
                 SELECT data_type 
                 FROM information_schema.columns 
                 WHERE table_name = 'transactions' AND column_name = 'app_id'
-            """).fetchone()
+            """)
+            row = cursor.fetchone()
+            current_type = row['data_type'] if row else 'unknown'
+            logs.append(f"Current transactions.app_id type: {current_type}")
             
-            dtype = row['data_type'] if row else 'unknown'
+            # 2. Force Migration
+            logs.append("Attempting to force migration to BIGINT...")
             
-            return f"""
-            <h1>Database Fix Attempted</h1>
-            <p>Ran init_db().</p>
-            <p>Current app_id type: <strong>{dtype}</strong></p>
-            <p>If type is 'bigint', it is fixed.</p>
-            <a href="/">Go Back Home</a>
-            """
+            try:
+                logs.append("Dropping index idx_transactions_app_unique...")
+                cursor.execute("DROP INDEX IF EXISTS idx_transactions_app_unique")
+                logs.append("Index dropped.")
+            except Exception as e:
+                logs.append(f"Warning dropping index: {e}")
+
+            try:
+                logs.append("Altering table transactions...")
+                cursor.execute("ALTER TABLE transactions ALTER COLUMN app_id TYPE BIGINT")
+                logs.append("Table altered successfully.")
+            except Exception as e:
+                logs.append(f"Error altering table transactions: {e}")
+
+            try:
+                logs.append("Altering table deleted_transactions...")
+                cursor.execute("ALTER TABLE deleted_transactions ALTER COLUMN app_id TYPE BIGINT")
+                logs.append("Table deleted_transactions altered successfully.")
+            except Exception as e:
+                logs.append(f"Error altering table deleted_transactions: {e}")
+
+            # 3. Recreate Index
+            try:
+                logs.append("Recreating index idx_transactions_app_unique...")
+                cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_app_unique ON transactions(app_id, model_id)')
+                logs.append("Index recreated.")
+            except Exception as e:
+                logs.append(f"Error recreating index: {e}")
+                
+            conn.close()
+            
         else:
-             return "<h1>Database Fix Attempted (SQLite)</h1><p>Ran init_db(). SQLite uses dynamic typing, so ensure your inputs are correct.</p><a href='/'>Go Back Home</a>"
-            
+            logs.append("Detected SQLite database.")
+            # SQLite usually handles large integers dynamically, but let's check
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA table_info(transactions)")
+            cols = cursor.fetchall()
+            for col in cols:
+                if col['name'] == 'app_id':
+                    logs.append(f"Current SQLite type: {col['type']}")
+            logs.append("SQLite supports 64-bit integers by default in INTEGER columns.")
+            conn.close()
+
+        logs.append("Fix completed.")
+        
+        return f"""
+        <html>
+            <head><title>DB Fix Report</title></head>
+            <body>
+                <h1>Database Fix Report</h1>
+                <pre>{'\\n'.join(logs)}</pre>
+                <br>
+                <a href="/">Go Home</a>
+            </body>
+        </html>
+        """
+
     except Exception as e:
         import traceback
-        return f"<h1>Error during fix</h1><pre>{traceback.format_exc()}</pre>"
+        return f"""
+        <html>
+            <body>
+                <h1>Fatal Error</h1>
+                <pre>{str(e)}\n{traceback.format_exc()}</pre>
+            </body>
+        </html>
+        """
 
 if __name__ == '__main__':
     init_db()
