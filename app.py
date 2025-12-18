@@ -1441,7 +1441,12 @@ def edit_transaction(transaction_id):
             email_link = request.form.get('email_link', '')
             service_type = request.form.get('service_type', 'eVisa')
             try:
-                app_id = int(request.form.get('app_id', '0'))
+                # Handle empty app_id or invalid format
+                app_id_raw = request.form.get('app_id', '0')
+                if not app_id_raw:
+                    app_id = 0
+                else:
+                    app_id = int(app_id_raw)
             except (TypeError, ValueError):
                 app_id = 0
             country_name = request.form['country_name']
