@@ -1872,7 +1872,7 @@ def export_pdf(transactions, sums):
     elements.append(Spacer(1, 0.2))
     
     # Create table data
-    data = [['S.No', 'Applicant', 'App ID', 'Country', 'Amount ($)', 'Rate', 'Amount N (₦)', 'Date']]
+    data = [['S.No', 'Applicant', 'App ID', 'Country', 'Amount ($)', 'Rate', 'Amount N (N)', 'Date']]
     for idx, trans in enumerate(transactions, start=1):
         # Handle date formatting (Postgres returns datetime, SQLite returns string)
         date_val = trans['transaction_date']
@@ -1888,12 +1888,12 @@ def export_pdf(transactions, sums):
             trans['country_name'],
             f"${trans['amount']:.2f}",
             f"{trans['rate']:.2f}",
-            f"₦{trans['amount_n']:.2f}",
+            f"N{trans['amount_n']:.2f}",
             date_str
         ])
     
     # Add sums row
-    data.append(['', '', '', 'TOTAL:', f"${sums['sum_amount']:.2f}", '', f"₦{sums['sum_amount_n']:.2f}", ''])
+    data.append(['', '', '', 'TOTAL:', f"${sums['sum_amount']:.2f}", '', f"N{sums['sum_amount_n']:.2f}", ''])
     
     table = Table(data)
     style_cmds = [
@@ -1951,7 +1951,7 @@ def export_jpeg(transactions, sums):
     y += 30
     
     # Headers
-    headers = ['S.No', 'Applicant', 'App ID', 'Country', 'Amount ($)', 'Rate', 'Amount N (₦)', 'Date']
+    headers = ['S.No', 'Applicant', 'App ID', 'Country', 'Amount ($)', 'Rate', 'Amount N (N)', 'Date']
     x_positions = [10, 80, 280, 380, 560, 680, 800, 960]
     
     for i, header in enumerate(headers):
@@ -1978,7 +1978,7 @@ def export_jpeg(transactions, sums):
             trans['country_name'][:20],
             f"${trans['amount']:.2f}",
             f"{trans['rate']:.2f}",
-            f"₦{trans['amount_n']:.2f}",
+            f"N{trans['amount_n']:.2f}",
             date_str
         ]
         
@@ -1992,7 +1992,7 @@ def export_jpeg(transactions, sums):
     y += 10
     draw.text((x_positions[3], y), f'TOTAL:', fill='black', font=font)
     draw.text((x_positions[4], y), f'${sums["sum_amount"]:.2f}', fill='black', font=font)
-    draw.text((x_positions[6], y), f'₦{sums["sum_amount_n"]:.2f}', fill='black', font=font)
+    draw.text((x_positions[6], y), f'N{sums["sum_amount_n"]:.2f}', fill='black', font=font)
     
     buffer = BytesIO()
     img.save(buffer, format='JPEG')
