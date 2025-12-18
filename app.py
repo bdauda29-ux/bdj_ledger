@@ -1544,7 +1544,7 @@ def edit_transaction(transaction_id):
             return redirect(url_for('transactions'))
         except Exception as e:
             import traceback
-            import sys
+            # sys is imported globally
             print(f"ERROR in edit_transaction: {e}", file=sys.stderr)
             traceback.print_exc()
             # Removed file logging for Vercel compatibility
