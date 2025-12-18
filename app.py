@@ -2057,6 +2057,38 @@ def debug_schema():
         import traceback
         return f"<pre>{traceback.format_exc()}</pre>"
 
+@app.route('/fix_db')
+def fix_db():
+    try:
+        # Re-run init_db to trigger migrations
+        init_db()
+        
+        # Verify the change
+        conn = get_db_connection()
+        if POSTGRES_URL:
+            # Check column type
+            row = conn.execute("""
+                SELECT data_type 
+                FROM information_schema.columns 
+                WHERE table_name = 'transactions' AND column_name = 'app_id'
+            """).fetchone()
+            
+            dtype = row['data_type'] if row else 'unknown'
+            
+            return f"""
+            <h1>Database Fix Attempted</h1>
+            <p>Ran init_db().</p>
+            <p>Current app_id type: <strong>{dtype}</strong></p>
+            <p>If type is 'bigint', it is fixed.</p>
+            <a href="/">Go Back Home</a>
+            """
+        else:
+             return "<h1>Database Fix Attempted (SQLite)</h1><p>Ran init_db(). SQLite uses dynamic typing, so ensure your inputs are correct.</p><a href='/'>Go Back Home</a>"
+            
+    except Exception as e:
+        import traceback
+        return f"<h1>Error during fix</h1><pre>{traceback.format_exc()}</pre>"
+
 if __name__ == '__main__':
     init_db()
     import os
