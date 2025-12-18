@@ -2065,19 +2065,27 @@ def fix_db():
         
         if POSTGRES_URL:
             logs.append("Detected Postgres database.")
+            
+            if psycopg2 is None:
+                logs.append("Error: psycopg2 module is not available (failed to import).")
+                raise Exception("psycopg2 module is missing but POSTGRES_URL is set.")
+
             conn = psycopg2.connect(POSTGRES_URL)
             conn.autocommit = True
             cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             
             # 1. Check current type
-            cursor.execute("""
-                SELECT data_type 
-                FROM information_schema.columns 
-                WHERE table_name = 'transactions' AND column_name = 'app_id'
-            """)
-            row = cursor.fetchone()
-            current_type = row['data_type'] if row else 'unknown'
-            logs.append(f"Current transactions.app_id type: {current_type}")
+            try:
+                cursor.execute("""
+                    SELECT data_type 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'transactions' AND column_name = 'app_id'
+                """)
+                row = cursor.fetchone()
+                current_type = row['data_type'] if row else 'unknown'
+                logs.append(f"Current transactions.app_id type: {current_type}")
+            except Exception as e:
+                logs.append(f"Error checking type: {e}")
             
             # 2. Force Migration
             logs.append("Attempting to force migration to BIGINT...")
@@ -2115,7 +2123,6 @@ def fix_db():
             
         else:
             logs.append("Detected SQLite database.")
-            # SQLite usually handles large integers dynamically, but let's check
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute("PRAGMA table_info(transactions)")
@@ -2128,31 +2135,15 @@ def fix_db():
 
         logs.append("Fix completed.")
         
-        return f"""
-        <html>
-            <head><title>DB Fix Report</title></head>
-            <body>
-                <h1>Database Fix Report</h1>
-                <pre>{'\\n'.join(logs)}</pre>
-                <br>
-                <a href="/">Go Home</a>
-            </body>
-        </html>
-        """
+        return f"<html><body><h1>Fix Report</h1><pre>{'<br>'.join(logs)}</pre><br><a href='/'>Home</a></body></html>"
 
     except Exception as e:
-        import traceback
-        return f"""
-        <html>
-            <body>
-                <h1>Fatal Error</h1>
-                <pre>{str(e)}\n{traceback.format_exc()}</pre>
-            </body>
-        </html>
-        """
+        return f"<html><body><h1>Fatal Error in fix_db</h1><p>{str(e)}</p></body></html>"
 
-if __name__ == '__main__':
-    init_db()
-    import os
-    port = int(os.environ.get('PORT', '5000'))
-    app.run(debug=True, host='127.0.0.1', port=port)
+@app.errorhandler(500)
+def internal_server_error(error):
+    # If debug param is present, show error
+    if request.args.get('debug_500'):
+        import traceback
+        return f"<pre>{traceback.format_exc()}</pre>", 500
+    return render_template('base.html', error='The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.'), 500
