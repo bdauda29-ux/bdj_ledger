@@ -106,6 +106,7 @@
                 <td>{{ transaction.transaction_date|date_format }}</td>
                 <td>
                     <a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" class="btn btn-secondary btn-sm">Edit</a>
+                    {% if session.permissions and session.permissions.is_admin %}
                     {% if not transaction.is_paid %}
                     <form action="{{ url_for('pay_transaction', transaction_id=transaction.id) }}" 
                           method="POST" 
@@ -120,6 +121,7 @@
                           onsubmit="return confirm('Undo payment and restore client balance?');">
                         <button type="submit" class="btn btn-secondary btn-sm">Undo Pay</button>
                     </form>
+                    {% endif %}
                     {% endif %}
                     <form action="{{ url_for('delete_transaction', transaction_id=transaction.id) }}" 
                           method="POST" 
@@ -181,6 +183,7 @@
         </div>
         <div class="mobile-card-actions">
             <a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" class="btn btn-secondary btn-sm">Edit</a>
+            {% if session.permissions and session.permissions.is_admin %}
             {% if not transaction.is_paid %}
             <form action="{{ url_for('pay_transaction', transaction_id=transaction.id) }}" 
                   method="POST" 
@@ -195,6 +198,7 @@
                   onsubmit="return confirm('Undo payment and restore client balance?');">
                 <button type="submit" class="btn btn-secondary btn-sm" style="width: 100%;">Undo Pay</button>
             </form>
+            {% endif %}
             {% endif %}
             <form action="{{ url_for('delete_transaction', transaction_id=transaction.id) }}" 
                   method="POST" 

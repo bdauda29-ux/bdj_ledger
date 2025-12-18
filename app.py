@@ -1122,7 +1122,9 @@ def index():
                                transactions=transactions,
                                today_sums=today_sums,
                                selected_date=selected_date,
-                               wallet=wallet)
+                               wallet=wallet,
+                               error=request.args.get('error'),
+                               message=request.args.get('message'))
     except Exception as e:
         import traceback
         traceback.print_exc()
