@@ -1443,11 +1443,13 @@ def edit_transaction(transaction_id):
             try:
                 # Handle empty app_id or invalid format
                 app_id_raw = request.form.get('app_id', '0')
+                print(f"DEBUG: Processing edit_transaction. app_id_raw={app_id_raw}", file=sys.stderr)
                 if not app_id_raw:
                     app_id = 0
                 else:
                     app_id = int(app_id_raw)
             except (TypeError, ValueError):
+                print(f"DEBUG: Invalid app_id format: {app_id_raw}", file=sys.stderr)
                 app_id = 0
             country_name = request.form['country_name']
             try:
@@ -1550,14 +1552,21 @@ def edit_transaction(transaction_id):
                 conn.rollback()
             except Exception:
                 pass
-            transaction = conn.execute('SELECT * FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
-            clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
-            countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
-            return render_template('edit_transaction.html', 
-                                 transaction=transaction,
-                                 clients=clients_list, 
-                                 countries=countries_list,
-                                 error=f'An unexpected error occurred: {str(e)}')
+            
+            try:
+                transaction = conn.execute('SELECT * FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
+                clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
+                countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
+                
+                return render_template('edit_transaction.html', 
+                                     transaction=transaction,
+                                     clients=clients_list, 
+                                     countries=countries_list,
+                                     error=f'An unexpected error occurred: {str(e)}')
+            except Exception as e2:
+                print(f"CRITICAL ERROR recovering from edit_transaction failure: {e2}", file=sys.stderr)
+                traceback.print_exc()
+                return f"An error occurred: {str(e)}. Additionally, failed to reload form: {str(e2)}", 500
     
     transaction = conn.execute('SELECT * FROM transactions WHERE id = ? AND model_id = ?', (transaction_id, current_model_id())).fetchone()
     clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
