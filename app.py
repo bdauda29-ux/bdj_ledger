@@ -1064,7 +1064,7 @@ def index():
                 else:
                     unpaid_val = 0
                 
-                wallet['naira'] = (wallet['naira'] or 0) + (unpaid_val or 0)
+                wallet['unpaid_n'] = unpaid_val
         except:
              pass
 
