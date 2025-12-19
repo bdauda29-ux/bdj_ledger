@@ -1047,6 +1047,24 @@ def index():
         wallet = None
         try:
              wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+             if wallet:
+                # Convert to dict to allow modification
+                wallet = dict(wallet)
+                # Calculate unpaid amount_n
+                unpaid_n = conn.execute('SELECT COALESCE(SUM(amount_n), 0) FROM transactions WHERE model_id = ? AND is_paid = 0 AND deleted = 0', (mid,)).fetchone()
+                # Handle different cursor return types (dict vs tuple)
+                if isinstance(unpaid_n, (tuple, list)):
+                    unpaid_val = unpaid_n[0]
+                elif hasattr(unpaid_n, 'keys'): # RealDictRow or similar
+                    # If it's a dict, we need to know the key name or use values
+                    # Usually COALESCE(...) without alias might be 'coalesce' or similar
+                    # Safest is to use alias in query
+                    unpaid_n = conn.execute('SELECT COALESCE(SUM(amount_n), 0) as val FROM transactions WHERE model_id = ? AND is_paid = 0 AND deleted = 0', (mid,)).fetchone()
+                    unpaid_val = unpaid_n['val']
+                else:
+                    unpaid_val = 0
+                
+                wallet['naira'] = (wallet['naira'] or 0) + (unpaid_val or 0)
         except:
              pass
 
