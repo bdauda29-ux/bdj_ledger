@@ -57,8 +57,8 @@
 
 <!-- Export Options -->
 <div style="margin: 15px 0; display: flex; gap: 10px;">
-    <a href="{{ url_for('export_transactions', format='pdf', client_name=filters.client, country_name=filters.country, date_from=filters.date_from, date_to=filters.date_to) }}" class="btn btn-info">Export PDF</a>
-    <a href="{{ url_for('export_transactions', format='jpeg', client_name=filters.client, country_name=filters.country, date_from=filters.date_from, date_to=filters.date_to) }}" class="btn btn-info">Export JPEG</a>
+    <a href="{{ url_for('export_transactions', format='pdf', client_name=filters.client, country_name=filters.country, date_from=filters.date_from, date_to=filters.date_to, paid=filters.paid) }}" class="btn btn-info">Export PDF</a>
+    <a href="{{ url_for('export_transactions', format='jpeg', client_name=filters.client, country_name=filters.country, date_from=filters.date_from, date_to=filters.date_to, paid=filters.paid) }}" class="btn btn-info">Export JPEG</a>
 </div>
 
 {% if error %}

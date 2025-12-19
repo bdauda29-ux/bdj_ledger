@@ -1961,6 +1961,11 @@ def export_transactions():
         country = request.args.get('country_name', '').strip()
         date_from = request.args.get('date_from', '').strip()
         date_to = request.args.get('date_to', '').strip()
+        paid = request.args.get('paid', 'all')
+        
+        # Handle 'None' string literal
+        if date_from == 'None': date_from = ''
+        if date_to == 'None': date_to = ''
         
         # Build WHERE clause
         where_clauses = ['model_id = ?']
@@ -1977,6 +1982,10 @@ def export_transactions():
         if date_to:
             where_clauses.append("date(transaction_date) <= date(?)")
             params.append(date_to)
+        
+        if paid in ('0', '1'):
+            where_clauses.append('is_paid = ?')
+            params.append(int(paid))
         
         where_sql = ('WHERE ' + ' AND '.join(where_clauses)) if where_clauses else ''
         
