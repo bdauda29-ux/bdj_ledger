@@ -1377,6 +1377,11 @@ def transactions():
     country = request.args.get('country_name')
     date_from = request.args.get('date_from')
     date_to = request.args.get('date_to')
+
+    # Handle 'None' string literal from legacy bad URLs
+    if date_from == 'None': date_from = None
+    if date_to == 'None': date_to = None
+    
     error = request.args.get('error')
     paid = request.args.get('paid', '0') # Default to Pending (0)
 

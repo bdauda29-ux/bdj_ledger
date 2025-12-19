@@ -40,8 +40,8 @@
 
         <label>Date Range:</label>
         <input type="text" id="date_range" class="form-control" style="width: 220px;" placeholder="Select date range">
-        <input type="hidden" name="date_from" id="date_from" value="{{ filters.date_from }}">
-        <input type="hidden" name="date_to" id="date_to" value="{{ filters.date_to }}">
+        <input type="hidden" name="date_from" id="date_from" value="{{ filters.date_from or '' }}">
+        <input type="hidden" name="date_to" id="date_to" value="{{ filters.date_to or '' }}">
         
         <label>Paid:</label>
         <select name="paid">
