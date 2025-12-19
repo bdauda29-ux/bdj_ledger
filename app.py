@@ -57,6 +57,7 @@ if psycopg2 is not None:
             self.conn = psycopg2.connect(dsn)
             self.conn.autocommit = False
         def _convert_sql(self, sql):
+            sql = sql.replace("date(?)", "CAST(? AS DATE)")
             sql = sql.replace('?', '%s')
             sql = sql.replace("date('now','localtime')", 'CURRENT_DATE')
             sql = sql.replace('date(', 'DATE(')
@@ -2376,8 +2377,6 @@ def fix_db():
 
 @app.errorhandler(500)
 def internal_server_error(error):
-    # If debug param is present, show error
-    if request.args.get('debug_500'):
-        import traceback
-        return f"<pre>{traceback.format_exc()}</pre>", 500
-    return render_template('base.html', error='The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.'), 500
+    # Always show traceback for debugging
+    import traceback
+    return f"<pre>{traceback.format_exc()}</pre>", 500
