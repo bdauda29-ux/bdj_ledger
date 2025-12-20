@@ -62,14 +62,10 @@
             <span class="mobile-card-label">ID:</span>
             <span class="mobile-card-value">#{{ client.id }}</span>
         </div> -->
-        {% if client.phone_number %}
         <div class="mobile-card-row">
             <span class="mobile-card-label">Phone:</span>
-            <span class="mobile-card-value">
-                <a href="https://wa.me/{{ client.phone_number|replace(' ', '')|replace('-', '')|replace('+', '') }}" target="_blank" class="btn btn-sm" style="background-color: #25D366; color: white; padding: 2px 8px; font-weight: 500; border: none; display: inline-block;">WhatsApp</a>
-            </span>
+            <span class="mobile-card-value">{{ client.phone_number }}</span>
         </div>
-        {% endif %}
         <div class="mobile-card-row">
             <span class="mobile-card-label">Balance:</span>
             <span class="mobile-card-value">{{ (client.balance or 0)|comma2 }}</span>

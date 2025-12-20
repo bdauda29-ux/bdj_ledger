@@ -91,7 +91,11 @@
                 <td>{{ transaction.client_name }}</td>
                 <td>{{ transaction.applicant_name }}</td>
                 <td>{{ transaction.app_id }}</td>
-                <td>{{ transaction.email_link or '' }}</td>
+                <td>
+                    {% if transaction.email_link %}
+                    <a href="{{ transaction.email_link }}" target="_blank" class="btn btn-primary btn-sm" style="padding: 2px 6px; font-size: 12px;">Open Link</a>
+                    {% endif %}
+                </td>
                 <td>{{ transaction.country_name }}</td>
                 <td>{{ (transaction.country_price or 0)|comma2 }}</td>
                 <td>{{ (transaction.rate or 0)|comma2 }}</td>
