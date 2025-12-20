@@ -110,7 +110,7 @@
                 <td>{{ (transaction.addition or 0)|comma2 }}</td>
                 <td>{{ transaction.service_type }}</td>
                 <td>$ {{ (transaction.amount or 0)|comma2 }}</td>
-                <td><strong>₦ {{ (transaction.amount_n or 0)|comma2 }}</strong></td>
+                <td><strong>{{ (transaction.amount_n or 0)|comma2 }}</strong></td>
                 <td>{{ transaction.transaction_date|date_format }}</td>
                 <td>
                     {% if not transaction.is_paid %}

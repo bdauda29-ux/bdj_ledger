@@ -2090,9 +2090,13 @@ def export_pdf(transactions, sums):
             date_str = str(date_val)[:10]
 
         amount_str = f"${trans['amount']:,.0f}"
-        amountn_str = f"₦ {trans['amount_n']:,.0f}"
+        amountn_str = f"{trans['amount_n']:,.0f}"
         amountn_cell = amountn_str
-        
+        if naira_buf:
+            amountn_cell = Table([[RLImage(naira_buf, width=10, height=10), Paragraph(amountn_str, styles['Normal'])]],
+                                 style=TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                                   ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                                                   ('RIGHTPADDING', (0, 0), (-1, -1), 0)]))
         data.append([
             str(idx),
             trans['applicant_name'] or '',
@@ -2106,9 +2110,13 @@ def export_pdf(transactions, sums):
     
     # Add sums row
     sums_amount = f"${(sums['sum_amount'] or 0):,.0f}"
-    sums_amountn = f"₦ {(sums['sum_amount_n'] or 0):,.0f}"
+    sums_amountn = f"{(sums['sum_amount_n'] or 0):,.0f}"
     sums_amountn_cell = sums_amountn
-    
+    if naira_buf:
+        sums_amountn_cell = Table([[RLImage(naira_buf, width=10, height=10), Paragraph(sums_amountn, styles['Normal'])]],
+                                  style=TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                                                    ('RIGHTPADDING', (0, 0), (-1, -1), 0)]))
     data.append(['', '', '', 'TOTAL:', sums_amount, '', sums_amountn_cell, ''])
     
     table = Table(data)

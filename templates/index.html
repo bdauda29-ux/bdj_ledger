@@ -12,9 +12,9 @@
         <h3 style="margin-top: 0; color: #1976d2; font-size: 1.1em;">Wallet Overview</h3>
         <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: center;">
             <div><strong>Dollars:</strong> ${{ (wallet.dollars or 0)|comma2 }}</div>
-            <div><strong>Naira:</strong> ₦{{ (wallet.naira or 0)|comma2 }}</div>
-            <div><strong>Unpaid Bal:</strong> ₦{{ (wallet.unpaid_n or 0)|comma2 }}</div>
-            <div><strong>Total (N):</strong> <strong>₦{{ ((wallet.dollars or 0) * (wallet.rate or 0) + (wallet.naira or 0) + (wallet.unpaid_n or 0))|comma2 }}</strong></div>
+            <div><strong>Naira:</strong> {{ (wallet.naira or 0)|comma2 }}</div>
+            <div><strong>Unpaid Bal:</strong> {{ (wallet.unpaid_n or 0)|comma2 }}</div>
+            <div><strong>Total (N):</strong> <strong>{{ ((wallet.dollars or 0) * (wallet.rate or 0) + (wallet.naira or 0) + (wallet.unpaid_n or 0))|comma2 }}</strong></div>
         </div>
         <div style="margin-top: 10px;"><strong>Rate:</strong> {{ wallet.rate or 0 }}</div>
     </div>
@@ -30,7 +30,7 @@
     <div class="summary-boxes">
         <div class="summary-box">
             <h3>Total Wallet Balance</h3>
-            <p>{% if wallet %}₦{{ ((wallet.dollars or 0) * (wallet.rate or 0) + (wallet.naira or 0) + (wallet.unpaid_n or 0))|comma2 }}{% else %}₦0{% endif %}</p>
+            <p>{% if wallet %}{{ ((wallet.dollars or 0) * (wallet.rate or 0) + (wallet.naira or 0) + (wallet.unpaid_n or 0))|comma2 }}{% else %}0{% endif %}</p>
         </div>
         <div class="summary-box">
             <h3>Total Transactions</h3>

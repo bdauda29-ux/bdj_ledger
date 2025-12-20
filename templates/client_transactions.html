@@ -41,7 +41,7 @@
                 <td>{{ (transaction.rate or 0)|comma2 }}</td>
                 <td>{{ (transaction.addition or 0)|comma2 }}</td>
                 <td>$ {{ (transaction.amount or 0)|comma2 }}</td>
-                <td><strong>₦ {{ (transaction.amount_n or 0)|comma2 }}</strong></td>
+                <td><strong>{{ (transaction.amount_n or 0)|comma2 }}</strong></td>
                 <td>
                     {% if transaction.email_link %}
                     <a href="{{ transaction.email_link }}" target="_blank" class="btn btn-primary btn-sm" style="padding: 2px 6px; font-size: 12px;">Open Link</a>
