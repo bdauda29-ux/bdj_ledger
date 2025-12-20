@@ -169,12 +169,10 @@
 
         <div class="mobile-card-row mobile-grouped-row">
             <div class="mobile-half-col">
-                <span class="mobile-card-label-sm">Country:</span>
-                <span class="mobile-card-value-sm">{{ transaction.country_name }}</span>
+                <span class="mobile-card-value-sm" style="text-align: center;">{{ transaction.country_name }}</span>
             </div>
             <div class="mobile-half-col">
-                <span class="mobile-card-label-sm">Price:</span>
-                <span class="mobile-card-value-sm"><span class="country-price-logo">{{ (transaction.country_price or 0)|comma2 }}</span></span>
+                <span class="mobile-card-value-sm" style="text-align: center;"><span class="country-price-logo">{{ (transaction.country_price or 0)|comma2 }}</span></span>
             </div>
         </div>
 
