@@ -175,8 +175,9 @@
         </div>
         {% endif %}
 
-        <div class="mobile-card-row" style="justify-content: center; background-color: #f8f9fa; padding: 4px; border-radius: 4px; margin: 4px 0;">
-            <span class="mobile-card-value-sm" style="font-weight: bold; width: 100%; text-align: center;">({{ transaction.country_name }} - <span class="country-price-logo">{{ (transaction.country_price or 0)|comma2 }}</span>)</span>
+        <div class="mobile-card-row" style="justify-content: space-between; background-color: #f8f9fa; padding: 4px 8px; border-radius: 4px; margin: 4px 0; display: flex;">
+            <span class="mobile-card-value-sm" style="font-weight: bold;">{{ transaction.country_name }}</span>
+            <span class="country-price-logo">{{ (transaction.country_price or 0)|comma2 }}</span>
         </div>
 
         <div class="mobile-card-row mobile-grouped-row">
