@@ -46,7 +46,7 @@ def date_format(value):
     for fmt in formats:
         try:
             date_obj = datetime.strptime(s, fmt)
-            return date_obj.strftime('%d %B, %Y')
+            return date_obj.strftime('%d %b, %Y')
         except ValueError:
             continue
     return value

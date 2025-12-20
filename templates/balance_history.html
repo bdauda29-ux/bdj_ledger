@@ -84,7 +84,7 @@
         </div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Date:</span>
-            <span class="mobile-card-value">{{ item.timestamp }}</span>
+            <span class="mobile-card-value">{{ item.timestamp|date_format }}</span>
         </div>
     </div>
     {% endfor %}

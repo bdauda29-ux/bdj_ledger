@@ -35,9 +35,8 @@
                 <td>{{ row.country_name }}</td>
                 <td>{{ row.amount|comma2 }}</td>
                 <td>{{ row.amount_n|comma2 }}</td>
-                <td>{{ row.email_link or '' }}</td>
-                <td>{{ row.transaction_date }}</td>
-                <td>{{ row.deleted_at }}</td>
+                <td>{{ row.transaction_date|date_format }}</td>
+                <td>{{ row.deleted_at|date_format }}</td>
                 <td>
                     <form action="{{ url_for('restore_deleted_transaction', deleted_id=row.id) }}" method="POST" style="display:inline">
                         <button type="submit" class="btn btn-primary btn-sm">Restore</button>
