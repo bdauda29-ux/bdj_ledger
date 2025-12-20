@@ -30,7 +30,7 @@
                 <td>{{ client.client_name }}</td>
                 <td>
                     {% if client.phone_number %}
-                    <a href="https://wa.me/{{ client.phone_number|replace(' ', '')|replace('-', '')|replace('+', '') }}" target="_blank" class="btn btn-sm" style="background-color: #25D366; color: white; padding: 2px 8px; font-weight: 500; border: none;">WhatsApp</a>
+                    <a href="https://wa.me/{{ client.phone_number|replace(' ', '')|replace('-', '')|replace('+', '') }}" target="_blank" style="color: #25D366; font-weight: 500; text-decoration: none;">{{ client.phone_number }}</a>
                     {% endif %}
                 </td>
                 <td>{{ (client.balance or 0)|comma2 }}</td>
