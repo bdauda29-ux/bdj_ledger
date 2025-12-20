@@ -2090,13 +2090,9 @@ def export_pdf(transactions, sums):
             date_str = str(date_val)[:10]
 
         amount_str = f"${trans['amount']:,.0f}"
-        amountn_str = f"{trans['amount_n']:,.0f}"
+        amountn_str = f"₦ {trans['amount_n']:,.0f}"
         amountn_cell = amountn_str
-        if naira_buf:
-            amountn_cell = Table([[RLImage(naira_buf, width=10, height=10), Paragraph(amountn_str, styles['Normal'])]],
-                                 style=TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                                                   ('LEFTPADDING', (0, 0), (-1, -1), 0),
-                                                   ('RIGHTPADDING', (0, 0), (-1, -1), 0)]))
+        
         data.append([
             str(idx),
             trans['applicant_name'] or '',
@@ -2110,13 +2106,9 @@ def export_pdf(transactions, sums):
     
     # Add sums row
     sums_amount = f"${(sums['sum_amount'] or 0):,.0f}"
-    sums_amountn = f"{(sums['sum_amount_n'] or 0):,.0f}"
+    sums_amountn = f"₦ {(sums['sum_amount_n'] or 0):,.0f}"
     sums_amountn_cell = sums_amountn
-    if naira_buf:
-        sums_amountn_cell = Table([[RLImage(naira_buf, width=10, height=10), Paragraph(sums_amountn, styles['Normal'])]],
-                                  style=TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                                                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
-                                                    ('RIGHTPADDING', (0, 0), (-1, -1), 0)]))
+    
     data.append(['', '', '', 'TOTAL:', sums_amount, '', sums_amountn_cell, ''])
     
     table = Table(data)
@@ -2212,7 +2204,7 @@ def export_jpeg(transactions, sums):
 
         amount_str = f"${trans['amount']:,.0f}"
         rate_str = f"{trans['rate']:,.0f}"
-        amountn_str = f"{trans['amount_n']:,.0f}"
+        amountn_str = f"₦ {trans['amount_n']:,.0f}"
         row_data = [
             str(idx),
             (trans['applicant_name'] or '')[:25],
@@ -2226,12 +2218,7 @@ def export_jpeg(transactions, sums):
         
         for i, text in enumerate(row_data):
             draw.text((x_positions[i], y), text, fill='black', font=font)
-        try:
-            img_x = x_positions[6] - 18
-            img_y = y
-            img.paste(icon, (img_x, img_y), icon)
-        except Exception:
-            pass
+        
         y += 25
     
     # Total line
@@ -2240,13 +2227,9 @@ def export_jpeg(transactions, sums):
     y += 10
     draw.text((x_positions[3], y), f'TOTAL:', fill='black', font=font)
     sum_amt = f'${(sums["sum_amount"] or 0):,.0f}'
-    sum_amtn = f'{(sums["sum_amount_n"] or 0):,.0f}'
+    sum_amtn = f'₦ {(sums["sum_amount_n"] or 0):,.0f}'
     draw.text((x_positions[4], y), sum_amt, fill='black', font=font)
     draw.text((x_positions[6], y), sum_amtn, fill='black', font=font)
-    try:
-        img.paste(icon, (x_positions[6] - 18, y), icon)
-    except Exception:
-        pass
     
     buffer = BytesIO()
     img.save(buffer, format='JPEG')
