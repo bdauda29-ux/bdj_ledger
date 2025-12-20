@@ -3,6 +3,56 @@
 {% block title %}Users - Ledger System{% endblock %}
 
 {% block content %}
+<style>
+    .users-grid-table {
+        border-collapse: collapse;
+        width: 100%;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .users-grid-table thead {
+        background-color: #009879;
+        color: #ffffff;
+        text-align: center;
+    }
+    
+    .users-grid-table th, 
+    .users-grid-table td {
+        padding: 12px 15px;
+        border: 1px solid #dddddd;
+    }
+    
+    .users-grid-table tbody tr {
+        border-bottom: 1px solid #dddddd;
+    }
+    
+    .users-grid-table tbody tr:nth-of-type(even) {
+        background-color: #f3f3f3;
+    }
+    
+    .users-grid-table tbody tr:last-of-type {
+        border-bottom: 2px solid #009879;
+    }
+    
+    .permission-cell {
+        text-align: center;
+        font-size: 1.2rem;
+    }
+    
+    .check-icon {
+        color: #28a745;
+        font-weight: bold;
+    }
+    
+    .cross-icon {
+        color: #dc3545;
+        font-weight: bold;
+        opacity: 0.3;
+    }
+</style>
+
 <div class="page-header">
     <h2>Users</h2>
     <a href="{{ url_for('add_user') }}" class="btn btn-primary">Add User</a>
@@ -10,17 +60,17 @@
 
 {% if users %}
 <div class="table-container">
-    <table class="data-table">
+    <table class="data-table users-grid-table">
         <thead>
             <tr>
                 <th>S.No</th>
                 <th>Username</th>
-                <th>Admin</th>
-                <th>Edit Client</th>
-                <th>Delete Client</th>
-                <th>Add Txn</th>
-                <th>Edit Txn</th>
-                <th>Delete Txn</th>
+                <th style="text-align: center;">Admin</th>
+                <th style="text-align: center;">Edit Client</th>
+                <th style="text-align: center;">Delete Client</th>
+                <th style="text-align: center;">Add Txn</th>
+                <th style="text-align: center;">Edit Txn</th>
+                <th style="text-align: center;">Delete Txn</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -28,13 +78,49 @@
             {% for u in users %}
             <tr>
                 <td>{{ loop.index }}</td>
-                <td>{{ u.username }}</td>
-                <td>{{ u.is_admin and 'Yes' or 'No' }}</td>
-                <td>{{ u.can_edit_client and 'Yes' or 'No' }}</td>
-                <td>{{ u.can_delete_client and 'Yes' or 'No' }}</td>
-                <td>{{ u.can_add_transaction and 'Yes' or 'No' }}</td>
-                <td>{{ u.can_edit_transaction and 'Yes' or 'No' }}</td>
-                <td>{{ u.can_delete_transaction and 'Yes' or 'No' }}</td>
+                <td><strong>{{ u.username }}</strong></td>
+                <td class="permission-cell">
+                    {% if u.is_admin %}
+                    <span class="check-icon">✓</span>
+                    {% else %}
+                    <span class="cross-icon">×</span>
+                    {% endif %}
+                </td>
+                <td class="permission-cell">
+                    {% if u.can_edit_client %}
+                    <span class="check-icon">✓</span>
+                    {% else %}
+                    <span class="cross-icon">×</span>
+                    {% endif %}
+                </td>
+                <td class="permission-cell">
+                    {% if u.can_delete_client %}
+                    <span class="check-icon">✓</span>
+                    {% else %}
+                    <span class="cross-icon">×</span>
+                    {% endif %}
+                </td>
+                <td class="permission-cell">
+                    {% if u.can_add_transaction %}
+                    <span class="check-icon">✓</span>
+                    {% else %}
+                    <span class="cross-icon">×</span>
+                    {% endif %}
+                </td>
+                <td class="permission-cell">
+                    {% if u.can_edit_transaction %}
+                    <span class="check-icon">✓</span>
+                    {% else %}
+                    <span class="cross-icon">×</span>
+                    {% endif %}
+                </td>
+                <td class="permission-cell">
+                    {% if u.can_delete_transaction %}
+                    <span class="check-icon">✓</span>
+                    {% else %}
+                    <span class="cross-icon">×</span>
+                    {% endif %}
+                </td>
                 <td>
                     <a href="{{ url_for('edit_user', user_id=u.id) }}" class="btn btn-secondary btn-sm">Edit</a>
                     <form action="{{ url_for('delete_user', user_id=u.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete user {{ u.username }}?');">
