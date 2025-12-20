@@ -13,7 +13,7 @@
         <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: center;">
             <div><strong>Dollars:</strong> ${{ (wallet.dollars or 0)|comma2 }}</div>
             <div><strong>Naira:</strong> {{ (wallet.naira or 0)|comma2 }}</div>
-            <div><strong>Unpaid Bal:</strong> {{ (wallet.unpaid_n or 0)|comma2 }}</div>
+            <div><strong>Unpaid Bal:</strong> <span style="font-size: 1.1em; font-weight: bold;">{{ (wallet.unpaid_n or 0)|comma2 }}</span></div>
             <div><strong>Total (N):</strong> <strong>{{ ((wallet.dollars or 0) * (wallet.rate or 0) + (wallet.naira or 0) + (wallet.unpaid_n or 0))|comma2 }}</strong></div>
         </div>
         <div style="margin-top: 10px;"><strong>Rate:</strong> {{ wallet.rate or 0 }}</div>
@@ -38,7 +38,7 @@
         </div>
         <div class="summary-box">
             <h3>Client's Balance</h3>
-            <p>{{ (total_balance or 0)|comma2 }}</p>
+            <p style="font-size: 2.5rem;">{{ (total_balance or 0)|comma2 }}</p>
         </div>
     </div>
 
