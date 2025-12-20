@@ -240,7 +240,7 @@ body {
 }
 
 .row-paid {
-    background-color: #c8e6c9;
+    background-color: #d1e7dd; /* Clearer light green */
 }
 
 .data-table tbody tr:last-child td {
@@ -758,49 +758,4 @@ footer p {
 .summary-box p {
     font-size: 2rem;
     font-weight: 600;
-}
-
-/* Table 2 Accent 4 Style (Gold/Yellow Theme) */
-.data-table-accent4 {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 600px;
-}
-
-.data-table-accent4 thead {
-    background: #FFC000; /* Accent 4 Gold */
-    color: black;
-}
-
-.data-table-accent4 th {
-    padding: 1rem;
-    text-align: left;
-    font-weight: 600;
-    white-space: nowrap;
-    border: 1px solid #ffffff; /* White borders for grid look */
-    border-bottom: 1px solid #e0e0e0;
-}
-
-.data-table-accent4 td {
-    padding: 1rem;
-    border: 1px solid #ffffff; /* White borders for grid look */
-    border-bottom: 1px solid #e0e0e0;
-    color: #333;
-}
-
-.data-table-accent4 tbody tr:nth-of-type(even) {
-    background-color: #FFF8E1; /* Light gold banding */
-}
-
-.data-table-accent4 tbody tr:nth-of-type(odd) {
-    background-color: #ffffff;
-}
-
-.data-table-accent4 tbody tr:hover {
-    background-color: #FFECB3;
-}
-
-/* Ensure paid rows still stand out but respect the grid */
-.data-table-accent4 .row-paid {
-    background-color: #c8e6c9 !important; /* Green override for paid status */
 }
