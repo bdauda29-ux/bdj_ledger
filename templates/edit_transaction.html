@@ -78,7 +78,7 @@
         <div class="form-group">
             <label>Amount (calculated)</label>
             <input type="text" id="amountDisplay" readonly class="readonly-field">
-            <small>🌐 + Addition</small>
+            <small>Country Price + Addition</small>
         </div>
         
         <div class="form-group">
@@ -201,7 +201,7 @@
         amountNDisplay.value = Math.round(amountN).toLocaleString();
         
         if (countryPrice > 0) {
-            countryPriceDisplay.textContent = `🌐: ${Math.round(countryPrice).toLocaleString()}`;
+            countryPriceDisplay.textContent = `Country Price: ${Math.round(countryPrice).toLocaleString()}`;
         } else {
             countryPriceDisplay.textContent = '';
         }
