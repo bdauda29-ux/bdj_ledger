@@ -17,7 +17,7 @@
                 <th>S.No</th>
                 <!-- <th>ID</th> -->
                 <th>Client Name</th>
-                <th>Phone Number</th>
+                <th>☎</th>
                 <th>Balance</th>
                 <th>Actions</th>
             </tr>
@@ -60,7 +60,7 @@
                 <span class="mobile-card-value-sm">{{ client.client_name }}</span>
             </div>
             <div class="mobile-half-col">
-                <span class="mobile-card-label-sm">Phone:</span>
+                <span class="mobile-card-label-sm">☎</span>
                 <span class="mobile-card-value-sm">
                     {% if client.phone_number %}
                     <a href="https://wa.me/{{ client.phone_number|replace(' ', '')|replace('-', '')|replace('+', '') }}" target="_blank" style="text-decoration: none; color: inherit;">{{ client.phone_number }}</a>
