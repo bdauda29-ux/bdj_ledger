@@ -6,11 +6,6 @@
 <div class="page-header">
     <h2>Models</h2>
     <a href="{{ url_for('add_model') }}" class="btn btn-primary">Create New Model</a>
-    {% if session.permissions and session.permissions.is_admin and session.model_id %}
-    <form action="{{ url_for('clear_current_model') }}" method="POST" style="display:inline;" onsubmit="return confirm('Clear all data for current model? This cannot be undone.');">
-        <button type="submit" class="btn btn-danger">Clear Current Model Data</button>
-    </form>
-    {% endif %}
 </div>
 
 {% if session.model_id %}

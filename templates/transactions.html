@@ -22,30 +22,38 @@
 </div>
 <!-- Filters -->
 <div class="filter-bar">
-    <form method="GET" class="filter-form">
-        <label>Client:</label>
-        <select name="client_name">
-            <option value="">All</option>
-            {% for c in clients %}
-            <option value="{{ c.client_name }}" {% if filters.client == c.client_name %}selected{% endif %}>{{ c.client_name }}</option>
-            {% endfor %}
-        </select>
+    <form method="GET" class="filter-form" style="display: flex; flex-wrap: wrap; align-items: center; gap: 15px;">
+        <div class="filter-group" style="display: flex; align-items: center; gap: 5px;">
+            <label style="margin: 0; white-space: nowrap;">Client:</label>
+            <select name="client_name" style="width: auto; min-width: 150px;">
+                <option value="">All</option>
+                {% for c in clients %}
+                <option value="{{ c.client_name }}" {% if filters.client == c.client_name %}selected{% endif %}>{{ c.client_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
 
-        <label>Country:</label>
-        <select name="country_name">
-            <option value="">All</option>
-            {% for c in countries %}
-            <option value="{{ c.name }}" {% if filters.country == c.name %}selected{% endif %}>{{ c.name }}</option>
-            {% endfor %}
-        </select>
+        <div class="filter-group" style="display: flex; align-items: center; gap: 5px;">
+            <label style="margin: 0; white-space: nowrap;">Country:</label>
+            <select name="country_name" style="width: auto; min-width: 150px;">
+                <option value="">All</option>
+                {% for c in countries %}
+                <option value="{{ c.name }}" {% if filters.country == c.name %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
 
-        <label>Date Range:</label>
-        <input type="text" id="date_range" class="form-control" style="width: 220px;" placeholder="Select date range">
-        <input type="hidden" name="date_from" id="date_from" value="{{ filters.date_from or '' }}">
-        <input type="hidden" name="date_to" id="date_to" value="{{ filters.date_to or '' }}">
+        <div class="filter-group" style="display: flex; align-items: center; gap: 5px;">
+            <label style="margin: 0; white-space: nowrap;">Date Range:</label>
+            <input type="text" id="date_range" class="form-control" style="width: 220px; margin: 0;" placeholder="Select date range">
+            <input type="hidden" name="date_from" id="date_from" value="{{ filters.date_from or '' }}">
+            <input type="hidden" name="date_to" id="date_to" value="{{ filters.date_to or '' }}">
+        </div>
         
-        <button type="submit" class="btn">Filter</button>
-        <a href="{{ url_for('transactions') }}" class="btn btn-secondary">Clear</a>
+        <div class="filter-actions" style="display: flex; gap: 5px;">
+            <button type="submit" class="btn">Filter</button>
+            <a href="{{ url_for('transactions') }}" class="btn btn-secondary">Clear</a>
+        </div>
     </form>
 </div>
 
@@ -167,13 +175,8 @@
         </div>
         {% endif %}
 
-        <div class="mobile-card-row mobile-grouped-row">
-            <div class="mobile-half-col">
-                <span class="mobile-card-value-sm" style="text-align: center;">{{ transaction.country_name }}</span>
-            </div>
-            <div class="mobile-half-col">
-                <span class="mobile-card-value-sm" style="text-align: center;"><span class="country-price-logo">{{ (transaction.country_price or 0)|comma2 }}</span></span>
-            </div>
+        <div class="mobile-card-row" style="justify-content: center; background-color: #f8f9fa; padding: 4px; border-radius: 4px; margin: 4px 0;">
+            <span class="mobile-card-value-sm" style="font-weight: bold; width: 100%; text-align: center;">({{ transaction.country_name }} - <span class="country-price-logo">{{ (transaction.country_price or 0)|comma2 }}</span>)</span>
         </div>
 
         <div class="mobile-card-row mobile-grouped-row">
