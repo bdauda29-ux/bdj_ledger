@@ -190,15 +190,8 @@
             </div>
         </div>
 
-        <div class="mobile-card-row mobile-grouped-row">
-            <div class="mobile-half-col">
-                <span class="mobile-card-label-sm">Amount:</span>
-                <span class="mobile-card-value-sm">$ {{ (transaction.amount or 0)|comma2 }}</span>
-            </div>
-            <div class="mobile-half-col">
-                <span class="mobile-card-label-sm">Amt N:</span>
-                <span class="mobile-card-value-sm"><strong>₦ {{ (transaction.amount_n or 0)|comma2 }}</strong></span>
-            </div>
+        <div class="mobile-card-row" style="justify-content: center; background-color: #f8f9fa; padding: 4px; border-radius: 4px; margin: 4px 0;">
+            <span class="mobile-card-value-sm" style="font-weight: bold; width: 100%; text-align: center;">$ {{ (transaction.amount or 0)|comma2 }} - <strong>₦ {{ (transaction.amount_n or 0)|comma2 }}</strong></span>
         </div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Date:</span>
