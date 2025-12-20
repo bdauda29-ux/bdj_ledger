@@ -262,8 +262,44 @@ body {
 .mobile-card-row {
     display: flex;
     justify-content: space-between;
-    padding: 0.5rem 0;
+    padding: 0.35rem 0; /* Reduced padding from 0.5rem */
     border-bottom: 1px solid #e0e0e0;
+}
+
+/* Optimized Mobile Layout */
+.mobile-grouped-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0.25rem 0;
+}
+
+.mobile-half-col {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f8f9fa;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.mobile-card-label-sm {
+    font-size: 0.8rem;
+    color: #666;
+    margin-right: 5px;
+    white-space: nowrap;
+}
+
+.mobile-card-value-sm {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
+    text-align: right;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .mobile-card-row:last-child {

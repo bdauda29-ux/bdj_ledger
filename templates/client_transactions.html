@@ -88,34 +88,46 @@
             <span class="mobile-card-label">App ID:</span>
             <span class="mobile-card-value">{{ transaction.app_id }}</span>
         </div>
-        <div class="mobile-card-row">
-            <span class="mobile-card-label">Country:</span>
-            <span class="mobile-card-value">{{ transaction.country_name }}</span>
+        
+        <div class="mobile-card-row mobile-grouped-row">
+            <div class="mobile-half-col">
+                <span class="mobile-card-label-sm">Country:</span>
+                <span class="mobile-card-value-sm">{{ transaction.country_name }}</span>
+            </div>
+            <div class="mobile-half-col">
+                <span class="mobile-card-label-sm">Price:</span>
+                <span class="mobile-card-value-sm">{{ (transaction.country_price or 0)|comma2 }}</span>
+            </div>
         </div>
-        <div class="mobile-card-row">
-            <span class="mobile-card-label">Country Price:</span>
-            <span class="mobile-card-value">{{ (transaction.country_price or 0)|comma2 }}</span>
+
+        <div class="mobile-card-row mobile-grouped-row">
+            <div class="mobile-half-col">
+                <span class="mobile-card-label-sm">Rate:</span>
+                <span class="mobile-card-value-sm">{{ (transaction.rate or 0)|comma2 }}</span>
+            </div>
+            <div class="mobile-half-col">
+                <span class="mobile-card-label-sm">Addition:</span>
+                <span class="mobile-card-value-sm">{{ (transaction.addition or 0)|comma2 }}</span>
+            </div>
         </div>
-        <div class="mobile-card-row">
-            <span class="mobile-card-label">Rate:</span>
-            <span class="mobile-card-value">{{ (transaction.rate or 0)|comma2 }}</span>
+
+        <div class="mobile-card-row mobile-grouped-row">
+            <div class="mobile-half-col">
+                <span class="mobile-card-label-sm">Amount:</span>
+                <span class="mobile-card-value-sm">$ {{ (transaction.amount or 0)|comma2 }}</span>
+            </div>
+            <div class="mobile-half-col">
+                <span class="mobile-card-label-sm">Amt N:</span>
+                <span class="mobile-card-value-sm"><strong>₦ {{ (transaction.amount_n or 0)|comma2 }}</strong></span>
+            </div>
         </div>
+
+        {% if transaction.email_link %}
         <div class="mobile-card-row">
-            <span class="mobile-card-label">Addition:</span>
-            <span class="mobile-card-value">{{ (transaction.addition or 0)|comma2 }}</span>
+            <span class="mobile-card-label">Link:</span>
+            <span class="mobile-card-value"><a href="{{ transaction.email_link }}" target="_blank" class="btn btn-primary btn-sm" style="padding: 2px 8px; font-size: 12px;">Open Link</a></span>
         </div>
-        <div class="mobile-card-row">
-            <span class="mobile-card-label">Amount:</span>
-            <span class="mobile-card-value">$ {{ (transaction.amount or 0)|comma2 }}</span>
-        </div>
-        <div class="mobile-card-row">
-            <span class="mobile-card-label">Amount N:</span>
-            <span class="mobile-card-value"><strong>₦ {{ (transaction.amount_n or 0)|comma2 }}</strong></span>
-        </div>
-        <div class="mobile-card-row">
-            <span class="mobile-card-label">Email/Link:</span>
-            <span class="mobile-card-value">{{ transaction.email_link or '' }}</span>
-        </div>
+        {% endif %}
         <div class="mobile-card-row">
             <span class="mobile-card-label">Date:</span>
             <span class="mobile-card-value">{{ transaction.transaction_date|date_format }}</span>

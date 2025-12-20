@@ -15,7 +15,7 @@
         <thead>
             <tr>
                 <th>S.No</th>
-                <th>ID</th>
+                <!-- <th>ID</th> -->
                 <th>Client Name</th>
                 <th>Phone Number</th>
                 <th>Balance</th>
@@ -26,9 +26,13 @@
             {% for client in clients %}
             <tr>
                 <td>{{ loop.index }}</td>
-                <td>{{ client.id }}</td>
+                <!-- <td>{{ client.id }}</td> -->
                 <td>{{ client.client_name }}</td>
-                <td>{{ client.phone_number }}</td>
+                <td>
+                    {% if client.phone_number %}
+                    <a href="https://wa.me/{{ client.phone_number|replace(' ', '')|replace('-', '')|replace('+', '') }}" target="_blank" class="btn btn-sm" style="background-color: #25D366; color: white; padding: 2px 8px; font-weight: 500; border: none;">WhatsApp</a>
+                    {% endif %}
+                </td>
                 <td>{{ (client.balance or 0)|comma2 }}</td>
                 <td>
                     <a href="{{ url_for('edit_client', client_id=client.id) }}" class="btn btn-secondary btn-sm">Edit</a>
@@ -54,14 +58,18 @@
     {% for client in clients %}
     <div class="mobile-card">
         <div class="mobile-card-header">#{{ loop.index }} - {{ client.client_name }}</div>
-        <div class="mobile-card-row">
+        <!-- <div class="mobile-card-row">
             <span class="mobile-card-label">ID:</span>
             <span class="mobile-card-value">#{{ client.id }}</span>
-        </div>
+        </div> -->
+        {% if client.phone_number %}
         <div class="mobile-card-row">
-            <span class="mobile-card-label">Phone Number:</span>
-            <span class="mobile-card-value">{{ client.phone_number }}</span>
+            <span class="mobile-card-label">Phone:</span>
+            <span class="mobile-card-value">
+                <a href="https://wa.me/{{ client.phone_number|replace(' ', '')|replace('-', '')|replace('+', '') }}" target="_blank" class="btn btn-sm" style="background-color: #25D366; color: white; padding: 2px 8px; font-weight: 500; border: none; display: inline-block;">WhatsApp</a>
+            </span>
         </div>
+        {% endif %}
         <div class="mobile-card-row">
             <span class="mobile-card-label">Balance:</span>
             <span class="mobile-card-value">{{ (client.balance or 0)|comma2 }}</span>
