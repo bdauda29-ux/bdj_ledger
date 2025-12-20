@@ -23,8 +23,16 @@
 <body>
     <nav class="navbar">
         <div class="container">
-            <h1>BDJ Ledger</h1>
-            <span style="color:#fff; margin-left:1rem; opacity:0.9; font-weight: bold; font-size: 1.3rem;">Model: {{ session.model_name or 'None' }}</span>
+            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                <h1>BDJ Ledger</h1>
+                <span style="color:#fff; opacity:0.9; font-weight: bold; font-size: 1.3rem;">Model: {{ session.model_name or 'None' }}</span>
+                
+                <div class="font-controls" style="display: flex; gap: 5px;">
+                    <button onclick="changeFontSize(1)" title="Increase Font" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 2px 8px; font-weight: bold; cursor: pointer; font-size: 1.1rem;">A+</button>
+                    <button onclick="changeFontSize(-1)" title="Decrease Font" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 2px 8px; font-weight: bold; cursor: pointer; font-size: 1.1rem;">A-</button>
+                </div>
+            </div>
+
             <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">☰</button>
             <ul class="nav-menu" id="navMenu">
                 <li><a href="{{ url_for('index') }}">Home</a></li>
@@ -70,6 +78,37 @@
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>
+        // Font size control
+        function changeFontSize(direction) {
+            const html = document.documentElement;
+            const style = window.getComputedStyle(html, null).getPropertyValue('font-size');
+            let currentSize = parseFloat(style);
+            
+            // Default 16px if not set
+            if (!currentSize) currentSize = 16;
+            
+            if (direction === 1) {
+                currentSize += 1;
+            } else {
+                currentSize -= 1;
+            }
+            
+            // Limits (12px to 24px)
+            if (currentSize < 12) currentSize = 12;
+            if (currentSize > 24) currentSize = 24;
+            
+            html.style.fontSize = currentSize + 'px';
+            localStorage.setItem('preferred-font-size', currentSize);
+        }
+
+        // Apply saved font size on load
+        (function() {
+            const savedSize = localStorage.getItem('preferred-font-size');
+            if (savedSize) {
+                document.documentElement.style.fontSize = savedSize + 'px';
+            }
+        })();
+
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('select').forEach(function(el) {
                 if (el.tomselect) return;
