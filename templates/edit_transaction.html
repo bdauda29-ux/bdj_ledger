@@ -87,11 +87,9 @@
             <small>Amount × Rate</small>
         </div>
         
-        <div class="form-group">
-            <label for="email_link">Email/Link (Optional)</label>
-            <input type="text" name="email_link" id="email_link" value="{{ transaction.email_link or '' }}" placeholder="Enter email or link">
-        </div>
+
         
+        <input type="hidden" name="email_link" value="{{ transaction.email_link or '' }}">
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Update Transaction</button>
             <a href="{{ url_for('transactions') }}" class="btn btn-secondary">Cancel</a>

@@ -164,16 +164,15 @@
             <span class="mobile-card-label">Applicant Name:</span>
             <span class="mobile-card-value">{{ transaction.applicant_name }}</span>
         </div>
-        <div class="mobile-card-row">
-            <span class="mobile-card-label">App ID:</span>
-            <span class="mobile-card-value">{{ transaction.app_id }}</span>
+        <div class="mobile-card-row" style="justify-content: center; align-items: center; gap: 10px;">
+            <span class="mobile-card-label-sm">App ID:</span>
+            <span class="mobile-card-value-sm" style="font-weight: bold;">{{ transaction.app_id }}</span>
+            {% if transaction.email_link %}
+            <span class="mobile-card-value-sm">
+                <a href="{{ transaction.email_link }}" target="_blank" class="btn btn-primary btn-sm" style="padding: 2px 8px; font-size: 12px;">Open Link</a>
+            </span>
+            {% endif %}
         </div>
-        {% if transaction.email_link %}
-        <div class="mobile-card-row">
-            <span class="mobile-card-label">Link:</span>
-            <span class="mobile-card-value"><a href="{{ transaction.email_link }}" target="_blank" class="btn btn-primary btn-sm" style="padding: 2px 8px; font-size: 12px;">Open Link</a></span>
-        </div>
-        {% endif %}
 
         <div class="mobile-card-row" style="justify-content: center; background-color: #f8f9fa; padding: 4px; border-radius: 4px; margin: 4px 0;">
             <span class="mobile-card-value-sm" style="font-weight: bold; width: 100%; text-align: center;">({{ transaction.country_name }} - <span class="country-price-logo">{{ (transaction.country_price or 0)|comma2 }}</span>)</span>
