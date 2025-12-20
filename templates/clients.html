@@ -57,14 +57,20 @@
 <div class="mobile-card-view">
     {% for client in clients %}
     <div class="mobile-card">
-        <div class="mobile-card-header">#{{ loop.index }} - {{ client.client_name }}</div>
-        <!-- <div class="mobile-card-row">
-            <span class="mobile-card-label">ID:</span>
-            <span class="mobile-card-value">#{{ client.id }}</span>
-        </div> -->
-        <div class="mobile-card-row">
-            <span class="mobile-card-label">Phone:</span>
-            <span class="mobile-card-value">{{ client.phone_number }}</span>
+        <div class="mobile-card-header">#{{ loop.index }}</div>
+        <div class="mobile-card-row mobile-grouped-row">
+            <div class="mobile-half-col">
+                <span class="mobile-card-label-sm">Name:</span>
+                <span class="mobile-card-value-sm">{{ client.client_name }}</span>
+            </div>
+            <div class="mobile-half-col">
+                <span class="mobile-card-label-sm">Phone:</span>
+                <span class="mobile-card-value-sm">
+                    {% if client.phone_number %}
+                    <a href="https://wa.me/{{ client.phone_number|replace(' ', '')|replace('-', '')|replace('+', '') }}" target="_blank" style="text-decoration: none; color: inherit;">{{ client.phone_number }}</a>
+                    {% endif %}
+                </span>
+            </div>
         </div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Balance:</span>

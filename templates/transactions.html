@@ -97,7 +97,7 @@
                     {% endif %}
                 </td>
                 <td>{{ transaction.country_name }}</td>
-                <td>{{ (transaction.country_price or 0)|comma2 }}</td>
+                <td><span class="country-price-logo">{{ (transaction.country_price or 0)|comma2 }}</span></td>
                 <td>{{ (transaction.rate or 0)|comma2 }}</td>
                 <td>{{ (transaction.addition or 0)|comma2 }}</td>
                 <td>{{ transaction.service_type }}</td>
@@ -174,7 +174,7 @@
             </div>
             <div class="mobile-half-col">
                 <span class="mobile-card-label-sm">Price:</span>
-                <span class="mobile-card-value-sm">{{ (transaction.country_price or 0)|comma2 }}</span>
+                <span class="mobile-card-value-sm"><span class="country-price-logo">{{ (transaction.country_price or 0)|comma2 }}</span></span>
             </div>
         </div>
 
