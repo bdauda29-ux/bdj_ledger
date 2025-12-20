@@ -10,13 +10,14 @@
 </div>
 <!-- Tabs -->
 <div class="tabs">
-    <a class="tab {% if filters.paid == 'all' %}active{% endif %}" href="{{ url_for('transactions', paid='all') }}">All</a>
-    <a class="tab {% if filters.paid == '0' %}active{% endif %}" href="{{ url_for('transactions', paid='0') }}">Pending</a>
-    <a class="tab {% if filters.paid == '1' %}active{% endif %}" href="{{ url_for('transactions', paid='1') }}">Paid</a>
+    <a href="javascript:void(0)" class="tab active" id="tab-pending" onclick="filterTransactions('0')">Pending</a>
+    <a href="javascript:void(0)" class="tab" id="tab-paid" onclick="filterTransactions('1')">Paid</a>
+    <a href="javascript:void(0)" class="tab" id="tab-all" onclick="filterTransactions('all')">All</a>
     <style>
         .tabs { display:flex; gap:8px; margin-bottom:10px; }
-        .tab { padding:6px 10px; border:1px solid #ccc; border-radius:4px; text-decoration:none; }
-        .tab.active { background:#eee; }
+        .tab { padding:6px 10px; border:1px solid #ccc; border-radius:4px; text-decoration:none; color: #333; }
+        .tab.active { background:#eee; font-weight: bold; border-color: #999; }
+        .tab:hover { background:#f5f5f5; }
     </style>
 </div>
 <!-- Filters -->
@@ -43,22 +44,15 @@
         <input type="hidden" name="date_from" id="date_from" value="{{ filters.date_from or '' }}">
         <input type="hidden" name="date_to" id="date_to" value="{{ filters.date_to or '' }}">
         
-        <label>Paid:</label>
-        <select name="paid">
-            <option value="all" {% if filters.paid == 'all' %}selected{% endif %}>All</option>
-            <option value="1" {% if filters.paid == '1' %}selected{% endif %}>Paid</option>
-            <option value="0" {% if filters.paid == '0' %}selected{% endif %}>Pending</option>
-        </select>
-
         <button type="submit" class="btn">Filter</button>
         <a href="{{ url_for('transactions') }}" class="btn btn-secondary">Clear</a>
     </form>
 </div>
 
 <!-- Export Options -->
-<div style="margin: 15px 0; display: flex; gap: 10px;">
-    <a href="{{ url_for('export_transactions', format='pdf', client_name=filters.client, country_name=filters.country, date_from=filters.date_from, date_to=filters.date_to, paid=filters.paid) }}" class="btn btn-info">Export PDF</a>
-    <a href="{{ url_for('export_transactions', format='jpeg', client_name=filters.client, country_name=filters.country, date_from=filters.date_from, date_to=filters.date_to, paid=filters.paid) }}" class="btn btn-info">Export JPEG</a>
+<div class="export-options" style="margin: 15px 0; display: flex; gap: 10px; flex-wrap: wrap;">
+    <a id="export-pdf" href="{{ url_for('export_transactions', format='pdf', client_name=filters.client, country_name=filters.country, date_from=filters.date_from, date_to=filters.date_to, paid='0') }}" class="btn btn-info" style="flex: 1; text-align: center; min-width: 120px;">Export PDF</a>
+    <a id="export-jpeg" href="{{ url_for('export_transactions', format='jpeg', client_name=filters.client, country_name=filters.country, date_from=filters.date_from, date_to=filters.date_to, paid='0') }}" class="btn btn-info" style="flex: 1; text-align: center; min-width: 120px;">Export JPEG</a>
 </div>
 
 {% if error %}
@@ -72,10 +66,10 @@
         <thead>
             <tr>
                 <th>S.No</th>
-                <th>ID</th>
                 <th>Client Name</th>
                 <th>Applicant Name</th>
                 <th>App ID</th>
+                <th>Email/Link</th>
                 <th>Country</th>
                 <th>Country Price</th>
                 <th>Rate</th>
@@ -89,12 +83,15 @@
         </thead>
         <tbody>
             {% for transaction in transactions %}
-            <tr class="{% if transaction.is_paid %}row-paid{% endif %}">
+            <tr class="transaction-row {% if transaction.is_paid %}row-paid{% endif %}" 
+                data-paid="{{ transaction.is_paid or 0 }}" 
+                data-amount="{{ transaction.amount or 0 }}" 
+                data-amount-n="{{ transaction.amount_n or 0 }}">
                 <td>{{ loop.index }}</td>
-                <td>{{ transaction.id }}</td>
                 <td>{{ transaction.client_name }}</td>
                 <td>{{ transaction.applicant_name }}</td>
                 <td>{{ transaction.app_id }}</td>
+                <td>{{ transaction.email_link or '' }}</td>
                 <td>{{ transaction.country_name }}</td>
                 <td>{{ (transaction.country_price or 0)|comma2 }}</td>
                 <td>{{ (transaction.rate or 0)|comma2 }}</td>
@@ -142,8 +139,11 @@
 <!-- Mobile Card View -->
 <div class="mobile-card-view">
     {% for transaction in transactions %}
-    <div class="mobile-card {% if transaction.is_paid %}card-paid{% endif %}">
-        <div class="mobile-card-header">#{{ loop.index }} - Transaction #{{ transaction.id }}</div>
+    <div class="mobile-card {% if transaction.is_paid %}card-paid{% endif %}"
+         data-paid="{{ transaction.is_paid or 0 }}" 
+         data-amount="{{ transaction.amount or 0 }}" 
+         data-amount-n="{{ transaction.amount_n or 0 }}">
+        <div class="mobile-card-header">#{{ loop.index }}</div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Client Name:</span>
             <span class="mobile-card-value">{{ transaction.client_name }}</span>
@@ -230,7 +230,7 @@
     <div style="margin-bottom: 15px; padding: 10px; background-color: white; border-radius: 3px;">
         <strong>Query Results:</strong>
         <p style="margin: 5px 0;">
-            Total Transactions: <strong>{{ transactions|length }}</strong>
+            Total Transactions: <strong id="total-count">{{ transactions|length }}</strong>
             {% if filters.client %}| Client: <strong>{{ filters.client }}</strong>{% endif %}
             {% if filters.country %}| Country: <strong>{{ filters.country }}</strong>{% endif %}
             {% if filters.date_from %}| From: <strong>{{ filters.date_from }}</strong>{% endif %}
@@ -240,16 +240,90 @@
     
     <!-- Sums -->
     <div style="padding: 10px; background-color: white; border-radius: 3px; border-left: 4px solid #28a745;">
-        <strong style="font-size: 16px;">Sum Amount:</strong> <span style="font-size: 16px; color: #28a745;">{{ (sums['sum_amount'] or 0)|comma2 }}</span>
+        <strong style="font-size: 16px;">Sum Amount:</strong> <span id="sum-amount" style="font-size: 16px; color: #28a745;">{{ (sums['sum_amount'] or 0)|comma2 }}</span>
         <br>
-        <strong style="font-size: 16px;">Sum Amount N:</strong> <span style="font-size: 16px; color: #28a745;">{{ (sums['sum_amount_n'] or 0)|comma2 }}</span>
+        <strong style="font-size: 16px;">Sum Amount N:</strong> <span id="sum-amount-n" style="font-size: 16px; color: #28a745;">{{ (sums['sum_amount_n'] or 0)|comma2 }}</span>
     </div>
 </div>
 {% endif %}
 
 <script>
+    // Store original export URLs
+    let originalExportPdfUrl = "";
+    let originalExportJpegUrl = "";
+
+    function filterTransactions(status) {
+        // Update tabs
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        if (status === 'all') document.getElementById('tab-all').classList.add('active');
+        else if (status === '0') document.getElementById('tab-pending').classList.add('active');
+        else if (status === '1') document.getElementById('tab-paid').classList.add('active');
+
+        // Filter rows and cards
+        const rows = document.querySelectorAll('.transaction-row, .mobile-card');
+        let visibleCount = 0;
+        let sumAmount = 0;
+        let sumAmountN = 0;
+
+        rows.forEach(row => {
+            const isPaid = row.getAttribute('data-paid') === '1' || row.getAttribute('data-paid') === 'True';
+            const amount = parseFloat(row.getAttribute('data-amount')) || 0;
+            const amountN = parseFloat(row.getAttribute('data-amount-n')) || 0;
+            
+            let show = false;
+            if (status === 'all') show = true;
+            else if (status === '0' && !isPaid) show = true;
+            else if (status === '1' && isPaid) show = true;
+
+            if (show) {
+                row.style.display = '';
+                visibleCount++;
+                sumAmount += amount;
+                sumAmountN += amountN;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Update summaries
+        const totalCountEl = document.getElementById('total-count');
+        const sumAmountEl = document.getElementById('sum-amount');
+        const sumAmountNEl = document.getElementById('sum-amount-n');
+
+        if (totalCountEl) totalCountEl.textContent = visibleCount;
+        if (sumAmountEl) sumAmountEl.textContent = sumAmount.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+        if (sumAmountNEl) sumAmountNEl.textContent = sumAmountN.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+
+        // Update Export Links
+        const pdfBtn = document.getElementById('export-pdf');
+        const jpegBtn = document.getElementById('export-jpeg');
+        
+        if (pdfBtn && originalExportPdfUrl) {
+            const url = new URL(originalExportPdfUrl, window.location.origin);
+            url.searchParams.set('paid', status);
+            pdfBtn.href = url.toString();
+        }
+        if (jpegBtn && originalExportJpegUrl) {
+            const url = new URL(originalExportJpegUrl, window.location.origin);
+            url.searchParams.set('paid', status);
+            jpegBtn.href = url.toString();
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
+        // Capture original URLs
+        const pdfBtn = document.getElementById('export-pdf');
+        const jpegBtn = document.getElementById('export-jpeg');
+        if (pdfBtn) originalExportPdfUrl = pdfBtn.href;
+        if (jpegBtn) originalExportJpegUrl = jpegBtn.href;
+
+        // Initialize with server-provided filter or default to Pending
+        // filters.paid comes from backend (defaults to '0')
+        const initialStatus = "{{ filters.paid }}";
+        filterTransactions(initialStatus);
+
         const dateFrom = document.getElementById('date_from').value;
+
         const dateTo = document.getElementById('date_to').value;
         const defaultDate = [];
         if (dateFrom) defaultDate.push(dateFrom);

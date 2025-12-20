@@ -1441,9 +1441,10 @@ def transactions():
         where_clauses.append("date(t.transaction_date) <= date(?)")
         params.append(date_to)
 
-    if paid in ('0', '1'):
-        where_clauses.append('t.is_paid = ?')
-        params.append(int(paid))
+    # Note: We now load all paid/unpaid transactions to support client-side filtering
+    # if paid in ('0', '1'):
+    #     where_clauses.append('t.is_paid = ?')
+    #     params.append(int(paid))
     where_clauses = ['t.model_id = ?'] + where_clauses
     params = [current_model_id()] + params
     where_sql = ('WHERE ' + ' AND '.join(where_clauses)) if where_clauses else 'WHERE t.model_id = ?'
