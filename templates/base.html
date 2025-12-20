@@ -37,7 +37,9 @@
             <ul class="nav-menu" id="navMenu">
                 <li><a href="{{ url_for('index') }}">Home</a></li>
                 <li><a href="{{ url_for('transactions') }}">Transactions</a></li>
+                {% if session.permissions and session.permissions.can_view_clients %}
                 <li><a href="{{ url_for('clients') }}">Clients</a></li>
+                {% endif %}
                 <li><a href="{{ url_for('countries') }}">Countries</a></li>
                 {% if not session.username %}
                 <li><a href="{{ url_for('login') }}">Login</a></li>

@@ -630,6 +630,7 @@ def init_db():
         ('can_add_transaction', 1),
         ('can_edit_transaction', 1),
         ('can_delete_transaction', 1),
+        ('can_view_clients', 1),
         ('is_admin', 1),
     ]:
         try:
@@ -747,6 +748,7 @@ def login():
                     'can_add_transaction': bool(pv('can_add_transaction', 1)),
                     'can_edit_transaction': bool(pv('can_edit_transaction', 1)),
                     'can_delete_transaction': bool(pv('can_delete_transaction', 1)),
+                    'can_view_clients': bool(pv('can_view_clients', 1)),
                     'is_admin': bool(pv('is_admin', 0))
                 }
                 return redirect(url_for('models'))
@@ -941,10 +943,11 @@ def add_user():
             'can_add_transaction': 1 if request.form.get('can_add_transaction') else 0,
             'can_edit_transaction': 1 if request.form.get('can_edit_transaction') else 0,
             'can_delete_transaction': 1 if request.form.get('can_delete_transaction') else 0,
+            'can_view_clients': 1 if request.form.get('can_view_clients') else 0,
         }
         try:
-            conn.execute('INSERT INTO users (username, password_hash, is_admin, can_edit_client, can_delete_client, can_add_transaction, can_edit_transaction, can_delete_transaction) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                         (username, hashlib.sha256(password.encode()).hexdigest(), flags['is_admin'], flags['can_edit_client'], flags['can_delete_client'], flags['can_add_transaction'], flags['can_edit_transaction'], flags['can_delete_transaction']))
+            conn.execute('INSERT INTO users (username, password_hash, is_admin, can_edit_client, can_delete_client, can_add_transaction, can_edit_transaction, can_delete_transaction, can_view_clients) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                         (username, hashlib.sha256(password.encode()).hexdigest(), flags['is_admin'], flags['can_edit_client'], flags['can_delete_client'], flags['can_add_transaction'], flags['can_edit_transaction'], flags['can_delete_transaction'], flags['can_view_clients']))
             conn.commit()
             return redirect(url_for('list_users'))
         except Exception as e:
@@ -966,9 +969,10 @@ def edit_user(user_id):
             'can_add_transaction': 1 if request.form.get('can_add_transaction') else 0,
             'can_edit_transaction': 1 if request.form.get('can_edit_transaction') else 0,
             'can_delete_transaction': 1 if request.form.get('can_delete_transaction') else 0,
+            'can_view_clients': 1 if request.form.get('can_view_clients') else 0,
         }
-        conn.execute('UPDATE users SET is_admin = ?, can_edit_client = ?, can_delete_client = ?, can_add_transaction = ?, can_edit_transaction = ?, can_delete_transaction = ? WHERE id = ?',
-                     (flags['is_admin'], flags['can_edit_client'], flags['can_delete_client'], flags['can_add_transaction'], flags['can_edit_transaction'], flags['can_delete_transaction'], user_id))
+        conn.execute('UPDATE users SET is_admin = ?, can_edit_client = ?, can_delete_client = ?, can_add_transaction = ?, can_edit_transaction = ?, can_delete_transaction = ?, can_view_clients = ? WHERE id = ?',
+                     (flags['is_admin'], flags['can_edit_client'], flags['can_delete_client'], flags['can_add_transaction'], flags['can_edit_transaction'], flags['can_delete_transaction'], flags['can_view_clients'], user_id))
         conn.commit()
         return redirect(url_for('list_users'))
     user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
@@ -1179,6 +1183,8 @@ def index():
 @app.route('/clients')
 def clients():
     """View all clients"""
+    if not can('can_view_clients'):
+        return redirect(url_for('index'))
     conn = get_db_connection()
     clients_list = conn.execute('SELECT * FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
     return render_template('clients.html', clients=clients_list)

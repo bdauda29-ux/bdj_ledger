@@ -17,6 +17,7 @@
             <label><input type="checkbox" name="is_admin" {% if user.is_admin %}checked{% endif %}> Admin</label>
         </div>
         <div class="form-group">
+            <label><input type="checkbox" name="can_view_clients" {% if user.can_view_clients %}checked{% endif %}> View Clients</label>
             <label><input type="checkbox" name="can_edit_client" {% if user.can_edit_client %}checked{% endif %}> Edit Client</label>
             <label><input type="checkbox" name="can_delete_client" {% if user.can_delete_client %}checked{% endif %}> Delete Client</label>
             <label><input type="checkbox" name="can_add_transaction" {% if user.can_add_transaction %}checked{% endif %}> Add Transaction</label>

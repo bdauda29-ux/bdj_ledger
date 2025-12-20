@@ -66,6 +66,7 @@
                 <th>S.No</th>
                 <th>Username</th>
                 <th style="text-align: center;">Admin</th>
+                <th style="text-align: center;">View Clients</th>
                 <th style="text-align: center;">Edit Client</th>
                 <th style="text-align: center;">Delete Client</th>
                 <th style="text-align: center;">Add Txn</th>
@@ -81,6 +82,13 @@
                 <td><strong>{{ u.username }}</strong></td>
                 <td class="permission-cell">
                     {% if u.is_admin %}
+                    <span class="check-icon">✓</span>
+                    {% else %}
+                    <span class="cross-icon">×</span>
+                    {% endif %}
+                </td>
+                <td class="permission-cell">
+                    {% if u.can_view_clients %}
                     <span class="check-icon">✓</span>
                     {% else %}
                     <span class="cross-icon">×</span>
