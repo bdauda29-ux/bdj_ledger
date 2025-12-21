@@ -100,6 +100,22 @@
 </div>
 
 <script>
+    function selectAction(value, btn) {
+        // Set hidden input value
+        document.getElementById('action').value = value;
+        
+        // Update button visual state
+        document.querySelectorAll('.action-btn').forEach(b => {
+            b.classList.remove('active', 'btn-primary');
+            b.classList.add('btn-outline-secondary');
+        });
+        btn.classList.remove('btn-outline-secondary');
+        btn.classList.add('active', 'btn-primary');
+        
+        // Toggle options
+        toggleOptions();
+    }
+
     function toggleOptions() {
         const action = document.getElementById('action').value;
         const resizeOptions = document.getElementById('resize-options');
@@ -113,13 +129,19 @@
             resizeOptions.style.display = 'flex';
         } else if (action.startsWith('adjust_')) {
             adjustmentOptions.style.display = 'block';
-            // Set default value based on adjustment type? 
-            // Usually 1.0 is neutral, so maybe default to 1.5 for effect, or let user decide.
-            // 1.5 is already set in HTML as default.
         }
     }
     
-    // Run on load to set correct state (e.g. browser back button)
-    document.addEventListener('DOMContentLoaded', toggleOptions);
+    // Run on load to set correct state
+    document.addEventListener('DOMContentLoaded', () => {
+        // Find the button corresponding to the default/current action
+        const currentAction = document.getElementById('action').value;
+        const btn = document.querySelector(`button[onclick*="'${currentAction}'"]`);
+        if (btn) {
+            selectAction(currentAction, btn);
+        } else {
+            toggleOptions();
+        }
+    });
 </script>
 {% endblock %}
