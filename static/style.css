@@ -162,6 +162,27 @@ body {
     margin-right: 0.5rem;
 }
 
+.text-right {
+    text-align: right;
+}
+
+.action-cell {
+    white-space: nowrap;
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.action-cell form {
+    margin: 0;
+}
+
+.action-cell .btn {
+    padding: 2px 6px;
+    font-size: 1.1rem;
+    line-height: 1.2;
+}
+
 /* Page Header */
 .page-header {
     display: flex;
@@ -577,6 +598,7 @@ footer p {
     
     .form-actions .btn {
         width: 100%;
+        min-height: 44px;
     }
     
     .btn {
@@ -584,6 +606,10 @@ footer p {
         font-size: 1rem;
         width: 100%;
         text-align: center;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
     .btn-sm {
