@@ -52,8 +52,12 @@
 
     .tool-card.drag-over {
         border: 2px dashed #667eea;
-        background-color: #f0f4ff;
+        background-color: #e3ebfc;
         transform: scale(1.02);
+    }
+
+    .tool-card.drag-over * {
+        pointer-events: none;
     }
 
     .card-header {
@@ -359,6 +363,8 @@
 
                 function highlight(e) {
                     card.classList.add('drag-over');
+                    // Explicitly allow drop
+                    e.dataTransfer.dropEffect = 'copy';
                 }
 
                 function unhighlight(e) {
@@ -377,12 +383,9 @@
 
                     if (files.length > 0) {
                         fileInput.files = files;
-                        
-                        // Show feedback (optional, e.g., update a label text)
-                        // For now, we just rely on the browser or form to handle it.
-                        // But since standard file inputs show the filename, 
-                        // and they are inside the card, users might see it if the input is visible.
-                        // The input .form-control is visible in the design.
+                        // Trigger change event to ensure any listeners or UI updates occur
+                        const event = new Event('change', { bubbles: true });
+                        fileInput.dispatchEvent(event);
                     }
                 }
             });
