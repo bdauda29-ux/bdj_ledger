@@ -254,7 +254,8 @@ def init_db():
             ('clients', 'model_id', 'INTEGER'),
             ('countries', 'model_id', 'INTEGER'),
             ('countries', 'continent', 'TEXT'),
-            ('deleted_transactions', 'email_link', 'TEXT')
+            ('deleted_transactions', 'email_link', 'TEXT'),
+            ('users', 'can_view_clients', 'INTEGER DEFAULT 1')
         ]
 
         for table, col, dtype in required_columns:
@@ -2339,6 +2340,23 @@ def fix_db():
             conn.autocommit = True
             cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             
+            # --- Fix: Add can_view_clients to users if missing ---
+            try:
+                logs.append("Checking users.can_view_clients...")
+                cursor.execute("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'users' AND column_name = 'can_view_clients'
+                """)
+                if not cursor.fetchone():
+                    logs.append("Adding missing column: users.can_view_clients")
+                    cursor.execute("ALTER TABLE users ADD COLUMN can_view_clients INTEGER DEFAULT 1")
+                    logs.append("Column added successfully.")
+                else:
+                    logs.append("Column users.can_view_clients already exists.")
+            except Exception as e:
+                logs.append(f"Error ensuring users.can_view_clients: {e}")
+
             # 1. Check current type
             try:
                 cursor.execute("""
