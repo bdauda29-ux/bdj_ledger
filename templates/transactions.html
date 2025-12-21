@@ -267,12 +267,13 @@
         else if (status === '0') document.getElementById('tab-pending').classList.add('active');
         else if (status === '1') document.getElementById('tab-paid').classList.add('active');
 
-        // Filter rows and cards
-        const rows = document.querySelectorAll('.transaction-row, .mobile-card');
         let visibleCount = 0;
         let sumAmount = 0;
         let sumAmountN = 0;
+        let rowSerial = 1;
 
+        // Process Table Rows
+        const rows = document.querySelectorAll('.transaction-row');
         rows.forEach(row => {
             const isPaid = row.getAttribute('data-paid') === '1' || row.getAttribute('data-paid') === 'True';
             const amount = parseFloat(row.getAttribute('data-amount')) || 0;
@@ -285,11 +286,37 @@
 
             if (show) {
                 row.style.display = '';
+                // Update Serial Number
+                const sNoCell = row.querySelector('.s-no');
+                if (sNoCell) sNoCell.textContent = rowSerial++;
+                
+                // Update Sums (only count once per transaction, so we do it here in the rows loop)
                 visibleCount++;
                 sumAmount += amount;
                 sumAmountN += amountN;
             } else {
                 row.style.display = 'none';
+            }
+        });
+
+        // Process Mobile Cards (separate loop to keep serials in sync but not double-count sums)
+        let cardSerial = 1;
+        const cards = document.querySelectorAll('.mobile-card');
+        cards.forEach(card => {
+            const isPaid = card.getAttribute('data-paid') === '1' || card.getAttribute('data-paid') === 'True';
+            
+            let show = false;
+            if (status === 'all') show = true;
+            else if (status === '0' && !isPaid) show = true;
+            else if (status === '1' && isPaid) show = true;
+
+            if (show) {
+                card.style.display = '';
+                // Update Serial Number
+                const sNoSpan = card.querySelector('.card-s-no');
+                if (sNoSpan) sNoSpan.textContent = '#' + (cardSerial++);
+            } else {
+                card.style.display = 'none';
             }
         });
 
