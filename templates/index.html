@@ -14,7 +14,7 @@
             <div><strong>Dollars:</strong> ${{ (wallet.dollars or 0)|comma2 }}</div>
             <div><strong>Naira:</strong> {{ (wallet.naira or 0)|comma2 }}</div>
             <div><strong>Unpaid Bal:</strong> <span style="font-size: 1.1em; font-weight: bold;">{{ (wallet.unpaid_n or 0)|comma2 }}</span></div>
-            <div><strong>Total (N):</strong> <strong>{{ ((wallet.dollars or 0) * (wallet.rate or 0) + (wallet.naira or 0) + (wallet.unpaid_n or 0))|comma2 }}</strong></div>
+            <div><strong>Total (N):</strong> <strong>{{ ((wallet.dollars or 0) * (wallet.rate or 0) + (wallet.naira or 0) + (wallet.unpaid_n or 0) - (total_balance or 0))|comma2 }}</strong></div>
         </div>
         <div style="margin-top: 10px;"><strong>Rate:</strong> {{ wallet.rate or 0 }}</div>
     </div>
