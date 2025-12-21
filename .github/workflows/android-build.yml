@@ -1,0 +1,102 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      appUrl:
+        description: 'The URL of your deployed application (e.g., https://bdj-ledger.onrender.com)'
+        required: true
+        default: 'https://bdj-ledger.vercel.app'
+  push:
+    branches:
+      - main
+    paths:
+      - 'static/manifest.json'
+      - '.github/workflows/android-build.yml'
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    name: Build Android APK with Bubblewrap
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
+
+      - name: Install JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Android SDK Tools
+        uses: android-actions/setup-android@v2
+
+      - name: Configure Bubblewrap
+        run: |
+          # Create a basic configuration for Bubblewrap
+          # We use the input URL if provided (workflow_dispatch), otherwise try to guess or fail
+          APP_URL="${{ github.event.inputs.appUrl }}"
+          if [ -z "$APP_URL" ]; then
+            APP_URL="https://bdj-ledger.vercel.app" # Default fallback
+          fi
+          
+          echo "Building APK for: $APP_URL"
+          
+          # Initialize TWA project
+          # We manually create the config to avoid interactive prompts
+          mkdir -p android-project
+          cd android-project
+          
+          # Generate manifest from the static one
+          cat <<EOF > twa-manifest.json
+          {
+            "packageId": "com.bdj.ledger",
+            "host": "$(echo $APP_URL | sed 's/https:\/\///')",
+            "name": "BDJ Ledger",
+            "launcherName": "Ledger",
+            "display": "standalone",
+            "themeColor": "#667eea",
+            "navigationColor": "#667eea",
+            "backgroundColor": "#f5f5f5",
+            "startUrl": "/",
+            "iconUrl": "$APP_URL/static/naira.png",
+            "maskableIconUrl": "$APP_URL/static/naira.png",
+            "appVersion": "1.0.0",
+            "appVersionCode": 1,
+            "shortcuts": [],
+            "generatorApp": "bubblewrap-cli",
+            "webManifestUrl": "$APP_URL/static/manifest.json",
+            "fallbackType": "customtabs",
+            "features": {
+                "locationDelegation": {
+                    "enabled": true
+                },
+                "playBilling": {
+                    "enabled": false
+                }
+            },
+            "alphaDependencies": {
+                "enabled": false
+            },
+            "enableNotifications": true
+          }
+          EOF
+          
+          # Initialize and Build
+          bubblewrap init --manifest=twa-manifest.json --directory=.
+          bubblewrap build
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: BDJ-Ledger-APK
+          path: android-project/*.apk
