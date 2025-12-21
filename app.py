@@ -2593,6 +2593,46 @@ def pdf_tools():
                         mimetype='application/pdf'
                     )
 
+            elif action == 'pdf_to_jpg':
+                if fitz is None:
+                    return "PyMuPDF (fitz) is not installed. Please install it to use this feature (pip install pymupdf)."
+                
+                file = request.files.get('file')
+                if not file or file.filename == '':
+                    return redirect(request.url)
+                
+                # Read file content
+                pdf_bytes = file.read()
+                doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+                
+                if doc.page_count == 1:
+                    page = doc.load_page(0)
+                    pix = page.get_pixmap(dpi=150)
+                    output_buffer = io.BytesIO(pix.tobytes("jpg"))
+                    output_buffer.seek(0)
+                    return send_file(
+                        output_buffer, 
+                        mimetype='image/jpeg', 
+                        as_attachment=True, 
+                        download_name=f'{os.path.splitext(file.filename)[0]}.jpg'
+                    )
+                else:
+                    zip_buffer = io.BytesIO()
+                    with zipfile.ZipFile(zip_buffer, 'w') as zf:
+                        for i in range(doc.page_count):
+                            page = doc.load_page(i)
+                            pix = page.get_pixmap(dpi=150)
+                            img_data = pix.tobytes("jpg")
+                            zf.writestr(f'page_{i+1}.jpg', img_data)
+                    
+                    zip_buffer.seek(0)
+                    return send_file(
+                        zip_buffer,
+                        mimetype='application/zip',
+                        as_attachment=True,
+                        download_name=f'{os.path.splitext(file.filename)[0]}_images.zip'
+                    )
+
             elif action == 'merge_pdf':
                 files = request.files.getlist('files')
                 if not files or files[0].filename == '':
