@@ -30,7 +30,7 @@
     <div class="summary-boxes">
         <div class="summary-box">
             <h3>Total Wallet Balance</h3>
-            <p>{% if wallet %}{{ ((wallet.dollars or 0) * (wallet.rate or 0) + (wallet.naira or 0) + (wallet.unpaid_n or 0))|comma2 }}{% else %}0{% endif %}</p>
+            <p>{% if wallet %}{{ ((wallet.dollars or 0) * (wallet.rate or 0) + (wallet.naira or 0) + (wallet.unpaid_n or 0) - (total_balance or 0))|comma2 }}{% else %}0{% endif %}</p>
         </div>
         <div class="summary-box">
             <h3>Total Transactions</h3>
