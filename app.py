@@ -16,6 +16,21 @@ from reportlab.lib.units import inch
 from reportlab.lib import colors
 from PIL import Image, ImageFilter, ImageEnhance, ImageOps
 from email.message import EmailMessage
+
+# Optional PDF tools
+try:
+    import fitz  # pymupdf
+except ImportError:
+    fitz = None
+
+try:
+    from pdf2docx import Converter
+except ImportError:
+    Converter = None
+except Exception:
+    # pdf2docx might fail if opencv is missing
+    Converter = None
+
 # Postgres (optional) support
 try:
     import psycopg2
