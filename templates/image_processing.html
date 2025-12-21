@@ -18,15 +18,42 @@
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
                                 <label for="action" class="form-label">Action</label>
-                                <select class="form-select" id="action" name="action" onchange="toggleResizeOptions()">
-                                    <option value="convert_gray">Convert to Grayscale</option>
-                                    <option value="resize">Resize</option>
-                                    <option value="compress">Compress (JPEG)</option>
-                                    <option value="convert_png">Convert to PNG</option>
+                                <select class="form-select" id="action" name="action" onchange="toggleOptions()">
+                                    <optgroup label="Basic">
+                                        <option value="convert_gray">Convert to Grayscale</option>
+                                        <option value="convert_png">Convert to PNG</option>
+                                        <option value="compress">Compress (JPEG)</option>
+                                    </optgroup>
+                                    <optgroup label="Resize">
+                                        <option value="resize">Resize</option>
+                                    </optgroup>
+                                    <optgroup label="Filters">
+                                        <option value="filter_blur">Blur</option>
+                                        <option value="filter_contour">Contour</option>
+                                        <option value="filter_detail">Detail</option>
+                                        <option value="filter_edge_enhance">Edge Enhance</option>
+                                        <option value="filter_emboss">Emboss</option>
+                                        <option value="filter_sharpen">Sharpen</option>
+                                        <option value="filter_smooth">Smooth</option>
+                                    </optgroup>
+                                    <optgroup label="Adjustments">
+                                        <option value="adjust_brightness">Brightness</option>
+                                        <option value="adjust_contrast">Contrast</option>
+                                        <option value="adjust_color">Color / Saturation</option>
+                                        <option value="adjust_sharpness">Sharpness</option>
+                                    </optgroup>
+                                    <optgroup label="Transform">
+                                        <option value="rotate_90">Rotate 90°</option>
+                                        <option value="rotate_180">Rotate 180°</option>
+                                        <option value="rotate_270">Rotate 270°</option>
+                                        <option value="flip_horizontal">Flip Horizontal</option>
+                                        <option value="flip_vertical">Flip Vertical</option>
+                                    </optgroup>
                                 </select>
                             </div>
                         </div>
 
+                        <!-- Resize Options -->
                         <div id="resize-options" class="row g-3 mb-4" style="display: none;">
                             <div class="col-6">
                                 <label for="width" class="form-label">Width (px)</label>
@@ -37,6 +64,14 @@
                                 <input type="number" class="form-control" id="height" name="height" placeholder="e.g. 600">
                             </div>
                             <small class="text-muted">Leave one empty to maintain aspect ratio.</small>
+                        </div>
+
+                        <!-- Adjustment Options -->
+                        <div id="adjustment-options" class="mb-4" style="display: none;">
+                            <label for="factor" class="form-label">Factor (0.0 to 2.0+)</label>
+                            <input type="range" class="form-range" id="factor" name="factor" min="0" max="3" step="0.1" value="1.5" oninput="document.getElementById('factor-val').textContent = this.value">
+                            <div class="text-center"><span id="factor-val">1.5</span>x</div>
+                            <small class="text-muted d-block text-center">1.0 is original. &lt; 1.0 reduces, &gt; 1.0 increases.</small>
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100">
@@ -65,14 +100,26 @@
 </div>
 
 <script>
-    function toggleResizeOptions() {
+    function toggleOptions() {
         const action = document.getElementById('action').value;
         const resizeOptions = document.getElementById('resize-options');
+        const adjustmentOptions = document.getElementById('adjustment-options');
+        
+        // Hide all first
+        resizeOptions.style.display = 'none';
+        adjustmentOptions.style.display = 'none';
+        
         if (action === 'resize') {
             resizeOptions.style.display = 'flex';
-        } else {
-            resizeOptions.style.display = 'none';
+        } else if (action.startsWith('adjust_')) {
+            adjustmentOptions.style.display = 'block';
+            // Set default value based on adjustment type? 
+            // Usually 1.0 is neutral, so maybe default to 1.5 for effect, or let user decide.
+            // 1.5 is already set in HTML as default.
         }
     }
+    
+    // Run on load to set correct state (e.g. browser back button)
+    document.addEventListener('DOMContentLoaded', toggleOptions);
 </script>
 {% endblock %}

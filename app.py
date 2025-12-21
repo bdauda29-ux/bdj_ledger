@@ -8,7 +8,7 @@ import smtplib
 import sys
 import io
 import base64
-from PIL import Image
+from PIL import Image, ImageFilter, ImageEnhance, ImageOps
 from email.message import EmailMessage
 # Postgres (optional) support
 try:
@@ -2449,8 +2449,11 @@ def image_processing():
                 
                 action = request.form.get('action')
                 
+                # Basic
                 if action == 'convert_gray':
                     img = img.convert('L')
+                
+                # Resize
                 elif action == 'resize':
                     try:
                         width = int(request.form.get('width') or 0)
@@ -2468,12 +2471,53 @@ def image_processing():
                             img = img.resize((w_size, height))
                     except ValueError:
                         pass # Ignore invalid input
-                elif action == 'convert_png':
-                    # Will be handled by save
-                    pass
-                elif action == 'compress':
-                    # Will be handled by save
-                    pass
+                
+                # Filters
+                elif action == 'filter_blur':
+                    img = img.filter(ImageFilter.BLUR)
+                elif action == 'filter_contour':
+                    img = img.filter(ImageFilter.CONTOUR)
+                elif action == 'filter_detail':
+                    img = img.filter(ImageFilter.DETAIL)
+                elif action == 'filter_edge_enhance':
+                    img = img.filter(ImageFilter.EDGE_ENHANCE)
+                elif action == 'filter_emboss':
+                    img = img.filter(ImageFilter.EMBOSS)
+                elif action == 'filter_sharpen':
+                    img = img.filter(ImageFilter.SHARPEN)
+                elif action == 'filter_smooth':
+                    img = img.filter(ImageFilter.SMOOTH)
+                
+                # Adjustments
+                elif action.startswith('adjust_'):
+                    try:
+                        factor = float(request.form.get('factor', 1.0))
+                        if action == 'adjust_brightness':
+                            enhancer = ImageEnhance.Brightness(img)
+                            img = enhancer.enhance(factor)
+                        elif action == 'adjust_contrast':
+                            enhancer = ImageEnhance.Contrast(img)
+                            img = enhancer.enhance(factor)
+                        elif action == 'adjust_color':
+                            enhancer = ImageEnhance.Color(img)
+                            img = enhancer.enhance(factor)
+                        elif action == 'adjust_sharpness':
+                            enhancer = ImageEnhance.Sharpness(img)
+                            img = enhancer.enhance(factor)
+                    except ValueError:
+                        pass
+                
+                # Transformations
+                elif action == 'rotate_90':
+                    img = img.transpose(Image.ROTATE_270) # PIL rotates counter-clockwise
+                elif action == 'rotate_180':
+                    img = img.transpose(Image.ROTATE_180)
+                elif action == 'rotate_270':
+                    img = img.transpose(Image.ROTATE_90)
+                elif action == 'flip_horizontal':
+                    img = img.transpose(Image.FLIP_LEFT_RIGHT)
+                elif action == 'flip_vertical':
+                    img = img.transpose(Image.FLIP_TOP_BOTTOM)
 
                 # Save processed image to buffer
                 output_buffer = io.BytesIO()
@@ -2489,8 +2533,13 @@ def image_processing():
                     img.save(output_buffer, format='PNG')
                 else:
                     # Default to original format or PNG if unknown
-                    format_to_save = img.format if img.format else 'PNG'
-                    img.save(output_buffer, format=format_to_save)
+                    # Some formats like WebP or TIFF might be preserved if detected
+                    orig_format = img.format if img.format else 'PNG'
+                    # PIL loses img.format after operations, so we might default to PNG unless we tracked it
+                    # But since we read it into memory, 'img.format' might be None after processing.
+                    # Safe bet is PNG for display in browser, unless JPEG requested.
+                    format_to_save = 'PNG'
+                    img.save(output_buffer, format='PNG')
                 
                 output_buffer.seek(0)
                 img_str = base64.b64encode(output_buffer.getvalue()).decode('utf-8')
@@ -2498,6 +2547,8 @@ def image_processing():
                 return render_template('image_processing.html', processed_image=img_str, format=format_to_save.lower())
                 
             except Exception as e:
+                import traceback
+                traceback.print_exc()
                 return f"Error processing image: {str(e)}"
                 
     return render_template('image_processing.html')
