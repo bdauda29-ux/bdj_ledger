@@ -7,3 +7,4 @@ pillow==10.3.0
 psycopg2-binary==2.9.9
 pypdf==3.17.4
 pymupdf==1.23.8
+pdf2docx==0.5.6

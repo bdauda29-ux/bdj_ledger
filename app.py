@@ -2776,28 +2776,40 @@ def pdf_tools():
                     mimetype='application/pdf'
                 )
 
-            elif action == 'protect_pdf':
+            elif action == 'pdf_to_word':
+                if Converter is None:
+                    return "pdf2docx is not installed. Please install it (pip install pdf2docx)."
+                
                 file = request.files.get('file')
-                password = request.form.get('password')
-                if not file or file.filename == '' or not password:
+                if not file or file.filename == '':
                     return redirect(request.url)
                 
-                reader = PdfReader(file)
-                writer = PdfWriter()
-                writer.append_pages_from_reader(reader)
-                writer.encrypt(password)
+                # pdf2docx requires a real file path, not a stream (usually)
+                # We need to save the uploaded file temporarily
+                temp_pdf = f"temp_{secrets.token_hex(8)}.pdf"
+                temp_docx = f"temp_{secrets.token_hex(8)}.docx"
                 
-                output_buffer = io.BytesIO()
-                writer.write(output_buffer)
-                writer.close()
-                output_buffer.seek(0)
-                
-                return send_file(
-                    output_buffer,
-                    as_attachment=True,
-                    download_name=f'protected_{file.filename}',
-                    mimetype='application/pdf'
-                )
+                try:
+                    file.save(temp_pdf)
+                    
+                    cv = Converter(temp_pdf)
+                    cv.convert(temp_docx, start=0, end=None)
+                    cv.close()
+                    
+                    return send_file(
+                        temp_docx,
+                        as_attachment=True,
+                        download_name=f'{os.path.splitext(file.filename)[0]}.docx',
+                        mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                    )
+                except Exception as e:
+                    raise e
+                finally:
+                    # Cleanup
+                    if os.path.exists(temp_pdf):
+                        os.remove(temp_pdf)
+                    if os.path.exists(temp_docx):
+                        os.remove(temp_docx)
 
             elif action == 'unlock_pdf':
                 file = request.files.get('file')
@@ -2827,30 +2839,7 @@ def pdf_tools():
                     mimetype='application/pdf'
                 )
 
-            elif action == 'rotate_pdf':
-                file = request.files.get('file')
-                angle = int(request.form.get('angle', 90))
-                if not file or file.filename == '':
-                    return redirect(request.url)
-                
-                reader = PdfReader(file)
-                writer = PdfWriter()
-                
-                for page in reader.pages:
-                    page.rotate(angle)
-                    writer.add_page(page)
-                
-                output_buffer = io.BytesIO()
-                writer.write(output_buffer)
-                writer.close()
-                output_buffer.seek(0)
-                
-                return send_file(
-                    output_buffer,
-                    as_attachment=True,
-                    download_name=f'rotated_{file.filename}',
-                    mimetype='application/pdf'
-                )
+
 
             elif action == 'watermark_pdf':
                 file = request.files.get('file')
