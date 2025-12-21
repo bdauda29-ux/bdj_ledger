@@ -2548,12 +2548,12 @@ def image_processing():
                 
                 return render_template('image_processing.html', processed_image=img_str, format=format_to_save.lower())
                         
-                    except Exception as e:
-                        import traceback
-                        traceback.print_exc()
-                        return f"Error processing image: {str(e)}"
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                return f"Error processing image: {str(e)}"
                         
-            return render_template('image_processing.html')
+    return render_template('image_processing.html')
 
 @app.route('/pdf-tools', methods=['GET', 'POST'])
 def pdf_tools():
