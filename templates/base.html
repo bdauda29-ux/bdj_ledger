@@ -42,6 +42,7 @@
                 <li><a href="{{ url_for('clients') }}">Clients</a></li>
                 {% endif %}
                 <li><a href="{{ url_for('countries') }}">Countries</a></li>
+                <li><a href="{{ url_for('image_processing') }}">Image Tools</a></li>
                 {% if not session.username %}
                 <li><a href="{{ url_for('login') }}">Login</a></li>
                 {% endif %}

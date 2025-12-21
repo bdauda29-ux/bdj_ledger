@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-image me-2"></i>Image Processing</h4>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('image_processing') }}" method="post" enctype="multipart/form-data">
+                        <div class="mb-4">
+                            <label for="image" class="form-label">Select Image</label>
+                            <input type="file" class="form-control" id="image" name="image" accept="image/*" required>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label for="action" class="form-label">Action</label>
+                                <select class="form-select" id="action" name="action" onchange="toggleResizeOptions()">
+                                    <option value="convert_gray">Convert to Grayscale</option>
+                                    <option value="resize">Resize</option>
+                                    <option value="compress">Compress (JPEG)</option>
+                                    <option value="convert_png">Convert to PNG</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="resize-options" class="row g-3 mb-4" style="display: none;">
+                            <div class="col-6">
+                                <label for="width" class="form-label">Width (px)</label>
+                                <input type="number" class="form-control" id="width" name="width" placeholder="e.g. 800">
+                            </div>
+                            <div class="col-6">
+                                <label for="height" class="form-label">Height (px)</label>
+                                <input type="number" class="form-control" id="height" name="height" placeholder="e.g. 600">
+                            </div>
+                            <small class="text-muted">Leave one empty to maintain aspect ratio.</small>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-magic me-2"></i>Process Image
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            {% if processed_image %}
+            <div class="card shadow mt-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Result</h5>
+                </div>
+                <div class="card-body text-center">
+                    <img src="data:image/{{ format }};base64,{{ processed_image }}" class="img-fluid mb-3" style="max-height: 500px;" alt="Processed Image">
+                    <br>
+                    <a href="data:image/{{ format }};base64,{{ processed_image }}" download="processed_image.{{ format }}" class="btn btn-success">
+                        <i class="fas fa-download me-2"></i>Download Image
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleResizeOptions() {
+        const action = document.getElementById('action').value;
+        const resizeOptions = document.getElementById('resize-options');
+        if (action === 'resize') {
+            resizeOptions.style.display = 'flex';
+        } else {
+            resizeOptions.style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}

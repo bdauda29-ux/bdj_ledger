@@ -6,6 +6,9 @@ import hashlib
 import os
 import smtplib
 import sys
+import io
+import base64
+from PIL import Image
 from email.message import EmailMessage
 # Postgres (optional) support
 try:
@@ -2428,3 +2431,73 @@ def internal_server_error(error):
     # Always show traceback for debugging
     import traceback
     return f"<pre>{traceback.format_exc()}</pre>", 500
+
+@app.route('/image-processing', methods=['GET', 'POST'])
+def image_processing():
+    if request.method == 'POST':
+        if 'image' not in request.files:
+            return redirect(request.url)
+        file = request.files['image']
+        if file.filename == '':
+            return redirect(request.url)
+        
+        if file:
+            try:
+                # Read image
+                img_bytes = file.read()
+                img = Image.open(io.BytesIO(img_bytes))
+                
+                action = request.form.get('action')
+                
+                if action == 'convert_gray':
+                    img = img.convert('L')
+                elif action == 'resize':
+                    try:
+                        width = int(request.form.get('width') or 0)
+                        height = int(request.form.get('height') or 0)
+                        
+                        if width > 0 and height > 0:
+                            img = img.resize((width, height))
+                        elif width > 0:
+                            w_percent = (width / float(img.size[0]))
+                            h_size = int((float(img.size[1]) * float(w_percent)))
+                            img = img.resize((width, h_size))
+                        elif height > 0:
+                            h_percent = (height / float(img.size[1]))
+                            w_size = int((float(img.size[0]) * float(h_percent)))
+                            img = img.resize((w_size, height))
+                    except ValueError:
+                        pass # Ignore invalid input
+                elif action == 'convert_png':
+                    # Will be handled by save
+                    pass
+                elif action == 'compress':
+                    # Will be handled by save
+                    pass
+
+                # Save processed image to buffer
+                output_buffer = io.BytesIO()
+                
+                format_to_save = 'PNG'
+                if action == 'compress':
+                    format_to_save = 'JPEG'
+                    if img.mode == 'RGBA':
+                        img = img.convert('RGB')
+                    img.save(output_buffer, format='JPEG', quality=60)
+                elif action == 'convert_png':
+                    format_to_save = 'PNG'
+                    img.save(output_buffer, format='PNG')
+                else:
+                    # Default to original format or PNG if unknown
+                    format_to_save = img.format if img.format else 'PNG'
+                    img.save(output_buffer, format=format_to_save)
+                
+                output_buffer.seek(0)
+                img_str = base64.b64encode(output_buffer.getvalue()).decode('utf-8')
+                
+                return render_template('image_processing.html', processed_image=img_str, format=format_to_save.lower())
+                
+            except Exception as e:
+                return f"Error processing image: {str(e)}"
+                
+    return render_template('image_processing.html')
