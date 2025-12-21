@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <h2 class="mb-4 text-center"><i class="fas fa-file-pdf me-2"></i>PDF Tools</h2>
+
+            <!-- Navigation Tabs -->
+            <ul class="nav nav-pills mb-4 justify-content-center" id="pdfTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="img-to-pdf-tab" data-bs-toggle="pill" data-bs-target="#img-to-pdf" type="button" role="tab">Images to PDF</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="merge-pdf-tab" data-bs-toggle="pill" data-bs-target="#merge-pdf" type="button" role="tab">Merge PDFs</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="split-pdf-tab" data-bs-toggle="pill" data-bs-target="#split-pdf" type="button" role="tab">Split / Extract</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="text-extract-tab" data-bs-toggle="pill" data-bs-target="#text-extract" type="button" role="tab">Extract Text</button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="pdfTabsContent">
+                
+                <!-- Images to PDF -->
+                <div class="tab-pane fade show active" id="img-to-pdf" role="tabpanel">
+                    <div class="card shadow">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Convert Images to PDF</h5>
+                        </div>
+                        <div class="card-body">
+                            <form action="{{ url_for('pdf_tools') }}" method="post" enctype="multipart/form-data">
+                                <input type="hidden" name="action" value="img_to_pdf">
+                                <div class="mb-3">
+                                    <label class="form-label">Select Images (JPG, PNG)</label>
+                                    <input type="file" class="form-control" name="files" accept="image/*" multiple required>
+                                    <small class="text-muted">Select multiple files to combine them into one PDF.</small>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Convert to PDF</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Merge PDFs -->
+                <div class="tab-pane fade" id="merge-pdf" role="tabpanel">
+                    <div class="card shadow">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">Merge Multiple PDFs</h5>
+                        </div>
+                        <div class="card-body">
+                            <form action="{{ url_for('pdf_tools') }}" method="post" enctype="multipart/form-data">
+                                <input type="hidden" name="action" value="merge_pdf">
+                                <div class="mb-3">
+                                    <label class="form-label">Select PDF Files</label>
+                                    <input type="file" class="form-control" name="files" accept=".pdf" multiple required>
+                                    <small class="text-muted">Files will be merged in the order selected (or alphabetical order).</small>
+                                </div>
+                                <button type="submit" class="btn btn-success w-100">Merge PDFs</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Split / Extract PDF -->
+                <div class="tab-pane fade" id="split-pdf" role="tabpanel">
+                    <div class="card shadow">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0">Split PDF / Extract Pages</h5>
+                        </div>
+                        <div class="card-body">
+                            <form action="{{ url_for('pdf_tools') }}" method="post" enctype="multipart/form-data">
+                                <input type="hidden" name="action" value="split_pdf">
+                                <div class="mb-3">
+                                    <label class="form-label">Select PDF File</label>
+                                    <input type="file" class="form-control" name="file" accept=".pdf" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Page Range (e.g., "1-5", "1,3,5", "1-3, 5")</label>
+                                    <input type="text" class="form-control" name="page_range" placeholder="e.g. 1-3" required>
+                                    <small class="text-muted">Enter page numbers to extract. Leaves blank to extract all pages as separate files (ZIP).</small>
+                                </div>
+                                <button type="submit" class="btn btn-warning w-100">Extract Pages</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Extract Text -->
+                <div class="tab-pane fade" id="text-extract" role="tabpanel">
+                    <div class="card shadow">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">Extract Text from PDF</h5>
+                        </div>
+                        <div class="card-body">
+                            <form action="{{ url_for('pdf_tools') }}" method="post" enctype="multipart/form-data">
+                                <input type="hidden" name="action" value="extract_text">
+                                <div class="mb-3">
+                                    <label class="form-label">Select PDF File</label>
+                                    <input type="file" class="form-control" name="file" accept=".pdf" required>
+                                </div>
+                                <button type="submit" class="btn btn-info w-100 text-white">Extract Text</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Result Area -->
+            {% if result_text %}
+            <div class="card shadow mt-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Extracted Text</h5>
+                </div>
+                <div class="card-body">
+                    <pre style="white-space: pre-wrap; background: #f8f9fa; padding: 15px; border-radius: 5px;">{{ result_text }}</pre>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<!-- Simple Tab Script (if bootstrap js not fully handling it or for fallback) -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const triggerTabList = [].slice.call(document.querySelectorAll('#pdfTabs button'))
+        triggerTabList.forEach(function (triggerEl) {
+            triggerEl.addEventListener('click', function (event) {
+                event.preventDefault()
+                // Simple manual tab switching if BS5 JS is missing or behaving oddly
+                
+                // Deactivate all
+                triggerTabList.forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-pane').forEach(p => {
+                    p.classList.remove('show', 'active');
+                });
+                
+                // Activate clicked
+                this.classList.add('active');
+                const target = document.querySelector(this.getAttribute('data-bs-target'));
+                target.classList.add('show', 'active');
+            })
+        })
+    });
+</script>
+{% endblock %}

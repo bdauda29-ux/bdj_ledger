@@ -8,6 +8,8 @@ import smtplib
 import sys
 import io
 import base64
+import zipfile
+from pypdf import PdfReader, PdfWriter
 from PIL import Image, ImageFilter, ImageEnhance, ImageOps
 from email.message import EmailMessage
 # Postgres (optional) support
@@ -2545,10 +2547,166 @@ def image_processing():
                 img_str = base64.b64encode(output_buffer.getvalue()).decode('utf-8')
                 
                 return render_template('image_processing.html', processed_image=img_str, format=format_to_save.lower())
+                        
+                    except Exception as e:
+                        import traceback
+                        traceback.print_exc()
+                        return f"Error processing image: {str(e)}"
+                        
+            return render_template('image_processing.html')
+
+@app.route('/pdf-tools', methods=['GET', 'POST'])
+def pdf_tools():
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        try:
+            if action == 'img_to_pdf':
+                files = request.files.getlist('files')
+                if not files or files[0].filename == '':
+                    return redirect(request.url)
                 
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                return f"Error processing image: {str(e)}"
+                images = []
+                for file in files:
+                    img = Image.open(file)
+                    if img.mode == 'RGBA':
+                        img = img.convert('RGB')
+                    images.append(img)
                 
-    return render_template('image_processing.html')
+                if images:
+                    output_buffer = io.BytesIO()
+                    images[0].save(
+                        output_buffer, 
+                        format='PDF', 
+                        save_all=True, 
+                        append_images=images[1:]
+                    )
+                    output_buffer.seek(0)
+                    return send_file(
+                        output_buffer,
+                        as_attachment=True,
+                        download_name='converted_images.pdf',
+                        mimetype='application/pdf'
+                    )
+
+            elif action == 'merge_pdf':
+                files = request.files.getlist('files')
+                if not files or files[0].filename == '':
+                    return redirect(request.url)
+                
+                merger = PdfWriter()
+                for file in files:
+                    merger.append(file)
+                
+                output_buffer = io.BytesIO()
+                merger.write(output_buffer)
+                merger.close()
+                output_buffer.seek(0)
+                
+                return send_file(
+                    output_buffer,
+                    as_attachment=True,
+                    download_name='merged_document.pdf',
+                    mimetype='application/pdf'
+                )
+
+            elif action == 'split_pdf':
+                file = request.files.get('file')
+                page_range = request.form.get('page_range')
+                
+                if not file or file.filename == '':
+                    return redirect(request.url)
+                
+                reader = PdfReader(file)
+                writer = PdfWriter()
+                
+                # Parse range "1-3, 5" -> [0, 1, 2, 4]
+                pages_to_extract = set()
+                if page_range:
+                    parts = page_range.split(',')
+                    for part in parts:
+                        part = part.strip()
+                        if '-' in part:
+                            try:
+                                start, end = part.split('-')
+                                start = int(start) - 1
+                                end = int(end) 
+                                for i in range(start, end): # end is inclusive in UI, but range is exclusive, so +1? No, wait. 
+                                    # User: 1-3 (Pages 1, 2, 3). 
+                                    # Code: range(0, 3) -> 0, 1, 2. Correct.
+                                    # But wait, python range(start, stop) stops BEFORE stop.
+                                    # So if user says 1-3, they mean 1, 2, 3.
+                                    # range(0, 3) is 0, 1, 2. 
+                                    # So end should be int(end). Correct.
+                                    if 0 <= i < len(reader.pages):
+                                        pages_to_extract.add(i)
+                            except ValueError:
+                                pass
+                        else:
+                            try:
+                                idx = int(part) - 1
+                                if 0 <= idx < len(reader.pages):
+                                    pages_to_extract.add(idx)
+                            except ValueError:
+                                pass
+                    
+                    # Sort pages
+                    sorted_pages = sorted(list(pages_to_extract))
+                    if not sorted_pages:
+                         return "Invalid page range or no pages selected."
+
+                    for p in sorted_pages:
+                        writer.add_page(reader.pages[p])
+                        
+                    output_buffer = io.BytesIO()
+                    writer.write(output_buffer)
+                    writer.close()
+                    output_buffer.seek(0)
+                    
+                    return send_file(
+                        output_buffer,
+                        as_attachment=True,
+                        download_name=f'extracted_pages.pdf',
+                        mimetype='application/pdf'
+                    )
+                else:
+                    # Extract all pages as ZIP
+                    zip_buffer = io.BytesIO()
+                    with zipfile.ZipFile(zip_buffer, 'w') as zf:
+                        for i, page in enumerate(reader.pages):
+                            single_page_writer = PdfWriter()
+                            single_page_writer.add_page(page)
+                            
+                            page_buffer = io.BytesIO()
+                            single_page_writer.write(page_buffer)
+                            single_page_writer.close()
+                            
+                            zf.writestr(f'page_{i+1}.pdf', page_buffer.getvalue())
+                    
+                    zip_buffer.seek(0)
+                    return send_file(
+                        zip_buffer,
+                        as_attachment=True,
+                        download_name='all_pages_extracted.zip',
+                        mimetype='application/zip'
+                    )
+
+            elif action == 'extract_text':
+                file = request.files.get('file')
+                if not file or file.filename == '':
+                    return redirect(request.url)
+                
+                reader = PdfReader(file)
+                text = ""
+                for i, page in enumerate(reader.pages):
+                    text += f"--- Page {i+1} ---\n"
+                    text += page.extract_text() + "\n\n"
+                
+                return render_template('pdf_tools.html', result_text=text)
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return f"Error processing PDF: {str(e)}"
+
+    return render_template('pdf_tools.html')
