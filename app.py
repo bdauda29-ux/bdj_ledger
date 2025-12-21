@@ -9,7 +9,11 @@ import sys
 import io
 import base64
 import zipfile
-from pypdf import PdfReader, PdfWriter
+from pypdf import PdfReader, PdfWriter, PageObject
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.units import inch
+from reportlab.lib import colors
 from PIL import Image, ImageFilter, ImageEnhance, ImageOps
 from email.message import EmailMessage
 # Postgres (optional) support
@@ -2703,6 +2707,194 @@ def pdf_tools():
                     text += page.extract_text() + "\n\n"
                 
                 return render_template('pdf_tools.html', result_text=text)
+
+            elif action == 'compress_pdf':
+                file = request.files.get('file')
+                if not file or file.filename == '':
+                    return redirect(request.url)
+                
+                reader = PdfReader(file)
+                writer = PdfWriter()
+                
+                for page in reader.pages:
+                    page.compress_content_streams()
+                    writer.add_page(page)
+                
+                # Set compression level by just writing it out (pypdf compresses by default)
+                # We can also strip metadata
+                writer.add_metadata({})
+                
+                output_buffer = io.BytesIO()
+                writer.write(output_buffer)
+                writer.close()
+                output_buffer.seek(0)
+                
+                return send_file(
+                    output_buffer,
+                    as_attachment=True,
+                    download_name=f'compressed_{file.filename}',
+                    mimetype='application/pdf'
+                )
+
+            elif action == 'protect_pdf':
+                file = request.files.get('file')
+                password = request.form.get('password')
+                if not file or file.filename == '' or not password:
+                    return redirect(request.url)
+                
+                reader = PdfReader(file)
+                writer = PdfWriter()
+                writer.append_pages_from_reader(reader)
+                writer.encrypt(password)
+                
+                output_buffer = io.BytesIO()
+                writer.write(output_buffer)
+                writer.close()
+                output_buffer.seek(0)
+                
+                return send_file(
+                    output_buffer,
+                    as_attachment=True,
+                    download_name=f'protected_{file.filename}',
+                    mimetype='application/pdf'
+                )
+
+            elif action == 'unlock_pdf':
+                file = request.files.get('file')
+                password = request.form.get('password')
+                if not file or file.filename == '' or not password:
+                    return redirect(request.url)
+                
+                reader = PdfReader(file)
+                if reader.is_encrypted:
+                    try:
+                        reader.decrypt(password)
+                    except Exception:
+                        return "Incorrect password or could not decrypt."
+                
+                writer = PdfWriter()
+                writer.append_pages_from_reader(reader)
+                
+                output_buffer = io.BytesIO()
+                writer.write(output_buffer)
+                writer.close()
+                output_buffer.seek(0)
+                
+                return send_file(
+                    output_buffer,
+                    as_attachment=True,
+                    download_name=f'unlocked_{file.filename}',
+                    mimetype='application/pdf'
+                )
+
+            elif action == 'rotate_pdf':
+                file = request.files.get('file')
+                angle = int(request.form.get('angle', 90))
+                if not file or file.filename == '':
+                    return redirect(request.url)
+                
+                reader = PdfReader(file)
+                writer = PdfWriter()
+                
+                for page in reader.pages:
+                    page.rotate(angle)
+                    writer.add_page(page)
+                
+                output_buffer = io.BytesIO()
+                writer.write(output_buffer)
+                writer.close()
+                output_buffer.seek(0)
+                
+                return send_file(
+                    output_buffer,
+                    as_attachment=True,
+                    download_name=f'rotated_{file.filename}',
+                    mimetype='application/pdf'
+                )
+
+            elif action == 'watermark_pdf':
+                file = request.files.get('file')
+                watermark_text = request.form.get('watermark_text')
+                if not file or file.filename == '' or not watermark_text:
+                    return redirect(request.url)
+                
+                # Create watermark PDF in memory
+                watermark_buffer = io.BytesIO()
+                c = canvas.Canvas(watermark_buffer, pagesize=letter)
+                c.setFont("Helvetica-Bold", 50)
+                c.setFillColor(colors.grey, alpha=0.3)
+                
+                # Center watermark on page
+                width, height = letter
+                c.saveState()
+                c.translate(width/2, height/2)
+                c.rotate(45)
+                c.drawCentredString(0, 0, watermark_text)
+                c.restoreState()
+                c.save()
+                watermark_buffer.seek(0)
+                
+                # Merge watermark with original PDF
+                watermark_pdf = PdfReader(watermark_buffer)
+                watermark_page = watermark_pdf.pages[0]
+                
+                reader = PdfReader(file)
+                writer = PdfWriter()
+                
+                for page in reader.pages:
+                    page.merge_page(watermark_page)
+                    writer.add_page(page)
+                
+                output_buffer = io.BytesIO()
+                writer.write(output_buffer)
+                writer.close()
+                output_buffer.seek(0)
+                
+                return send_file(
+                    output_buffer,
+                    as_attachment=True,
+                    download_name=f'watermarked_{file.filename}',
+                    mimetype='application/pdf'
+                )
+            
+            elif action == 'organize_pdf':
+                 # Reorder pages based on input "1,3,2"
+                 file = request.files.get('file')
+                 order_str = request.form.get('page_order') # e.g. "1,3,2"
+                 
+                 if not file or file.filename == '':
+                    return redirect(request.url)
+
+                 reader = PdfReader(file)
+                 writer = PdfWriter()
+                 
+                 if order_str:
+                     try:
+                         # Parse "1, 3, 2" -> [0, 2, 1]
+                         parts = order_str.split(',')
+                         for p in parts:
+                             idx = int(p.strip()) - 1
+                             if 0 <= idx < len(reader.pages):
+                                 writer.add_page(reader.pages[idx])
+                     except ValueError:
+                         pass
+                 else:
+                     # If no order provided, just return original (or maybe reverse?)
+                     # Let's assume if empty, we just copy. But UI should require it.
+                     for page in reader.pages:
+                         writer.add_page(page)
+
+                 output_buffer = io.BytesIO()
+                 writer.write(output_buffer)
+                 writer.close()
+                 output_buffer.seek(0)
+                 
+                 return send_file(
+                    output_buffer,
+                    as_attachment=True,
+                    download_name=f'organized_{file.filename}',
+                    mimetype='application/pdf'
+                 )
 
         except Exception as e:
             import traceback

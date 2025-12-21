@@ -184,8 +184,161 @@
         <p>Manage your PDF documents with ease</p>
     </div>
 
+    <style>
+    .bg-red { background: linear-gradient(135deg, #ff512f 0%, #dd2476 100%); }
+    .bg-teal { background: linear-gradient(135deg, #1d976c 0%, #93f9b9 100%); }
+    .bg-dark-blue { background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); }
+    .bg-pink { background: linear-gradient(135deg, #ec008c 0%, #fc6767 100%); }
+    </style>
+
     <div class="tools-grid">
         
+        <!-- Compress PDF -->
+        <div class="tool-card">
+            <div class="card-header">
+                <div class="card-icon bg-red">
+                    <i class="fas fa-compress-arrows-alt"></i>
+                </div>
+                <h3 class="card-title">Compress PDF</h3>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('pdf_tools') }}" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="compress_pdf">
+                    <div class="form-group">
+                        <label class="form-label">Select PDF File</label>
+                        <input type="file" class="form-control" name="file" accept=".pdf" required>
+                        <small class="form-text">Reduce file size while maintaining quality.</small>
+                    </div>
+                    <button type="submit" class="btn-tool bg-red">Compress PDF</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Protect PDF -->
+        <div class="tool-card">
+            <div class="card-header">
+                <div class="card-icon bg-dark-blue">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <h3 class="card-title">Protect PDF</h3>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('pdf_tools') }}" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="protect_pdf">
+                    <div class="form-group">
+                        <label class="form-label">Select PDF File</label>
+                        <input type="file" class="form-control" name="file" accept=".pdf" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Set Password</label>
+                        <input type="password" class="form-control" name="password" placeholder="Enter password" required>
+                    </div>
+                    <button type="submit" class="btn-tool bg-dark-blue">Encrypt PDF</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Unlock PDF -->
+        <div class="tool-card">
+            <div class="card-header">
+                <div class="card-icon bg-teal">
+                    <i class="fas fa-unlock-alt"></i>
+                </div>
+                <h3 class="card-title">Unlock PDF</h3>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('pdf_tools') }}" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="unlock_pdf">
+                    <div class="form-group">
+                        <label class="form-label">Select PDF File</label>
+                        <input type="file" class="form-control" name="file" accept=".pdf" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" name="password" placeholder="Enter correct password" required>
+                    </div>
+                    <button type="submit" class="btn-tool bg-teal">Remove Password</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Rotate PDF -->
+        <div class="tool-card">
+            <div class="card-header">
+                <div class="card-icon bg-pink">
+                    <i class="fas fa-sync-alt"></i>
+                </div>
+                <h3 class="card-title">Rotate PDF</h3>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('pdf_tools') }}" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="rotate_pdf">
+                    <div class="form-group">
+                        <label class="form-label">Select PDF File</label>
+                        <input type="file" class="form-control" name="file" accept=".pdf" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Rotation</label>
+                        <select class="form-control" name="angle">
+                            <option value="90">90° Clockwise</option>
+                            <option value="180">180°</option>
+                            <option value="270">270° Clockwise (90° CCW)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-tool bg-pink">Rotate Pages</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Watermark PDF -->
+        <div class="tool-card">
+            <div class="card-header">
+                <div class="card-icon bg-purple">
+                    <i class="fas fa-stamp"></i>
+                </div>
+                <h3 class="card-title">Watermark PDF</h3>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('pdf_tools') }}" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="watermark_pdf">
+                    <div class="form-group">
+                        <label class="form-label">Select PDF File</label>
+                        <input type="file" class="form-control" name="file" accept=".pdf" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Watermark Text</label>
+                        <input type="text" class="form-control" name="watermark_text" placeholder="e.g. CONFIDENTIAL" required>
+                    </div>
+                    <button type="submit" class="btn-tool bg-purple">Add Watermark</button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Organize PDF -->
+        <div class="tool-card">
+            <div class="card-header">
+                <div class="card-icon bg-orange">
+                    <i class="fas fa-sort-numeric-down"></i>
+                </div>
+                <h3 class="card-title">Organize PDF</h3>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('pdf_tools') }}" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="organize_pdf">
+                    <div class="form-group">
+                        <label class="form-label">Select PDF File</label>
+                        <input type="file" class="form-control" name="file" accept=".pdf" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Page Order (e.g. 3, 1, 2)</label>
+                        <input type="text" class="form-control" name="page_order" placeholder="e.g. 1, 3, 2" required>
+                        <small class="form-text">Enter page numbers in desired order.</small>
+                    </div>
+                    <button type="submit" class="btn-tool bg-orange">Reorder Pages</button>
+                </form>
+            </div>
+        </div>
+
         <!-- Images to PDF -->
         <div class="tool-card">
             <div class="card-header">
