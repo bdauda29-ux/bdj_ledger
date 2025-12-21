@@ -50,6 +50,12 @@
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
     }
 
+    .tool-card.drag-over {
+        border: 2px dashed #667eea;
+        background-color: #f0f4ff;
+        transform: scale(1.02);
+    }
+
     .card-header {
         padding: 20px;
         display: flex;
@@ -325,6 +331,63 @@
         </div>
 
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const cards = document.querySelectorAll('.tool-card');
+
+            cards.forEach(card => {
+                const fileInput = card.querySelector('input[type="file"]');
+                if (!fileInput) return;
+
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    card.addEventListener(eventName, preventDefaults, false);
+                });
+
+                function preventDefaults(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    card.addEventListener(eventName, highlight, false);
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    card.addEventListener(eventName, unhighlight, false);
+                });
+
+                function highlight(e) {
+                    card.classList.add('drag-over');
+                }
+
+                function unhighlight(e) {
+                    // Prevent flickering when dragging over children
+                    if (e.type === 'dragleave' && card.contains(e.relatedTarget)) {
+                        return;
+                    }
+                    card.classList.remove('drag-over');
+                }
+
+                card.addEventListener('drop', handleDrop, false);
+
+                function handleDrop(e) {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+
+                    if (files.length > 0) {
+                        fileInput.files = files;
+                        
+                        // Show feedback (optional, e.g., update a label text)
+                        // For now, we just rely on the browser or form to handle it.
+                        // But since standard file inputs show the filename, 
+                        // and they are inside the card, users might see it if the input is visible.
+                        // The input .form-control is visible in the design.
+                    }
+                }
+            });
+        });
+    </script>
 
 </div>
 {% endblock %}
