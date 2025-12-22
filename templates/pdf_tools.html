@@ -149,6 +149,81 @@
     .btn-tool:hover {
         opacity: 0.9;
     }
+    
+    .file-order {
+        margin-top: 10px;
+        border: 1px dashed #e2e8f0;
+        border-radius: 8px;
+        padding: 10px;
+        background: #f9fafb;
+    }
+    .file-order-header {
+        font-size: 0.95rem;
+        color: #4a5568;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .file-order-actions {
+        display: flex;
+        gap: 8px;
+    }
+    .btn-small {
+        padding: 6px 10px;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        color: white;
+    }
+    .btn-small.blue {
+        background: #4f46e5;
+    }
+    .file-order-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    .order-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 8px 10px;
+    }
+    .order-name {
+        color: #2d3748;
+        font-size: 0.95rem;
+        margin-right: 10px;
+        flex: 1;
+    }
+    .order-controls {
+        display: flex;
+        gap: 6px;
+    }
+    .btn-icon {
+        border: none;
+        background: #edf2f7;
+        color: #2d3748;
+        border-radius: 6px;
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+    .btn-icon:hover {
+        background: #e2e8f0;
+    }
 
     .result-section {
         background: white;
@@ -305,9 +380,21 @@
                     <input type="hidden" name="action" value="img_to_pdf">
                     <div class="form-group">
                         <label class="form-label">Select Images</label>
-                        <input type="file" class="form-control" name="files" accept="image/*" multiple required>
+                        <input type="file" class="form-control" name="files" accept="image/*" multiple>
                         <small class="form-text">Supports JPG, PNG. Select multiple to combine.</small>
                     </div>
+                    
+                    <div class="file-order">
+                        <div class="file-order-header">
+                            <span>Selected Images (ordered)</span>
+                            <div class="file-order-actions">
+                                <button type="button" class="btn-small blue btn-add-image">Add Image</button>
+                            </div>
+                        </div>
+                        <ul class="file-order-list"></ul>
+                        <input type="file" accept="image/*" class="add-image-input" style="display:none">
+                    </div>
+                    
                     <button type="submit" class="btn-tool bg-blue">Convert to PDF</button>
                 </form>
             </div>
@@ -343,6 +430,103 @@
             cards.forEach(card => {
                 const fileInput = card.querySelector('input[type="file"]');
                 if (!fileInput) return;
+                
+                const isImagesCard = (card.querySelector('input[name="action"]') && card.querySelector('input[name="action"]').value === 'img_to_pdf');
+                let orderedFiles = [];
+                let orderList = null;
+                let addBtn = null;
+                let addInput = null;
+                let formEl = null;
+                
+                if (isImagesCard) {
+                    orderList = card.querySelector('.file-order-list');
+                    addBtn = card.querySelector('.btn-add-image');
+                    addInput = card.querySelector('.add-image-input');
+                    formEl = card.querySelector('form');
+                    
+                    const render = () => {
+                        if (!orderList) return;
+                        orderList.innerHTML = '';
+                        orderedFiles.forEach((f, idx) => {
+                            const li = document.createElement('li');
+                            li.className = 'order-item';
+                            const name = document.createElement('span');
+                            name.className = 'order-name';
+                            name.textContent = f.name;
+                            const controls = document.createElement('div');
+                            controls.className = 'order-controls';
+                            const up = document.createElement('button');
+                            up.type = 'button';
+                            up.className = 'btn-icon';
+                            up.textContent = '↑';
+                            up.addEventListener('click', () => {
+                                if (idx > 0) {
+                                    const tmp = orderedFiles[idx - 1];
+                                    orderedFiles[idx - 1] = orderedFiles[idx];
+                                    orderedFiles[idx] = tmp;
+                                    render();
+                                }
+                            });
+                            const down = document.createElement('button');
+                            down.type = 'button';
+                            down.className = 'btn-icon';
+                            down.textContent = '↓';
+                            down.addEventListener('click', () => {
+                                if (idx < orderedFiles.length - 1) {
+                                    const tmp = orderedFiles[idx + 1];
+                                    orderedFiles[idx + 1] = orderedFiles[idx];
+                                    orderedFiles[idx] = tmp;
+                                    render();
+                                }
+                            });
+                            const remove = document.createElement('button');
+                            remove.type = 'button';
+                            remove.className = 'btn-icon';
+                            remove.textContent = '✕';
+                            remove.addEventListener('click', () => {
+                                orderedFiles.splice(idx, 1);
+                                render();
+                            });
+                            controls.appendChild(up);
+                            controls.appendChild(down);
+                            controls.appendChild(remove);
+                            li.appendChild(name);
+                            li.appendChild(controls);
+                            orderList.appendChild(li);
+                        });
+                    };
+                    
+                    if (addBtn && addInput) {
+                        addBtn.addEventListener('click', () => addInput.click());
+                        addInput.addEventListener('change', () => {
+                            if (addInput.files && addInput.files.length > 0) {
+                                orderedFiles.push(addInput.files[0]);
+                                addInput.value = '';
+                                render();
+                            }
+                        });
+                    }
+                    
+                    fileInput.addEventListener('change', () => {
+                        const files = Array.from(fileInput.files || []);
+                        if (files.length > 0) {
+                            orderedFiles = orderedFiles.concat(files);
+                            const dt = new DataTransfer();
+                            fileInput.files = dt.files;
+                            render();
+                        }
+                    });
+                    
+                    if (formEl) {
+                        formEl.addEventListener('submit', () => {
+                            if (orderedFiles.length > 0) {
+                                const dt = new DataTransfer();
+                                orderedFiles.forEach(f => dt.items.add(f));
+                                fileInput.files = dt.files;
+                            }
+                        });
+                    }
+                }
 
                 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                     card.addEventListener(eventName, preventDefaults, false);
@@ -382,10 +566,18 @@
                     const files = dt.files;
 
                     if (files.length > 0) {
-                        fileInput.files = files;
-                        // Trigger change event to ensure any listeners or UI updates occur
-                        const event = new Event('change', { bubbles: true });
-                        fileInput.dispatchEvent(event);
+                        if (isImagesCard) {
+                            const arr = Array.from(files);
+                            orderedFiles = orderedFiles.concat(arr);
+                            const dt2 = new DataTransfer();
+                            fileInput.files = dt2.files;
+                            const event = new Event('change', { bubbles: true });
+                            fileInput.dispatchEvent(event);
+                        } else {
+                            fileInput.files = files;
+                            const event = new Event('change', { bubbles: true });
+                            fileInput.dispatchEvent(event);
+                        }
                     }
                 }
             });
