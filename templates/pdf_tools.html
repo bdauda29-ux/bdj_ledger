@@ -413,9 +413,21 @@
                     <input type="hidden" name="action" value="merge_pdf">
                     <div class="form-group">
                         <label class="form-label">Select PDF Files</label>
-                        <input type="file" class="form-control" name="files" accept=".pdf" multiple required>
-                        <small class="form-text">Files merge in selection order.</small>
+                        <input type="file" class="form-control" name="files" accept=".pdf" multiple>
+                        <small class="form-text">Files merge in the displayed order.</small>
                     </div>
+                    
+                    <div class="file-order">
+                        <div class="file-order-header">
+                            <span>Selected PDFs (ordered)</span>
+                            <div class="file-order-actions">
+                                <button type="button" class="btn-small blue btn-add-pdf">Add PDF</button>
+                            </div>
+                        </div>
+                        <ul class="file-order-list"></ul>
+                        <input type="file" accept=".pdf" class="add-pdf-input" style="display:none">
+                    </div>
+                    
                     <button type="submit" class="btn-tool bg-green">Merge Documents</button>
                 </form>
             </div>
@@ -432,6 +444,7 @@
                 if (!fileInput) return;
                 
                 const isImagesCard = (card.querySelector('input[name="action"]') && card.querySelector('input[name="action"]').value === 'img_to_pdf');
+                const isMergeCard = (card.querySelector('input[name="action"]') && card.querySelector('input[name="action"]').value === 'merge_pdf');
                 let orderedFiles = [];
                 let orderList = null;
                 let addBtn = null;
@@ -513,6 +526,118 @@
                             orderedFiles = orderedFiles.concat(files);
                             const dt = new DataTransfer();
                             fileInput.files = dt.files;
+                            render();
+                        }
+                    });
+                    
+                    if (formEl) {
+                        formEl.addEventListener('submit', () => {
+                            if (orderedFiles.length > 0) {
+                                const dt = new DataTransfer();
+                                orderedFiles.forEach(f => dt.items.add(f));
+                                fileInput.files = dt.files;
+                            }
+                        });
+                    }
+                    
+                    card.addEventListener('drop', (e) => {
+                        const dt = e.dataTransfer;
+                        const files = Array.from(dt.files || []);
+                        if (files.length > 0) {
+                            orderedFiles = orderedFiles.concat(files);
+                            const dt2 = new DataTransfer();
+                            fileInput.files = dt2.files;
+                            render();
+                        }
+                    });
+                }
+                
+                if (isMergeCard) {
+                    orderList = card.querySelector('.file-order-list');
+                    addBtn = card.querySelector('.btn-add-pdf');
+                    addInput = card.querySelector('.add-pdf-input');
+                    formEl = card.querySelector('form');
+                    
+                    const render = () => {
+                        if (!orderList) return;
+                        orderList.innerHTML = '';
+                        orderedFiles.forEach((f, idx) => {
+                            const li = document.createElement('li');
+                            li.className = 'order-item';
+                            const name = document.createElement('span');
+                            name.className = 'order-name';
+                            name.textContent = f.name;
+                            const controls = document.createElement('div');
+                            controls.className = 'order-controls';
+                            const up = document.createElement('button');
+                            up.type = 'button';
+                            up.className = 'btn-icon';
+                            up.textContent = '↑';
+                            up.addEventListener('click', () => {
+                                if (idx > 0) {
+                                    const tmp = orderedFiles[idx - 1];
+                                    orderedFiles[idx - 1] = orderedFiles[idx];
+                                    orderedFiles[idx] = tmp;
+                                    render();
+                                }
+                            });
+                            const down = document.createElement('button');
+                            down.type = 'button';
+                            down.className = 'btn-icon';
+                            down.textContent = '↓';
+                            down.addEventListener('click', () => {
+                                if (idx < orderedFiles.length - 1) {
+                                    const tmp = orderedFiles[idx + 1];
+                                    orderedFiles[idx + 1] = orderedFiles[idx];
+                                    orderedFiles[idx] = tmp;
+                                    render();
+                                }
+                            });
+                            const remove = document.createElement('button');
+                            remove.type = 'button';
+                            remove.className = 'btn-icon';
+                            remove.textContent = '✕';
+                            remove.addEventListener('click', () => {
+                                orderedFiles.splice(idx, 1);
+                                render();
+                            });
+                            controls.appendChild(up);
+                            controls.appendChild(down);
+                            controls.appendChild(remove);
+                            li.appendChild(name);
+                            li.appendChild(controls);
+                            orderList.appendChild(li);
+                        });
+                    };
+                    
+                    if (addBtn && addInput) {
+                        addBtn.addEventListener('click', () => addInput.click());
+                        addInput.addEventListener('change', () => {
+                            if (addInput.files && addInput.files.length > 0) {
+                                orderedFiles.push(addInput.files[0]);
+                                addInput.value = '';
+                                render();
+                            }
+                        });
+                    }
+                    
+                    fileInput.addEventListener('change', () => {
+                        const files = Array.from(fileInput.files || []);
+                        if (files.length > 0) {
+                            orderedFiles = orderedFiles.concat(files);
+                            const dt = new DataTransfer();
+                            fileInput.files = dt.files;
+                            render();
+                        }
+                    });
+                    
+                    card.addEventListener('drop', (e) => {
+                        const dt = e.dataTransfer;
+                        const files = Array.from(dt.files || []);
+                        if (files.length > 0) {
+                            orderedFiles = orderedFiles.concat(files);
+                            const dt2 = new DataTransfer();
+                            fileInput.files = dt2.files;
                             render();
                         }
                     });
