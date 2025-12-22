@@ -49,6 +49,9 @@
                                         <option value="flip_horizontal">Flip Horizontal</option>
                                         <option value="flip_vertical">Flip Vertical</option>
                                     </optgroup>
+                                    <optgroup label="Passport">
+                                        <option value="passport_enhance">Auto Enhance (Passport)</option>
+                                    </optgroup>
                                 </select>
                             </div>
                         </div>
@@ -76,6 +79,9 @@
 
                         <button type="submit" class="btn btn-primary w-100">
                             <i class="fas fa-magic me-2"></i>Process Image
+                        </button>
+                        <button type="button" class="btn btn-outline-primary w-100 mt-2" onclick="document.getElementById('action').value='passport_enhance'; this.closest('form').submit();">
+                            <i class="fas fa-id-card me-2"></i>Enhance for Passport
                         </button>
                     </form>
                 </div>

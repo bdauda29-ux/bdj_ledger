@@ -2539,12 +2539,30 @@ def image_processing():
                     img = img.transpose(Image.FLIP_LEFT_RIGHT)
                 elif action == 'flip_vertical':
                     img = img.transpose(Image.FLIP_TOP_BOTTOM)
+                elif action == 'passport_enhance':
+                    if img.mode in ('RGBA', 'LA'):
+                        bg = Image.new('RGB', img.size, (255, 255, 255))
+                        bg.paste(img, mask=img.split()[-1])
+                        img = bg
+                    else:
+                        img = img.convert('RGB')
+                    from PIL import ImageOps
+                    img = ImageOps.fit(img, (600, 600), method=Image.LANCZOS, centering=(0.5, 0.5))
+                    img = ImageEnhance.Brightness(img).enhance(1.05)
+                    img = ImageEnhance.Contrast(img).enhance(1.1)
+                    img = ImageEnhance.Color(img).enhance(0.95)
+                    img = ImageEnhance.Sharpness(img).enhance(1.2)
 
                 # Save processed image to buffer
                 output_buffer = io.BytesIO()
                 
                 format_to_save = 'PNG'
-                if action == 'compress':
+                if action == 'passport_enhance':
+                    format_to_save = 'JPEG'
+                    if img.mode == 'RGBA':
+                        img = img.convert('RGB')
+                    img.save(output_buffer, format='JPEG', quality=90, dpi=(300, 300))
+                elif action == 'compress':
                     format_to_save = 'JPEG'
                     if img.mode == 'RGBA':
                         img = img.convert('RGB')
