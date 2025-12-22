@@ -6,6 +6,6 @@ gunicorn==23.0.0
 pillow==10.3.0
 psycopg2-binary==2.9.9
 pypdf==3.17.4
-# pymupdf  # Commented out to reduce slug size for Vercel
+pymupdf
 # opencv-python-headless # Commented out to reduce slug size for Vercel
 # pdf2docx # Commented out to reduce slug size for Vercel
