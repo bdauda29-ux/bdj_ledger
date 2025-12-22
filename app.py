@@ -2610,7 +2610,7 @@ def image_processing():
                             used_cv = False
                     if not used_cv:
                         img = ImageOps.fit(img, (600, 600), method=Image.LANCZOS, centering=(0.5, 0.45))
-                        img = ImageFilter.SMOOTH(img)
+                        img = img.filter(ImageFilter.SMOOTH)
                         img = ImageEnhance.Brightness(img).enhance(1.05)
                         img = ImageEnhance.Contrast(img).enhance(1.1)
                         img = ImageEnhance.Color(img).enhance(0.95)
