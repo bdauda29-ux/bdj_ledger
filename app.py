@@ -30,6 +30,14 @@ except ImportError:
 except Exception:
     # pdf2docx might fail if opencv is missing
     Converter = None
+try:
+    import cv2
+except Exception:
+    cv2 = None
+try:
+    import numpy as np
+except Exception:
+    np = None
 
 # Postgres (optional) support
 try:
@@ -2546,12 +2554,67 @@ def image_processing():
                         img = bg
                     else:
                         img = img.convert('RGB')
-                    from PIL import ImageOps
-                    img = ImageOps.fit(img, (600, 600), method=Image.LANCZOS, centering=(0.5, 0.5))
-                    img = ImageEnhance.Brightness(img).enhance(1.05)
-                    img = ImageEnhance.Contrast(img).enhance(1.1)
-                    img = ImageEnhance.Color(img).enhance(0.95)
-                    img = ImageEnhance.Sharpness(img).enhance(1.2)
+                    used_cv = False
+                    if cv2 is not None and np is not None:
+                        try:
+                            arr = np.array(img)
+                            bgr = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
+                            gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+                            face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+                            eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
+                            faces = face_cascade.detectMultiScale(gray, 1.2, 5)
+                            if len(faces) > 0:
+                                x, y, w, h = max(faces, key=lambda r: r[2]*r[3])
+                                roi_gray = gray[y:y+h, x:x+w]
+                                eyes = eye_cascade.detectMultiScale(roi_gray, 1.2, 10)
+                                angle = 0.0
+                                if len(eyes) >= 2:
+                                    eyes = sorted(eyes, key=lambda e: e[0])
+                                    ex1, ey1, ew1, eh1 = eyes[0]
+                                    ex2, ey2, ew2, eh2 = eyes[1]
+                                    p1 = (x + ex1 + ew1//2, y + ey1 + eh1//2)
+                                    p2 = (x + ex2 + ew2//2, y + ey2 + eh2//2)
+                                    dy = p2[1] - p1[1]
+                                    dx = p2[0] - p1[0]
+                                    angle = np.degrees(np.arctan2(dy, dx))
+                                center = (bgr.shape[1]//2, bgr.shape[0]//2)
+                                M = cv2.getRotationMatrix2D(center, angle, 1.0)
+                                bgr = cv2.warpAffine(bgr, M, (bgr.shape[1], bgr.shape[0]), flags=cv2.INTER_LANCZOS4, borderValue=(255,255,255))
+                                gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+                                faces2 = face_cascade.detectMultiScale(gray, 1.2, 5)
+                                if len(faces2) > 0:
+                                    x, y, w, h = max(faces2, key=lambda r: r[2]*r[3])
+                                top = max(y - int(0.25*h), 0)
+                                bottom = min(y + int(1.35*h), bgr.shape[0])
+                                left = max(x - int(0.15*w), 0)
+                                right = min(x + int(0.15*w) + w, bgr.shape[1])
+                                crop = bgr[top:bottom, left:right]
+                                h_crop, w_crop = crop.shape[:2]
+                                size = max(h_crop, w_crop)
+                                canvas = np.full((size, size, 3), 255, dtype=np.uint8)
+                                y0 = (size - h_crop) // 2
+                                x0 = (size - w_crop) // 2
+                                canvas[y0:y0+h_crop, x0:x0+w_crop] = crop
+                                out = cv2.resize(canvas, (600, 600), interpolation=cv2.INTER_LANCZOS4)
+                                out = cv2.bilateralFilter(out, 7, 50, 50)
+                                sharp = cv2.addWeighted(out, 1.2, cv2.GaussianBlur(out, (0, 0), 3), -0.2, 0)
+                                out = sharp
+                                rgb = cv2.cvtColor(out, cv2.COLOR_BGR2RGB)
+                                img = Image.fromarray(rgb)
+                                img = ImageEnhance.Brightness(img).enhance(1.03)
+                                img = ImageEnhance.Contrast(img).enhance(1.08)
+                                img = ImageEnhance.Color(img).enhance(0.95)
+                                img = ImageEnhance.Sharpness(img).enhance(1.15)
+                                used_cv = True
+                        except Exception:
+                            used_cv = False
+                    if not used_cv:
+                        img = ImageOps.fit(img, (600, 600), method=Image.LANCZOS, centering=(0.5, 0.45))
+                        img = ImageFilter.SMOOTH(img)
+                        img = ImageEnhance.Brightness(img).enhance(1.05)
+                        img = ImageEnhance.Contrast(img).enhance(1.1)
+                        img = ImageEnhance.Color(img).enhance(0.95)
+                        img = ImageEnhance.Sharpness(img).enhance(1.2)
 
                 # Save processed image to buffer
                 output_buffer = io.BytesIO()
