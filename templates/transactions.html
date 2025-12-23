@@ -95,7 +95,7 @@
                 data-paid="{{ transaction.is_paid or 0 }}" 
                 data-amount="{{ transaction.amount or 0 }}" 
                 data-amount-n="{{ transaction.amount_n or 0 }}">
-                <td>{{ loop.index }}</td>
+                <td class="s-no">{{ loop.index }}</td>
                 <td>{{ transaction.client_name }}</td>
                 <td>{{ transaction.applicant_name }}</td>
                 <td>{{ transaction.app_id }}</td>
@@ -155,7 +155,7 @@
          data-paid="{{ transaction.is_paid or 0 }}" 
          data-amount="{{ transaction.amount or 0 }}" 
          data-amount-n="{{ transaction.amount_n or 0 }}">
-        <div class="mobile-card-header">#{{ loop.index }} - {{ transaction.client_name }}</div>
+        <div class="mobile-card-header"><span class="card-s-no">#{{ loop.index }}</span> - {{ transaction.client_name }}</div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">Applicant Name:</span>
             <span class="mobile-card-value">{{ transaction.applicant_name }}</span>
@@ -335,12 +335,16 @@
         
         if (pdfBtn && originalExportPdfUrl) {
             const url = new URL(originalExportPdfUrl, window.location.origin);
-            url.searchParams.set('paid', status);
+            if (status === '0') url.searchParams.set('paid', '0');
+            else if (status === '1') url.searchParams.set('paid', '1');
+            else url.searchParams.delete('paid');
             pdfBtn.href = url.toString();
         }
         if (jpegBtn && originalExportJpegUrl) {
             const url = new URL(originalExportJpegUrl, window.location.origin);
-            url.searchParams.set('paid', status);
+            if (status === '0') url.searchParams.set('paid', '0');
+            else if (status === '1') url.searchParams.set('paid', '1');
+            else url.searchParams.delete('paid');
             jpegBtn.href = url.toString();
         }
     }
@@ -352,10 +356,8 @@
         if (pdfBtn) originalExportPdfUrl = pdfBtn.href;
         if (jpegBtn) originalExportJpegUrl = jpegBtn.href;
 
-        // Initialize with server-provided filter or default to Pending
-        // filters.paid comes from backend (defaults to '0')
-        const initialStatus = "{{ filters.paid }}";
-        filterTransactions(initialStatus);
+        // Initialize with Pending filter (since Pending tab is active by default in HTML)
+        filterTransactions('0');
 
         const dateFrom = document.getElementById('date_from').value;
 
