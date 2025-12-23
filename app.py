@@ -1625,11 +1625,12 @@ def edit_transaction(transaction_id):
     if request.method == 'POST':
         try:
             # Get original transaction
-            original_transaction = conn.execute('SELECT client_name, amount_n, model_id FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
+            original_transaction = conn.execute('SELECT client_name, amount_n, is_paid, model_id FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
             if not original_transaction or original_transaction['model_id'] != current_model_id():
                 return redirect(url_for('transactions'))
             original_client_name = original_transaction['client_name']
             original_amount_n = original_transaction['amount_n']
+            original_is_paid = int(original_transaction.get('is_paid') or 0)
         
             client_name = request.form['client_name']
             applicant_name = request.form.get('applicant_name', '')
@@ -1710,22 +1711,23 @@ def edit_transaction(transaction_id):
                 ''', (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, email_link, transaction_id))
         
             original_client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (original_client_name, current_model_id())).fetchone()
-            if original_client:
+            if original_client and original_is_paid == 1:
+                # Remove previous balance history entries for this transaction and original client
+                conn.execute('DELETE FROM balance_history WHERE transaction_id = ? AND client_id = ? AND model_id = ?', (transaction_id, original_client['id'], current_model_id()))
+                # Reverse deduction on original client balance
                 balance_before_orig = original_client['balance']
-                balance_after_orig = balance_before_orig + original_amount_n
+                balance_after_orig = balance_before_orig + (original_amount_n or 0)
                 conn.execute('UPDATE clients SET balance = ? WHERE client_name = ? AND model_id = ?', (balance_after_orig, original_client_name, current_model_id()))
-                description_orig = f'Reversal of transaction {transaction_id} for client {original_client_name}'
-                conn.execute('INSERT INTO balance_history (client_id, transaction_id, amount, type, balance_before, balance_after, description, model_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                             (original_client['id'], transaction_id, original_amount_n, 'credit', balance_before_orig, balance_after_orig, description_orig, current_model_id()))
 
             new_client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (client_name, current_model_id())).fetchone()
             if new_client:
-                balance_before_new = new_client['balance']
-                balance_after_new = balance_before_new - amount_n
-                conn.execute('UPDATE clients SET balance = ? WHERE client_name = ? AND model_id = ?', (balance_after_new, client_name, current_model_id()))
-                description_new = f'Transaction {transaction_id} for client {client_name}'
-                conn.execute('INSERT INTO balance_history (client_id, transaction_id, amount, type, balance_before, balance_after, description, model_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                             (new_client['id'], transaction_id, amount_n, 'debit', balance_before_new, balance_after_new, description_new, current_model_id()))
+                if original_is_paid == 1:
+                    balance_before_new = new_client['balance']
+                    balance_after_new = balance_before_new - (amount_n or 0)
+                    conn.execute('UPDATE clients SET balance = ? WHERE client_name = ? AND model_id = ?', (balance_after_new, client_name, current_model_id()))
+                    description_new = f'Transaction {transaction_id} reassigned and paid for client {client_name}'
+                    conn.execute('INSERT INTO balance_history (client_id, transaction_id, amount, type, balance_before, balance_after, description, model_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                                 (new_client['id'], transaction_id, (amount_n or 0), 'debit', balance_before_new, balance_after_new, description_new, current_model_id()))
             else:
                 transaction = conn.execute('SELECT * FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
                 clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
@@ -1818,23 +1820,23 @@ def pay_transaction(transaction_id):
             return redirect(url_for('transactions'))
         if transaction['is_paid']:
             return redirect(url_for('transactions'))
-        # client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (transaction['client_name'], current_model_id())).fetchone()
-        # if not client:
-        #     return redirect(url_for('transactions'))
-        # balance_before = client['balance']
-        # amount_to_deduct = transaction['amount_n']
-        # if amount_to_deduct > balance_before:
-        #     return redirect(url_for('transactions', error='Insufficient balance to pay this transaction'))
-        # balance_after = balance_before - amount_to_deduct
-        # conn.execute('UPDATE clients SET balance = ? WHERE id = ? AND model_id = ?', (balance_after, client['id'], current_model_id()))
+        client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (transaction['client_name'], current_model_id())).fetchone()
+        if not client:
+            return redirect(url_for('transactions'))
+        balance_before = client['balance']
+        amount_to_deduct = transaction['amount_n']
+        if amount_to_deduct > balance_before:
+            return redirect(url_for('transactions', error='Insufficient balance to pay this transaction'))
+        balance_after = balance_before - amount_to_deduct
+        conn.execute('UPDATE clients SET balance = ? WHERE id = ? AND model_id = ?', (balance_after, client['id'], current_model_id()))
         conn.execute('UPDATE transactions SET is_paid = 1 WHERE id = ?', (transaction_id,))
-        # conn.execute('''
-        #     INSERT INTO balance_history (client_id, transaction_id, amount, type, balance_before, balance_after, description, model_id)
-        #     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        # ''', (
-        #     client['id'], transaction_id, amount_to_deduct, 'debit', balance_before, balance_after,
-        #     f'Payment for transaction #{transaction_id}', current_model_id()
-        # ))
+        conn.execute('''
+            INSERT INTO balance_history (client_id, transaction_id, amount, type, balance_before, balance_after, description, model_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            client['id'], transaction_id, amount_to_deduct, 'debit', balance_before, balance_after,
+            f'Payment for transaction #{transaction_id}', current_model_id()
+        ))
         conn.commit()
         return redirect(url_for('transactions'))
     except Exception:
@@ -1859,13 +1861,13 @@ def undo_pay_transaction(transaction_id):
             return redirect(url_for('transactions'))
         if not transaction['is_paid']:
             return redirect(url_for('transactions'))
-        # client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (transaction['client_name'], current_model_id())).fetchone()
-        # if not client:
-        #     return redirect(url_for('transactions'))
-        # balance_before = client['balance']
-        # amount_to_add = transaction['amount_n']
-        # balance_after = balance_before + amount_to_add
-        # conn.execute('UPDATE clients SET balance = ? WHERE id = ? AND model_id = ?', (balance_after, client['id'], current_model_id()))
+        client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (transaction['client_name'], current_model_id())).fetchone()
+        if not client:
+            return redirect(url_for('transactions'))
+        balance_before = client['balance']
+        amount_to_add = transaction['amount_n']
+        balance_after = balance_before + amount_to_add
+        conn.execute('UPDATE clients SET balance = ? WHERE id = ? AND model_id = ?', (balance_after, client['id'], current_model_id()))
         conn.execute('UPDATE transactions SET is_paid = 0 WHERE id = ?', (transaction_id,))
         conn.execute('DELETE FROM balance_history WHERE transaction_id = ?', (transaction_id,))
         conn.commit()
@@ -1890,11 +1892,11 @@ def delete_transaction(transaction_id):
         transaction = conn.execute('SELECT * FROM transactions WHERE id = ? AND model_id = ?', (transaction_id, current_model_id())).fetchone()
         if not transaction:
             return redirect(url_for('transactions'))
-        # if transaction['is_paid']:
-        #     client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (transaction['client_name'], current_model_id())).fetchone()
-        #     if client:
-        #         new_balance = client['balance'] + (transaction['amount_n'] or 0)
-        #         conn.execute('UPDATE clients SET balance = ? WHERE id = ? AND model_id = ?', (new_balance, client['id'], current_model_id()))
+        if transaction['is_paid']:
+            client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (transaction['client_name'], current_model_id())).fetchone()
+            if client:
+                new_balance = client['balance'] + (transaction['amount_n'] or 0)
+                conn.execute('UPDATE clients SET balance = ? WHERE id = ? AND model_id = ?', (new_balance, client['id'], current_model_id()))
         conn.execute('''
             INSERT INTO deleted_transactions (original_id, client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, is_paid, transaction_date, model_id)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -1948,14 +1950,14 @@ def restore_deleted_transaction(deleted_id):
         else:
             conn.execute(sql, params)
             new_transaction_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
-        # client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (row['client_name'], current_model_id())).fetchone()
-        # if client and int(row['is_paid'] or 0) == 1:
-        #     balance_before = client['balance']
-        #     balance_after = balance_before - (row['amount_n'] or 0)
-        #     conn.execute('UPDATE clients SET balance = ? WHERE client_name = ? AND model_id = ?', (balance_after, row['client_name'], current_model_id()))
-        #     description = f'Restore transaction {new_transaction_id} for client {row["client_name"]}'
-        #     conn.execute('INSERT INTO balance_history (client_id, transaction_id, amount, type, balance_before, balance_after, description, model_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        #                  (client['id'], new_transaction_id, (row['amount_n'] or 0), 'debit', balance_before, balance_after, description, current_model_id()))
+        client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (row['client_name'], current_model_id())).fetchone()
+        if client and int(row['is_paid'] or 0) == 1:
+            balance_before = client['balance']
+            balance_after = balance_before - (row['amount_n'] or 0)
+            conn.execute('UPDATE clients SET balance = ? WHERE client_name = ? AND model_id = ?', (balance_after, row['client_name'], current_model_id()))
+            description = f'Restore transaction {new_transaction_id} for client {row["client_name"]}'
+            conn.execute('INSERT INTO balance_history (client_id, transaction_id, amount, type, balance_before, balance_after, description, model_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                         (client['id'], new_transaction_id, (row['amount_n'] or 0), 'debit', balance_before, balance_after, description, current_model_id()))
         conn.execute('DELETE FROM deleted_transactions WHERE id = ? AND model_id = ?', (deleted_id, current_model_id()))
         conn.commit()
         return redirect(url_for('transactions'))
