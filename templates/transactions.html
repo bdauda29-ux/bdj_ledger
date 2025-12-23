@@ -121,14 +121,14 @@
                     <form action="{{ url_for('pay_transaction', transaction_id=transaction.id) }}" 
                           method="POST" 
                           style="display: inline;"
-                          onsubmit="return confirm('Pay {{ transaction.amount_n|comma2 }} from client balance?');">
+                          onsubmit="return confirm('Mark transaction as paid?');">
                         <button type="submit" class="btn btn-success btn-sm" title="Pay">💳</button>
                     </form>
                     {% else %}
                     <form action="{{ url_for('undo_pay_transaction', transaction_id=transaction.id) }}" 
                           method="POST" 
                           style="display: inline;"
-                          onsubmit="return confirm('Undo payment and restore client balance?');">
+                          onsubmit="return confirm('Undo payment status?');">
                         <button type="submit" class="btn btn-secondary btn-sm" title="Undo Pay">↩</button>
                     </form>
                     {% endif %}
@@ -201,14 +201,14 @@
             <form action="{{ url_for('pay_transaction', transaction_id=transaction.id) }}" 
                   method="POST" 
                   style="display: inline; flex: 1;"
-                  onsubmit="return confirm('Pay {{ transaction.amount_n|comma2 }} from client balance?');">
+                  onsubmit="return confirm('Mark transaction as paid?');">
                 <button type="submit" class="btn btn-success btn-sm" style="width: 100%;">Pay</button>
             </form>
             {% else %}
             <form action="{{ url_for('undo_pay_transaction', transaction_id=transaction.id) }}" 
                   method="POST" 
                   style="display: inline; flex: 1;"
-                  onsubmit="return confirm('Undo payment and restore client balance?');">
+                  onsubmit="return confirm('Undo payment status?');">
                 <button type="submit" class="btn btn-secondary btn-sm" style="width: 100%;">Undo Pay</button>
             </form>
             {% endif %}
