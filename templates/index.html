@@ -33,7 +33,7 @@
         {% if session.permissions and session.permissions.is_admin %}
         <div class="summary-box">
             <h3>Total Wallet Balance</h3>
-            <p>{% if wallet %}{{ (((wallet.dollars or 0) + (wallet.providus_dollars or 0)) * (wallet.rate or 0) + (wallet.naira or 0) + (wallet.naira_1 or 0) + (wallet.unpaid_n or 0) - (total_balance or 0))|comma2 }}{% else %}0{% endif %}</p>
+            <p>{% if wallet %}{{ (((wallet.dollars or 0) * (wallet.rate or 0)) + ((wallet.providus_dollars or 0) * (wallet.rate or 0)) + (wallet.naira_1 or 0) + (wallet.naira or 0) + (wallet.unpaid_n or 0) - (total_balance or 0))|comma2 }}{% else %}0{% endif %}</p>
         </div>
         {% endif %}
         <div class="summary-box">

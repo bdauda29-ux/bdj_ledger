@@ -1051,6 +1051,26 @@ def internal_error(error):
     import traceback
     return f"<pre>{traceback.format_exc()}</pre>", 500
 
+def ensure_wallet_columns(conn):
+    """Ensure wallet table has new columns (runtime migration fix)"""
+    new_cols = ['providus_dollars', 'naira_1']
+    for col in new_cols:
+        try:
+            conn.execute(f'SELECT {col} FROM wallet LIMIT 1')
+        except Exception:
+            # Column likely missing
+            try:
+                # Handle Postgres transaction state if needed
+                if hasattr(conn, 'conn') and hasattr(conn.conn, 'rollback'):
+                     conn.conn.rollback()
+                
+                print(f"Adding missing column {col} to wallet...", file=sys.stderr)
+                conn.execute(f'ALTER TABLE wallet ADD COLUMN {col} REAL DEFAULT 0')
+                if hasattr(conn, 'commit'): 
+                    conn.commit()
+            except Exception as e:
+                print(f"Failed to add column {col}: {e}", file=sys.stderr)
+
 @app.route('/wallet', methods=['GET', 'POST'])
 def wallet_view():
     if not can('is_admin'):
@@ -1058,14 +1078,30 @@ def wallet_view():
     
     try:
         conn = get_db_connection()
+        ensure_wallet_columns(conn)
         mid = current_model_id()
         
         if request.method == 'POST':
-            dollars = request.form.get('dollars', 0)
-            providus_dollars = request.form.get('providus_dollars', 0)
-            naira = request.form.get('naira', 0)
-            naira_1 = request.form.get('naira_1', 0)
-            rate = request.form.get('rate', 0)
+            try:
+                dollars = float(request.form.get('dollars') or 0)
+            except ValueError:
+                dollars = 0.0
+            try:
+                providus_dollars = float(request.form.get('providus_dollars') or 0)
+            except ValueError:
+                providus_dollars = 0.0
+            try:
+                naira = float(request.form.get('naira') or 0)
+            except ValueError:
+                naira = 0.0
+            try:
+                naira_1 = float(request.form.get('naira_1') or 0)
+            except ValueError:
+                naira_1 = 0.0
+            try:
+                rate = float(request.form.get('rate') or 0)
+            except ValueError:
+                rate = 0.0
             
             # Upsert
             exists = conn.execute('SELECT 1 FROM wallet WHERE model_id = ?', (mid,)).fetchone()
