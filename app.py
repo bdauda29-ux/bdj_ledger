@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, g, send_file, session
+import json
 import sqlite3
 from datetime import datetime, timedelta
 import secrets
@@ -2479,160 +2480,166 @@ def image_processing():
                 img = Image.open(io.BytesIO(img_bytes))
                 
                 action = request.form.get('action')
-                
-                # Basic
-                if action == 'convert_gray':
-                    img = img.convert('L')
-                
-                # Resize
-                elif action == 'resize':
+                pipeline_json = request.form.get('pipeline')
+                steps = []
+                if pipeline_json:
                     try:
-                        width = int(request.form.get('width') or 0)
-                        height = int(request.form.get('height') or 0)
-                        
-                        if width > 0 and height > 0:
-                            img = img.resize((width, height))
-                        elif width > 0:
-                            w_percent = (width / float(img.size[0]))
-                            h_size = int((float(img.size[1]) * float(w_percent)))
-                            img = img.resize((width, h_size))
-                        elif height > 0:
-                            h_percent = (height / float(img.size[1]))
-                            w_size = int((float(img.size[0]) * float(h_percent)))
-                            img = img.resize((w_size, height))
-                    except ValueError:
-                        pass # Ignore invalid input
-                
-                # Filters
-                elif action == 'filter_blur':
-                    img = img.filter(ImageFilter.BLUR)
-                elif action == 'filter_contour':
-                    img = img.filter(ImageFilter.CONTOUR)
-                elif action == 'filter_detail':
-                    img = img.filter(ImageFilter.DETAIL)
-                elif action == 'filter_edge_enhance':
-                    img = img.filter(ImageFilter.EDGE_ENHANCE)
-                elif action == 'filter_emboss':
-                    img = img.filter(ImageFilter.EMBOSS)
-                elif action == 'filter_sharpen':
-                    img = img.filter(ImageFilter.SHARPEN)
-                elif action == 'filter_smooth':
-                    img = img.filter(ImageFilter.SMOOTH)
-                
-                # Adjustments
-                elif action.startswith('adjust_'):
-                    try:
-                        factor = float(request.form.get('factor', 1.0))
-                        if action == 'adjust_brightness':
-                            enhancer = ImageEnhance.Brightness(img)
-                            img = enhancer.enhance(factor)
-                        elif action == 'adjust_contrast':
-                            enhancer = ImageEnhance.Contrast(img)
-                            img = enhancer.enhance(factor)
-                        elif action == 'adjust_color':
-                            enhancer = ImageEnhance.Color(img)
-                            img = enhancer.enhance(factor)
-                        elif action == 'adjust_sharpness':
-                            enhancer = ImageEnhance.Sharpness(img)
-                            img = enhancer.enhance(factor)
-                    except ValueError:
-                        pass
-                
-                # Transformations
-                elif action == 'rotate_90':
-                    img = img.transpose(Image.ROTATE_270) # PIL rotates counter-clockwise
-                elif action == 'rotate_180':
-                    img = img.transpose(Image.ROTATE_180)
-                elif action == 'rotate_270':
-                    img = img.transpose(Image.ROTATE_90)
-                elif action == 'flip_horizontal':
-                    img = img.transpose(Image.FLIP_LEFT_RIGHT)
-                elif action == 'flip_vertical':
-                    img = img.transpose(Image.FLIP_TOP_BOTTOM)
-                elif action == 'passport_enhance':
-                    if img.mode in ('RGBA', 'LA'):
-                        bg = Image.new('RGB', img.size, (255, 255, 255))
-                        bg.paste(img, mask=img.split()[-1])
-                        img = bg
-                    else:
-                        img = img.convert('RGB')
-                    used_cv = False
-                    if cv2 is not None and np is not None:
+                        steps = json.loads(pipeline_json) or []
+                    except Exception:
+                        steps = []
+                if not steps and action:
+                    steps.append({
+                        'name': action,
+                        'width': request.form.get('width'),
+                        'height': request.form.get('height'),
+                        'factor': request.form.get('factor')
+                    })
+                for step in steps:
+                    name = str(step.get('name') or '')
+                    if name == 'convert_gray':
+                        img = img.convert('L')
+                    elif name == 'resize':
                         try:
-                            arr = np.array(img)
-                            bgr = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
-                            gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
-                            face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-                            eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
-                            faces = face_cascade.detectMultiScale(gray, 1.2, 5)
-                            if len(faces) > 0:
-                                x, y, w, h = max(faces, key=lambda r: r[2]*r[3])
-                                roi_gray = gray[y:y+h, x:x+w]
-                                eyes = eye_cascade.detectMultiScale(roi_gray, 1.2, 10)
-                                angle = 0.0
-                                if len(eyes) >= 2:
-                                    eyes = sorted(eyes, key=lambda e: e[0])
-                                    ex1, ey1, ew1, eh1 = eyes[0]
-                                    ex2, ey2, ew2, eh2 = eyes[1]
-                                    p1 = (x + ex1 + ew1//2, y + ey1 + eh1//2)
-                                    p2 = (x + ex2 + ew2//2, y + ey2 + eh2//2)
-                                    dy = p2[1] - p1[1]
-                                    dx = p2[0] - p1[0]
-                                    angle = np.degrees(np.arctan2(dy, dx))
-                                center = (bgr.shape[1]//2, bgr.shape[0]//2)
-                                M = cv2.getRotationMatrix2D(center, angle, 1.0)
-                                bgr = cv2.warpAffine(bgr, M, (bgr.shape[1], bgr.shape[0]), flags=cv2.INTER_LANCZOS4, borderValue=(255,255,255))
-                                gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
-                                faces2 = face_cascade.detectMultiScale(gray, 1.2, 5)
-                                if len(faces2) > 0:
-                                    x, y, w, h = max(faces2, key=lambda r: r[2]*r[3])
-                                top = max(y - int(0.25*h), 0)
-                                bottom = min(y + int(1.35*h), bgr.shape[0])
-                                left = max(x - int(0.15*w), 0)
-                                right = min(x + int(0.15*w) + w, bgr.shape[1])
-                                crop = bgr[top:bottom, left:right]
-                                h_crop, w_crop = crop.shape[:2]
-                                size = max(h_crop, w_crop)
-                                canvas = np.full((size, size, 3), 255, dtype=np.uint8)
-                                y0 = (size - h_crop) // 2
-                                x0 = (size - w_crop) // 2
-                                canvas[y0:y0+h_crop, x0:x0+w_crop] = crop
-                                out = cv2.resize(canvas, (600, 600), interpolation=cv2.INTER_LANCZOS4)
-                                out = cv2.bilateralFilter(out, 7, 50, 50)
-                                sharp = cv2.addWeighted(out, 1.2, cv2.GaussianBlur(out, (0, 0), 3), -0.2, 0)
-                                out = sharp
-                                rgb = cv2.cvtColor(out, cv2.COLOR_BGR2RGB)
-                                img = Image.fromarray(rgb)
-                                img = ImageEnhance.Brightness(img).enhance(1.03)
-                                img = ImageEnhance.Contrast(img).enhance(1.08)
-                                img = ImageEnhance.Color(img).enhance(0.95)
-                                img = ImageEnhance.Sharpness(img).enhance(1.15)
-                                used_cv = True
+                            width = int(step.get('width') or 0)
+                            height = int(step.get('height') or 0)
+                            if width > 0 and height > 0:
+                                img = img.resize((width, height))
+                            elif width > 0:
+                                w_percent = (width / float(img.size[0]))
+                                h_size = int((float(img.size[1]) * float(w_percent)))
+                                img = img.resize((width, h_size))
+                            elif height > 0:
+                                h_percent = (height / float(img.size[1]))
+                                w_size = int((float(img.size[0]) * float(h_percent)))
+                                img = img.resize((w_size, height))
                         except Exception:
-                            used_cv = False
-                    if not used_cv:
-                        img = ImageOps.fit(img, (600, 600), method=Image.LANCZOS, centering=(0.5, 0.45))
+                            pass
+                    elif name == 'filter_blur':
+                        img = img.filter(ImageFilter.BLUR)
+                    elif name == 'filter_contour':
+                        img = img.filter(ImageFilter.CONTOUR)
+                    elif name == 'filter_detail':
+                        img = img.filter(ImageFilter.DETAIL)
+                    elif name == 'filter_edge_enhance':
+                        img = img.filter(ImageFilter.EDGE_ENHANCE)
+                    elif name == 'filter_emboss':
+                        img = img.filter(ImageFilter.EMBOSS)
+                    elif name == 'filter_sharpen':
+                        img = img.filter(ImageFilter.SHARPEN)
+                    elif name == 'filter_smooth':
                         img = img.filter(ImageFilter.SMOOTH)
-                        img = ImageEnhance.Brightness(img).enhance(1.05)
-                        img = ImageEnhance.Contrast(img).enhance(1.1)
-                        img = ImageEnhance.Color(img).enhance(0.95)
-                        img = ImageEnhance.Sharpness(img).enhance(1.2)
+                    elif name.startswith('adjust_'):
+                        try:
+                            factor = float(step.get('factor') or 1.0)
+                            if name == 'adjust_brightness':
+                                enhancer = ImageEnhance.Brightness(img)
+                                img = enhancer.enhance(factor)
+                            elif name == 'adjust_contrast':
+                                enhancer = ImageEnhance.Contrast(img)
+                                img = enhancer.enhance(factor)
+                            elif name == 'adjust_color':
+                                enhancer = ImageEnhance.Color(img)
+                                img = enhancer.enhance(factor)
+                            elif name == 'adjust_sharpness':
+                                enhancer = ImageEnhance.Sharpness(img)
+                                img = enhancer.enhance(factor)
+                        except Exception:
+                            pass
+                    elif name == 'rotate_90':
+                        img = img.transpose(Image.ROTATE_270)
+                    elif name == 'rotate_180':
+                        img = img.transpose(Image.ROTATE_180)
+                    elif name == 'rotate_270':
+                        img = img.transpose(Image.ROTATE_90)
+                    elif name == 'flip_horizontal':
+                        img = img.transpose(Image.FLIP_LEFT_RIGHT)
+                    elif name == 'flip_vertical':
+                        img = img.transpose(Image.FLIP_TOP_BOTTOM)
+                    elif name == 'passport_enhance':
+                        if img.mode in ('RGBA', 'LA'):
+                            bg = Image.new('RGB', img.size, (255, 255, 255))
+                            bg.paste(img, mask=img.split()[-1])
+                            img = bg
+                        else:
+                            img = img.convert('RGB')
+                        used_cv = False
+                        if cv2 is not None and np is not None:
+                            try:
+                                arr = np.array(img)
+                                bgr = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
+                                gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+                                face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+                                eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
+                                faces = face_cascade.detectMultiScale(gray, 1.2, 5)
+                                if len(faces) > 0:
+                                    x, y, w, h = max(faces, key=lambda r: r[2]*r[3])
+                                    roi_gray = gray[y:y+h, x:x+w]
+                                    eyes = eye_cascade.detectMultiScale(roi_gray, 1.2, 10)
+                                    angle = 0.0
+                                    if len(eyes) >= 2:
+                                        eyes = sorted(eyes, key=lambda e: e[0])
+                                        ex1, ey1, ew1, eh1 = eyes[0]
+                                        ex2, ey2, ew2, eh2 = eyes[1]
+                                        p1 = (x + ex1 + ew1//2, y + ey1 + eh1//2)
+                                        p2 = (x + ex2 + ew2//2, y + ey2 + eh2//2)
+                                        dy = p2[1] - p1[1]
+                                        dx = p2[0] - p1[0]
+                                        angle = np.degrees(np.arctan2(dy, dx))
+                                    center = (bgr.shape[1]//2, bgr.shape[0]//2)
+                                    M = cv2.getRotationMatrix2D(center, angle, 1.0)
+                                    bgr = cv2.warpAffine(bgr, M, (bgr.shape[1], bgr.shape[0]), flags=cv2.INTER_LANCZOS4, borderValue=(255,255,255))
+                                    gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+                                    faces2 = face_cascade.detectMultiScale(gray, 1.2, 5)
+                                    if len(faces2) > 0:
+                                        x, y, w, h = max(faces2, key=lambda r: r[2]*r[3])
+                                    top = max(y - int(0.25*h), 0)
+                                    bottom = min(y + int(1.35*h), bgr.shape[0])
+                                    left = max(x - int(0.15*w), 0)
+                                    right = min(x + int(0.15*w) + w, bgr.shape[1])
+                                    crop = bgr[top:bottom, left:right]
+                                    h_crop, w_crop = crop.shape[:2]
+                                    size = max(h_crop, w_crop)
+                                    canvas = np.full((size, size, 3), 255, dtype=np.uint8)
+                                    y0 = (size - h_crop) // 2
+                                    x0 = (size - w_crop) // 2
+                                    canvas[y0:y0+h_crop, x0:x0+w_crop] = crop
+                                    out = cv2.resize(canvas, (600, 600), interpolation=cv2.INTER_LANCZOS4)
+                                    out = cv2.bilateralFilter(out, 7, 50, 50)
+                                    sharp = cv2.addWeighted(out, 1.2, cv2.GaussianBlur(out, (0, 0), 3), -0.2, 0)
+                                    out = sharp
+                                    rgb = cv2.cvtColor(out, cv2.COLOR_BGR2RGB)
+                                    img = Image.fromarray(rgb)
+                                    img = ImageEnhance.Brightness(img).enhance(1.03)
+                                    img = ImageEnhance.Contrast(img).enhance(1.08)
+                                    img = ImageEnhance.Color(img).enhance(0.95)
+                                    img = ImageEnhance.Sharpness(img).enhance(1.15)
+                                    used_cv = True
+                            except Exception:
+                                used_cv = False
+                        if not used_cv:
+                            img = ImageOps.fit(img, (600, 600), method=Image.LANCZOS, centering=(0.5, 0.45))
+                            img = img.filter(ImageFilter.SMOOTH)
+                            img = ImageEnhance.Brightness(img).enhance(1.05)
+                            img = ImageEnhance.Contrast(img).enhance(1.1)
+                            img = ImageEnhance.Color(img).enhance(0.95)
+                            img = ImageEnhance.Sharpness(img).enhance(1.2)
 
                 # Save processed image to buffer
                 output_buffer = io.BytesIO()
                 
+                last_name = steps[-1]['name'] if steps else (action or '')
                 format_to_save = 'PNG'
-                if action == 'passport_enhance':
+                if last_name == 'passport_enhance':
                     format_to_save = 'JPEG'
                     if img.mode == 'RGBA':
                         img = img.convert('RGB')
                     img.save(output_buffer, format='JPEG', quality=90, dpi=(300, 300))
-                elif action == 'compress':
+                elif last_name == 'compress':
                     format_to_save = 'JPEG'
                     if img.mode == 'RGBA':
                         img = img.convert('RGB')
                     img.save(output_buffer, format='JPEG', quality=60)
-                elif action == 'convert_png':
+                elif last_name == 'convert_png':
                     format_to_save = 'PNG'
                     img.save(output_buffer, format='PNG')
                 else:

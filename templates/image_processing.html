@@ -76,6 +76,15 @@
                             <div class="text-center"><span id="factor-val">1.5</span>x</div>
                             <small class="text-muted d-block text-center">1.0 is original. &lt; 1.0 reduces, &gt; 1.0 increases.</small>
                         </div>
+                        
+                        <div class="mb-3">
+                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button type="button" class="btn btn-secondary" onclick="addCurrentActionToPipeline()">Add Action</button>
+                                <button type="button" class="btn btn-secondary" onclick="undoPipelineStep()">Undo</button>
+                                <button type="button" class="btn btn-secondary" onclick="clearPipeline()">Clear</button>
+                            </div>
+                            <div id="pipeline-list" class="mt-2" style="font-size: 0.95rem; color:#555;"></div>
+                        </div>
 
                         <button type="submit" class="btn btn-primary w-100">
                             <i class="fas fa-magic me-2"></i>Process Image
@@ -180,7 +189,50 @@
         const originalImg = document.getElementById('preview-original-img');
         const previewImg = document.getElementById('live-preview-img');
         const statusEl = document.getElementById('live-preview-status');
+        let pipeline = [];
         let t = null;
+        function currentStep() {
+            const step = { name: actionSelect.value };
+            if (actionSelect.value === 'resize') {
+                step.width = widthInput && widthInput.value;
+                step.height = heightInput && heightInput.value;
+            } else if (actionSelect.value.startsWith('adjust_')) {
+                step.factor = factorInput && factorInput.value;
+            }
+            return step;
+        }
+        function renderPipeline() {
+            const list = document.getElementById('pipeline-list');
+            if (!list) return;
+            if (!pipeline.length) {
+                list.textContent = 'No actions added.';
+                return;
+            }
+            list.textContent = pipeline.map((s, i) => {
+                let p = s.name;
+                if (s.width || s.height) p += ` (${s.width || ''}x${s.height || ''})`;
+                if (s.factor) p += ` (factor ${s.factor})`;
+                return `${i+1}. ${p}`;
+            }).join(' | ');
+        }
+        window.addCurrentActionToPipeline = function() {
+            if (!imgInput.files || imgInput.files.length === 0) return;
+            pipeline.push(currentStep());
+            renderPipeline();
+            schedule();
+        }
+        window.undoPipelineStep = function() {
+            if (pipeline.length) {
+                pipeline.pop();
+                renderPipeline();
+                schedule();
+            }
+        }
+        window.clearPipeline = function() {
+            pipeline = [];
+            renderPipeline();
+            schedule();
+        }
         function schedule() {
             if (!imgInput.files || imgInput.files.length === 0) return;
             clearTimeout(t);
@@ -190,10 +242,14 @@
             if (!imgInput.files || imgInput.files.length === 0) return;
             const fd = new FormData();
             fd.append('image', imgInput.files[0]);
-            fd.append('action', actionSelect.value);
-            if (widthInput && widthInput.value) fd.append('width', widthInput.value);
-            if (heightInput && heightInput.value) fd.append('height', heightInput.value);
-            if (factorInput && factorInput.value) fd.append('factor', factorInput.value);
+            if (pipeline.length) {
+                fd.append('pipeline', JSON.stringify(pipeline));
+            } else {
+                fd.append('action', actionSelect.value);
+                if (widthInput && widthInput.value) fd.append('width', widthInput.value);
+                if (heightInput && heightInput.value) fd.append('height', heightInput.value);
+                if (factorInput && factorInput.value) fd.append('factor', factorInput.value);
+            }
             statusEl.textContent = 'Processing...';
             fetch(form.action + '?preview=1', { method: 'POST', body: fd })
                 .then(r => r.json())
@@ -222,6 +278,16 @@
         if (widthInput) widthInput.addEventListener('input', schedule);
         if (heightInput) heightInput.addEventListener('input', schedule);
         if (factorInput) factorInput.addEventListener('input', schedule);
+        form.addEventListener('submit', (e) => {
+            if (pipeline.length) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'pipeline';
+                input.value = JSON.stringify(pipeline);
+                form.appendChild(input);
+            }
+        });
+        renderPipeline();
     }
 </script>
 {% endblock %}
