@@ -11,10 +11,12 @@
     <div class="wallet-preview" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #2196f3;">
         <h3 style="margin-top: 0; color: #1976d2; font-size: 1.1em;">Wallet Overview</h3>
         <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: center;">
-            <div><strong>Dollars:</strong> ${{ (wallet.dollars or 0)|comma2 }}</div>
+            <div><strong>GTB $:</strong> ${{ (wallet.dollars or 0)|comma2 }}</div>
+            <div><strong>Providus $:</strong> ${{ (wallet.providus_dollars or 0)|comma2 }}</div>
             <div><strong>Naira:</strong> {{ (wallet.naira or 0)|comma2 }}</div>
+            <div><strong>Naira-1:</strong> {{ (wallet.naira_1 or 0)|comma2 }}</div>
             <div><strong>Unpaid Bal:</strong> <span style="font-size: 1.1em; font-weight: bold;">{{ (wallet.unpaid_n or 0)|comma2 }}</span></div>
-            <div><strong>Total (N):</strong> <strong>{{ ((wallet.dollars or 0) * (wallet.rate or 0) + (wallet.naira or 0) + (wallet.unpaid_n or 0) - (total_balance or 0))|comma2 }}</strong></div>
+            <div><strong>Total (N):</strong> <strong>{{ (((wallet.dollars or 0) + (wallet.providus_dollars or 0)) * (wallet.rate or 0) + (wallet.naira or 0) + (wallet.naira_1 or 0) + (wallet.unpaid_n or 0) - (total_balance or 0))|comma2 }}</strong></div>
         </div>
         <div style="margin-top: 10px;"><strong>Rate:</strong> {{ wallet.rate or 0 }}</div>
     </div>
@@ -31,7 +33,7 @@
         {% if session.permissions and session.permissions.is_admin %}
         <div class="summary-box">
             <h3>Total Wallet Balance</h3>
-            <p>{% if wallet %}{{ ((wallet.dollars or 0) * (wallet.rate or 0) + (wallet.naira or 0) + (wallet.unpaid_n or 0) - (total_balance or 0))|comma2 }}{% else %}0{% endif %}</p>
+            <p>{% if wallet %}{{ (((wallet.dollars or 0) + (wallet.providus_dollars or 0)) * (wallet.rate or 0) + (wallet.naira or 0) + (wallet.naira_1 or 0) + (wallet.unpaid_n or 0) - (total_balance or 0))|comma2 }}{% else %}0{% endif %}</p>
         </div>
         {% endif %}
         <div class="summary-box">

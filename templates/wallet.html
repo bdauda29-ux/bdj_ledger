@@ -10,13 +10,23 @@
 <div class="form-container" style="max-width: 500px; margin: 0 auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
     <form method="POST">
         <div class="form-group">
-            <label for="dollars">Dollars ($)</label>
+            <label for="dollars">GTB $</label>
             <input type="number" step="0.01" id="dollars" name="dollars" class="form-control" value="{{ wallet.dollars if wallet else 0 }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="providus_dollars">Providus $</label>
+            <input type="number" step="0.01" id="providus_dollars" name="providus_dollars" class="form-control" value="{{ wallet.providus_dollars if wallet else 0 }}">
         </div>
 
         <div class="form-group">
             <label for="naira">Naira (N)</label>
             <input type="number" step="0.01" id="naira" name="naira" class="form-control" value="{{ wallet.naira if wallet else 0 }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="naira_1">Naira-1</label>
+            <input type="number" step="0.01" id="naira_1" name="naira_1" class="form-control" value="{{ wallet.naira_1 if wallet else 0 }}">
         </div>
 
         <div class="form-group">
