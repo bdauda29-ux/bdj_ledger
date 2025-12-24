@@ -9,7 +9,7 @@
                     <h4 class="mb-0"><i class="fas fa-image me-2"></i>Image Processing</h4>
                 </div>
                 <div class="card-body">
-                    <form action="{{ url_for('image_processing') }}" method="post" enctype="multipart/form-data">
+                    <form id="image-processing-form" action="{{ url_for('image_processing') }}" method="post" enctype="multipart/form-data">
                         <div class="mb-4">
                             <label for="image" class="form-label">Select Image</label>
                             <input type="file" class="form-control" id="image" name="image" accept="image/*" required>
@@ -107,7 +107,16 @@
                     <h5 class="mb-0">Live Preview</h5>
                 </div>
                 <div class="card-body text-center">
-                    <img id="live-preview-img" src="" class="img-fluid mb-3" style="max-height: 500px; display:none;" alt="Live Preview">
+                    <div style="display:flex; gap:16px; justify-content:center; align-items:flex-start; flex-wrap:wrap;">
+                        <div style="flex:1; min-width:260px;">
+                            <div class="text-muted" style="margin-bottom:6px;">Original</div>
+                            <img id="preview-original-img" src="" class="img-fluid mb-3" style="max-height: 500px; display:none;" alt="Original Image">
+                        </div>
+                        <div style="flex:1; min-width:260px;">
+                            <div class="text-muted" style="margin-bottom:6px;">Processed</div>
+                            <img id="live-preview-img" src="" class="img-fluid mb-3" style="max-height: 500px; display:none;" alt="Live Preview">
+                        </div>
+                    </div>
                     <div id="live-preview-status" class="text-muted"></div>
                 </div>
             </div>
@@ -162,12 +171,13 @@
     });
     
     function bindLivePreview() {
-        const form = document.querySelector('form[action*="image_processing"]');
+        const form = document.getElementById('image-processing-form');
         const imgInput = document.getElementById('image');
         const actionSelect = document.getElementById('action');
         const widthInput = document.getElementById('width');
         const heightInput = document.getElementById('height');
         const factorInput = document.getElementById('factor');
+        const originalImg = document.getElementById('preview-original-img');
         const previewImg = document.getElementById('live-preview-img');
         const statusEl = document.getElementById('live-preview-status');
         let t = null;
@@ -196,7 +206,18 @@
                     statusEl.textContent = 'Error';
                 });
         }
-        if (imgInput) imgInput.addEventListener('change', schedule);
+        if (imgInput) imgInput.addEventListener('change', () => {
+            const file = imgInput.files && imgInput.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                originalImg.src = url;
+                originalImg.style.display = '';
+            } else {
+                originalImg.src = '';
+                originalImg.style.display = 'none';
+            }
+            schedule();
+        });
         if (actionSelect) actionSelect.addEventListener('change', schedule);
         if (widthInput) widthInput.addEventListener('input', schedule);
         if (heightInput) heightInput.addEventListener('input', schedule);
