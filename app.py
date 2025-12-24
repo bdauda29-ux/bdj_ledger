@@ -285,6 +285,8 @@ def init_db():
             ('transactions', 'model_id', 'INTEGER'),
             ('wallet', 'providus_dollars', 'REAL DEFAULT 0'),
             ('wallet', 'naira_1', 'REAL DEFAULT 0'),
+            ('wallet', 'taj_naira', 'REAL DEFAULT 0'),
+            ('wallet', 'debt', 'REAL DEFAULT 0'),
             ('balance_history', 'model_id', 'INTEGER'),
             ('clients', 'model_id', 'INTEGER'),
             ('countries', 'model_id', 'INTEGER'),
@@ -715,6 +717,14 @@ def init_db():
     except sqlite3.OperationalError:
         pass
     try:
+        cursor.execute('ALTER TABLE wallet ADD COLUMN taj_naira REAL DEFAULT 0')
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute('ALTER TABLE wallet ADD COLUMN debt REAL DEFAULT 0')
+    except sqlite3.OperationalError:
+        pass
+    try:
         cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_wallet_model ON wallet(model_id)')
     except sqlite3.OperationalError:
         pass
@@ -1053,7 +1063,7 @@ def internal_error(error):
 
 def ensure_wallet_columns(conn):
     """Ensure wallet table has new columns (runtime migration fix)"""
-    new_cols = ['providus_dollars', 'naira_1']
+    new_cols = ['providus_dollars', 'naira_1', 'taj_naira', 'debt']
     for col in new_cols:
         try:
             conn.execute(f'SELECT {col} FROM wallet LIMIT 1')
@@ -1099,6 +1109,14 @@ def wallet_view():
             except ValueError:
                 naira_1 = 0.0
             try:
+                taj_naira = float(request.form.get('taj_naira') or 0)
+            except ValueError:
+                taj_naira = 0.0
+            try:
+                debt = float(request.form.get('debt') or 0)
+            except ValueError:
+                debt = 0.0
+            try:
                 rate = float(request.form.get('rate') or 0)
             except ValueError:
                 rate = 0.0
@@ -1106,11 +1124,11 @@ def wallet_view():
             # Upsert
             exists = conn.execute('SELECT 1 FROM wallet WHERE model_id = ?', (mid,)).fetchone()
             if exists:
-                conn.execute('UPDATE wallet SET dollars = ?, providus_dollars = ?, naira = ?, naira_1 = ?, rate = ? WHERE model_id = ?', 
-                             (dollars, providus_dollars, naira, naira_1, rate, mid))
+                conn.execute('UPDATE wallet SET dollars = ?, providus_dollars = ?, naira = ?, naira_1 = ?, taj_naira = ?, debt = ?, rate = ? WHERE model_id = ?', 
+                             (dollars, providus_dollars, naira, naira_1, taj_naira, debt, rate, mid))
             else:
-                conn.execute('INSERT INTO wallet (dollars, providus_dollars, naira, naira_1, rate, model_id) VALUES (?, ?, ?, ?, ?, ?)',
-                             (dollars, providus_dollars, naira, naira_1, rate, mid))
+                conn.execute('INSERT INTO wallet (dollars, providus_dollars, naira, naira_1, taj_naira, debt, rate, model_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                             (dollars, providus_dollars, naira, naira_1, taj_naira, debt, rate, mid))
             conn.commit()
             return redirect(url_for('wallet_view', message='Wallet updated'))
             

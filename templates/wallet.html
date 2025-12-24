@@ -20,13 +20,23 @@
         </div>
 
         <div class="form-group">
-            <label for="naira">Naira (N)</label>
+            <label for="naira">GTB N</label>
             <input type="number" step="0.01" id="naira" name="naira" class="form-control" value="{{ wallet.naira if wallet else 0 }}" required>
         </div>
 
         <div class="form-group">
-            <label for="naira_1">Naira-1</label>
+            <label for="naira_1">Access N</label>
             <input type="number" step="0.01" id="naira_1" name="naira_1" class="form-control" value="{{ wallet.naira_1 if wallet else 0 }}">
+        </div>
+
+        <div class="form-group">
+            <label for="taj_naira">Taj N</label>
+            <input type="number" step="0.01" id="taj_naira" name="taj_naira" class="form-control" value="{{ wallet.taj_naira if wallet else 0 }}">
+        </div>
+
+        <div class="form-group">
+            <label for="debt">Debt</label>
+            <input type="number" step="0.01" id="debt" name="debt" class="form-control" value="{{ wallet.debt if wallet else 0 }}">
         </div>
 
         <div class="form-group">
