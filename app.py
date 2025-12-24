@@ -2664,6 +2664,8 @@ def image_processing():
             except Exception as e:
                 import traceback
                 traceback.print_exc()
+                if request.args.get('preview') == '1':
+                    return jsonify({'error': str(e)}), 400
                 return f"Error processing image: {str(e)}"
                         
     return render_template('image_processing.html')

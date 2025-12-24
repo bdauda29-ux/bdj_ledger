@@ -252,14 +252,21 @@
             }
             statusEl.textContent = 'Processing...';
             fetch(form.action + '?preview=1', { method: 'POST', body: fd })
-                .then(r => r.json())
-                .then(j => {
+                .then(async r => {
+                    let j = null;
+                    try { j = await r.json(); } catch (e) { j = null; }
+                    if (!r.ok) {
+                        const msg = (j && j.error) ? j.error : 'Preview failed';
+                        statusEl.textContent = msg;
+                        previewImg.style.display = 'none';
+                        return;
+                    }
                     previewImg.src = j.data_url || '';
                     previewImg.style.display = j.data_url ? '' : 'none';
                     statusEl.textContent = j.data_url ? '' : 'No preview';
                 })
-                .catch(() => {
-                    statusEl.textContent = 'Error';
+                .catch((e) => {
+                    statusEl.textContent = 'Error: ' + (e && e.message ? e.message : 'Network error');
                 });
         }
         if (imgInput) imgInput.addEventListener('change', () => {
