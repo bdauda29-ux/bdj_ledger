@@ -2647,7 +2647,11 @@ def image_processing():
                 
                 output_buffer.seek(0)
                 img_str = base64.b64encode(output_buffer.getvalue()).decode('utf-8')
-                
+                if request.args.get('preview') == '1':
+                    return jsonify({
+                        'data_url': f"data:image/{format_to_save.lower()};base64,{img_str}",
+                        'format': format_to_save.lower()
+                    })
                 return render_template('image_processing.html', processed_image=img_str, format=format_to_save.lower())
                         
             except Exception as e:

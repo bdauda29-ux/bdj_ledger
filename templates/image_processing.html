@@ -80,7 +80,7 @@
                         <button type="submit" class="btn btn-primary w-100">
                             <i class="fas fa-magic me-2"></i>Process Image
                         </button>
-                        <button type="button" class="btn btn-outline-primary w-100 mt-2" onclick="document.getElementById('action').value='passport_enhance'; this.closest('form').submit();">
+                        <button type="button" class="btn btn-outline-primary w-100 mt-2" onclick="document.getElementById('action').value='passport_enhance'; previewNow();">
                             <i class="fas fa-id-card me-2"></i>Enhance for Passport
                         </button>
                     </form>
@@ -101,6 +101,16 @@
                 </div>
             </div>
             {% endif %}
+            
+            <div class="card shadow mt-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Live Preview</h5>
+                </div>
+                <div class="card-body text-center">
+                    <img id="live-preview-img" src="" class="img-fluid mb-3" style="max-height: 500px; display:none;" alt="Live Preview">
+                    <div id="live-preview-status" class="text-muted"></div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -148,6 +158,49 @@
         } else {
             toggleOptions();
         }
+        bindLivePreview();
     });
+    
+    function bindLivePreview() {
+        const form = document.querySelector('form[action*="image_processing"]');
+        const imgInput = document.getElementById('image');
+        const actionSelect = document.getElementById('action');
+        const widthInput = document.getElementById('width');
+        const heightInput = document.getElementById('height');
+        const factorInput = document.getElementById('factor');
+        const previewImg = document.getElementById('live-preview-img');
+        const statusEl = document.getElementById('live-preview-status');
+        let t = null;
+        function schedule() {
+            if (!imgInput.files || imgInput.files.length === 0) return;
+            clearTimeout(t);
+            t = setTimeout(previewNow, 300);
+        }
+        window.previewNow = function() {
+            if (!imgInput.files || imgInput.files.length === 0) return;
+            const fd = new FormData();
+            fd.append('image', imgInput.files[0]);
+            fd.append('action', actionSelect.value);
+            if (widthInput && widthInput.value) fd.append('width', widthInput.value);
+            if (heightInput && heightInput.value) fd.append('height', heightInput.value);
+            if (factorInput && factorInput.value) fd.append('factor', factorInput.value);
+            statusEl.textContent = 'Processing...';
+            fetch(form.action + '?preview=1', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(j => {
+                    previewImg.src = j.data_url || '';
+                    previewImg.style.display = j.data_url ? '' : 'none';
+                    statusEl.textContent = j.data_url ? '' : 'No preview';
+                })
+                .catch(() => {
+                    statusEl.textContent = 'Error';
+                });
+        }
+        if (imgInput) imgInput.addEventListener('change', schedule);
+        if (actionSelect) actionSelect.addEventListener('change', schedule);
+        if (widthInput) widthInput.addEventListener('input', schedule);
+        if (heightInput) heightInput.addEventListener('input', schedule);
+        if (factorInput) factorInput.addEventListener('input', schedule);
+    }
 </script>
 {% endblock %}
