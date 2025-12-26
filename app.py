@@ -1288,7 +1288,7 @@ def clients():
     if not can('can_view_clients'):
         return redirect(url_for('index'))
     conn = get_db_connection()
-    clients_list = conn.execute('SELECT * FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
+    clients_list = conn.execute('SELECT * FROM clients WHERE model_id = ? ORDER BY balance DESC, client_name', (current_model_id(),)).fetchall()
     return render_template('clients.html', clients=clients_list)
 
 @app.route('/clients/add', methods=['GET', 'POST'])
