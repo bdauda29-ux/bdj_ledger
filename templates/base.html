@@ -45,6 +45,7 @@
                 <li><a href="{{ url_for('countries') }}">Countries</a></li>
                 <li><a href="{{ url_for('image_processing') }}">Image Tools</a></li>
                 <li><a href="{{ url_for('pdf_tools') }}">PDF Tools</a></li>
+                <li><a href="{{ url_for('barcode_generator') }}">Barcode Gen</a></li>
                 {% if not session.username %}
                 <li><a href="{{ url_for('login') }}">Login</a></li>
                 {% endif %}

@@ -10,6 +10,9 @@ import sys
 import io
 import base64
 import zipfile
+import qrcode
+import barcode
+from barcode.writer import ImageWriter
 from pypdf import PdfReader, PdfWriter, PageObject
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter, A4
@@ -2737,6 +2740,56 @@ def image_processing():
                 return f"Error processing image: {str(e)}"
                         
     return render_template('image_processing.html')
+
+@app.route('/tools/barcode-generator', methods=['GET', 'POST'])
+def barcode_generator():
+    generated_image = None
+    data = ''
+    code_type = 'qrcode'
+    error = None
+
+    if request.method == 'POST':
+        data = request.form.get('data', '').strip()
+        code_type = request.form.get('type', 'qrcode')
+        
+        if not data:
+            error = "Please enter text or data."
+        else:
+            try:
+                img_io = io.BytesIO()
+                
+                if code_type == 'qrcode':
+                    qr = qrcode.QRCode(
+                        version=1,
+                        error_correction=qrcode.constants.ERROR_CORRECT_L,
+                        box_size=10,
+                        border=4,
+                    )
+                    qr.add_data(data)
+                    qr.make(fit=True)
+                    img = qr.make_image(fill_color="black", back_color="white")
+                    img.save(img_io, 'PNG')
+                
+                elif code_type == 'code128':
+                    # barcode
+                    code128 = barcode.get_barcode_class('code128')
+                    # writer=ImageWriter() ensures it returns an image, not SVG
+                    my_barcode = code128(data, writer=ImageWriter())
+                    my_barcode.write(img_io)
+                
+                img_io.seek(0)
+                generated_image = base64.b64encode(img_io.getvalue()).decode('utf-8')
+                
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                error = f"Error generating code: {str(e)}"
+
+    return render_template('barcode_generator.html', 
+                           generated_image=generated_image, 
+                           data=data, 
+                           code_type=code_type, 
+                           error=error)
 
 @app.route('/pdf-tools', methods=['GET', 'POST'])
 def pdf_tools():

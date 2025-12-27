@@ -7,5 +7,7 @@ pillow==10.3.0
 psycopg2-binary==2.9.9
 pypdf==3.17.4
 pymupdf
+qrcode
+python-barcode
 # opencv-python-headless # Commented out to reduce slug size for Vercel
 # pdf2docx # Commented out to reduce slug size for Vercel
