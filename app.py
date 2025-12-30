@@ -285,6 +285,7 @@ def init_db():
             ('transactions', 'amount_n', 'REAL'),
             ('transactions', 'deleted', 'INTEGER DEFAULT 0'),
             ('transactions', 'is_paid', 'INTEGER DEFAULT 0'),
+            ('transactions', 'created_by', 'TEXT'),
             ('transactions', 'model_id', 'INTEGER'),
             ('wallet', 'providus_dollars', 'REAL DEFAULT 0'),
             ('wallet', 'naira_1', 'REAL DEFAULT 0'),
