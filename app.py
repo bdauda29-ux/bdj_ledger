@@ -574,6 +574,10 @@ def init_db():
     except sqlite3.OperationalError:
         pass
     try:
+        cursor.execute('ALTER TABLE transactions ADD COLUMN created_by TEXT')
+    except sqlite3.OperationalError:
+        pass
+    try:
         cursor.execute('ALTER TABLE transactions ADD COLUMN model_id INTEGER')
     except sqlite3.OperationalError:
         pass
@@ -1648,17 +1652,17 @@ def add_transaction():
                 if transaction_date:
                     sql = '''
                         INSERT INTO transactions 
-                        (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, model_id, email_link)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, model_id, email_link, created_by)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     '''
-                    params = (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, current_model_id(), email_link)
+                    params = (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, transaction_date, current_model_id(), email_link, session.get('username'))
                 else:
                     sql = '''
                         INSERT INTO transactions 
-                        (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, model_id, email_link)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, model_id, email_link, created_by)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     '''
-                    params = (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, current_model_id(), email_link)
+                    params = (client_name, email, service_type, applicant_name, app_id, country_name, country_price, rate, addition, amount, amount_n, current_model_id(), email_link, session.get('username'))
                 
                 if POSTGRES_URL:
                     sql += ' RETURNING id'
