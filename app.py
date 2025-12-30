@@ -296,6 +296,7 @@ def init_db():
             ('countries', 'model_id', 'INTEGER'),
             ('countries', 'continent', 'TEXT'),
             ('deleted_transactions', 'email_link', 'TEXT'),
+            ('deleted_transactions', 'created_by', 'TEXT'),
             ('users', 'can_view_clients', 'INTEGER DEFAULT 1')
         ]
 
@@ -1722,10 +1723,18 @@ def add_transaction():
 @app.route('/transactions/<int:transaction_id>/edit', methods=['GET', 'POST'])
 def edit_transaction(transaction_id):
     """Edit a transaction"""
-    perms = session.get('permissions', {})
-    if not perms.get('can_edit_transaction') and not perms.get('is_admin'):
-        return redirect(url_for('transactions'))
     conn = get_db_connection()
+    # Check permissions with creator logic
+    transaction_check = conn.execute('SELECT created_by, model_id FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
+    if not transaction_check or transaction_check['model_id'] != current_model_id():
+        return redirect(url_for('transactions'))
+
+    perms = session.get('permissions', {})
+    is_admin = perms.get('is_admin')
+    is_creator = (transaction_check['created_by'] == session.get('username'))
+    
+    if not is_admin and not is_creator:
+        return redirect(url_for('transactions'))
     
     if request.method == 'POST':
         try:
@@ -1989,13 +1998,17 @@ def undo_pay_transaction(transaction_id):
 @app.route('/transactions/<int:transaction_id>/delete', methods=['POST'])
 def delete_transaction(transaction_id):
     """Delete a transaction"""
-    perms = session.get('permissions', {})
-    if not perms.get('can_delete_transaction') and not perms.get('is_admin'):
-        return redirect(url_for('transactions'))
     conn = get_db_connection()
     try:
         transaction = conn.execute('SELECT * FROM transactions WHERE id = ? AND model_id = ?', (transaction_id, current_model_id())).fetchone()
         if not transaction:
+            return redirect(url_for('transactions'))
+
+        perms = session.get('permissions', {})
+        is_admin = perms.get('is_admin')
+        is_creator = (transaction['created_by'] == session.get('username'))
+        
+        if not is_admin and not is_creator:
             return redirect(url_for('transactions'))
         if transaction['is_paid']:
             client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (transaction['client_name'], current_model_id())).fetchone()
