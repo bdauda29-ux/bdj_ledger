@@ -44,6 +44,16 @@
         </div>
 
         <div class="filter-group" style="display: flex; align-items: center; gap: 5px;">
+            <label style="margin: 0; white-space: nowrap;">Created By:</label>
+            <select name="created_by" style="width: auto; min-width: 150px;">
+                <option value="">All</option>
+                {% for creator in creators %}
+                <option value="{{ creator.created_by }}" {% if filters.created_by == creator.created_by %}selected{% endif %}>{{ creator.created_by }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="filter-group" style="display: flex; align-items: center; gap: 5px;">
             <label style="margin: 0; white-space: nowrap;">Date Range:</label>
             <input type="text" id="date_range" class="form-control" style="width: 220px; margin: 0;" placeholder="Select date range">
             <input type="hidden" name="date_from" id="date_from" value="{{ filters.date_from or '' }}">
@@ -59,8 +69,8 @@
 
 <!-- Export Options -->
 <div class="export-options" style="margin: 15px 0; display: flex; gap: 10px; flex-wrap: wrap;">
-    <a id="export-pdf" href="{{ url_for('export_transactions', format='pdf', client_name=filters.client, country_name=filters.country, date_from=filters.date_from, date_to=filters.date_to, paid='0') }}" class="btn btn-info" style="flex: 1; text-align: center; min-width: 120px;">Export PDF</a>
-    <a id="export-jpeg" href="{{ url_for('export_transactions', format='jpeg', client_name=filters.client, country_name=filters.country, date_from=filters.date_from, date_to=filters.date_to, paid='0') }}" class="btn btn-info" style="flex: 1; text-align: center; min-width: 120px;">Export JPEG</a>
+    <a id="export-pdf" href="{{ url_for('export_transactions', format='pdf', client_name=filters.client, country_name=filters.country, created_by=filters.created_by, date_from=filters.date_from, date_to=filters.date_to, paid='0') }}" class="btn btn-info" style="flex: 1; text-align: center; min-width: 120px;">Export PDF</a>
+    <a id="export-jpeg" href="{{ url_for('export_transactions', format='jpeg', client_name=filters.client, country_name=filters.country, created_by=filters.created_by, date_from=filters.date_from, date_to=filters.date_to, paid='0') }}" class="btn btn-info" style="flex: 1; text-align: center; min-width: 120px;">Export JPEG</a>
 </div>
 
 {% if error %}
@@ -243,6 +253,7 @@
             Total Transactions: <strong id="total-count">{{ transactions|length }}</strong>
             {% if filters.client %}| Client: <strong>{{ filters.client }}</strong>{% endif %}
             {% if filters.country %}| Country: <strong>{{ filters.country }}</strong>{% endif %}
+            {% if filters.created_by %}| Created By: <strong>{{ filters.created_by }}</strong>{% endif %}
             {% if filters.date_from %}| From: <strong>{{ filters.date_from }}</strong>{% endif %}
             {% if filters.date_to %}| To: <strong>{{ filters.date_to }}</strong>{% endif %}
         </p>

@@ -1529,6 +1529,7 @@ def transactions():
     # collect filters from query params
     client = request.args.get('client_name')
     country = request.args.get('country_name')
+    created_by = request.args.get('created_by')
     date_from = request.args.get('date_from')
     date_to = request.args.get('date_to')
 
@@ -1570,6 +1571,9 @@ def transactions():
     if country:
         where_clauses.append('t.country_name = ?')
         params.append(country)
+    if created_by:
+        where_clauses.append('t.created_by = ?')
+        params.append(created_by)
     if date_from:
         where_clauses.append("date(t.transaction_date) >= date(?)")
         params.append(date_from)
@@ -1591,13 +1595,16 @@ def transactions():
         ORDER BY t.transaction_date DESC
     ''', params).fetchall()
 
+    # Get distinct creators for filter
+    creators_list = conn.execute('SELECT DISTINCT created_by FROM transactions WHERE model_id = ? AND created_by IS NOT NULL ORDER BY created_by', (current_model_id(),)).fetchall()
+
     sums = conn.execute(f'''
         SELECT COALESCE(SUM(amount),0) AS sum_amount, COALESCE(SUM(amount_n),0) AS sum_amount_n
         FROM transactions t
         {where_sql}
     ''', params).fetchone()
 
-    return render_template('transactions.html', transactions=transactions_list, clients=clients_list, countries=countries_list, filters={'client': client, 'country': country, 'date_from': date_from, 'date_to': date_to, 'paid': paid}, sums=sums, error=error)
+    return render_template('transactions.html', transactions=transactions_list, clients=clients_list, countries=countries_list, creators=creators_list, filters={'client': client, 'country': country, 'created_by': created_by, 'date_from': date_from, 'date_to': date_to, 'paid': paid}, sums=sums, error=error)
 
 @app.route('/transactions/add', methods=['GET', 'POST'])
 def add_transaction():
