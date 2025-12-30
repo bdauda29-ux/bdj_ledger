@@ -1089,6 +1089,26 @@ def ensure_wallet_columns(conn):
             except Exception as e:
                 print(f"Failed to add column {col}: {e}", file=sys.stderr)
 
+def ensure_transaction_columns(conn):
+    """Ensure transactions table has new columns (runtime migration fix)"""
+    new_cols = ['created_by']
+    for col in new_cols:
+        try:
+            conn.execute(f'SELECT {col} FROM transactions LIMIT 1')
+        except Exception:
+            # Column likely missing
+            try:
+                # Handle Postgres transaction state if needed
+                if hasattr(conn, 'conn') and hasattr(conn.conn, 'rollback'):
+                     conn.conn.rollback()
+                
+                print(f"Adding missing column {col} to transactions...", file=sys.stderr)
+                conn.execute(f'ALTER TABLE transactions ADD COLUMN {col} TEXT')
+                if hasattr(conn, 'commit'): 
+                    conn.commit()
+            except Exception as e:
+                print(f"Failed to add column {col}: {e}", file=sys.stderr)
+
 @app.route('/wallet', methods=['GET', 'POST'])
 def wallet_view():
     if not can('is_admin'):
@@ -1592,6 +1612,7 @@ def add_transaction():
     
     try:
         conn = get_db_connection()
+        ensure_transaction_columns(conn)
         
         if request.method == 'POST':
             try:
