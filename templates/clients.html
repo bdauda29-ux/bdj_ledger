@@ -115,9 +115,9 @@
         var idx = 1;
         var rows = document.querySelectorAll('.table-container tbody tr');
         rows.forEach(function(row) {
-            var nameCell = row.querySelector('td:nth-child(3)');
-            var phoneCell = row.querySelector('td:nth-child(4)');
-            var balanceCell = row.querySelector('td:nth-child(5)');
+            var nameCell = row.querySelector('td:nth-child(2)');
+            var phoneCell = row.querySelector('td:nth-child(3)');
+            var balanceCell = row.querySelector('td:nth-child(4)');
             var nameText = nameCell ? nameCell.textContent.toLowerCase() : '';
             var phoneText = phoneCell ? phoneCell.textContent.toLowerCase() : '';
             var balanceText = balanceCell ? balanceCell.textContent.toLowerCase() : '';
