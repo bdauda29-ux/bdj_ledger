@@ -8,6 +8,16 @@
     <a href="{{ url_for('add_country') }}" class="btn btn-primary">Add New Country</a>
 </div>
 
+<form method="GET" class="filter-bar" style="margin-bottom: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+    <input type="text" id="country_search" name="q" value="{{ q or '' }}" class="form-control" placeholder="Search countries" style="max-width: 260px;">
+    <button type="submit" class="btn">Search</button>
+    <a href="{{ url_for('countries') }}" class="btn btn-secondary">Clear</a>
+    <style>
+        .filter-bar .form-control { padding: 6px 8px; }
+    </style>
+    <div style="flex: 1;"></div>
+</form>
+
 {% if countries %}
 <!-- Desktop Table View -->
 <div class="table-container">
@@ -25,7 +35,7 @@
         <tbody>
             {% for country in countries %}
             <tr>
-                <td>{{ loop.index }}</td>
+                <td class="s-no">{{ loop.index }}</td>
                 <td>{{ country.id }}</td>
                 <td>
                     {% if edit_id == country.id %}
@@ -72,7 +82,7 @@
 <div class="mobile-card-view">
     {% for country in countries %}
     <div class="mobile-card">
-        <div class="mobile-card-header">#{{ loop.index }} - {{ country.name }}</div>
+        <div class="mobile-card-header"><span class="card-s-no">#{{ loop.index }}</span> - {{ country.name }}</div>
         <div class="mobile-card-row">
             <span class="mobile-card-label">ID:</span>
             <span class="mobile-card-value">#{{ country.id }}</span>
@@ -100,5 +110,55 @@
 {% else %}
 <p class="empty-state">No countries yet. <a href="{{ url_for('add_country') }}">Add your first country</a></p>
 {% endif %}
+<script>
+    function filterCountries() {
+        var input = document.getElementById('country_search');
+        var q = (input && input.value ? input.value : '').toLowerCase();
+        var idx = 1;
+        var rows = document.querySelectorAll('.table-container tbody tr');
+        rows.forEach(function(row) {
+            var idCell = row.querySelector('td:nth-child(2)');
+            var nameCell = row.querySelector('td:nth-child(3)');
+            var continentCell = row.querySelector('td:nth-child(4)');
+            var idText = idCell ? idCell.textContent.toLowerCase() : '';
+            var nameText = nameCell ? nameCell.textContent.toLowerCase() : '';
+            var continentText = continentCell ? continentCell.textContent.toLowerCase() : '';
+            var show = !q || idText.indexOf(q) !== -1 || nameText.indexOf(q) !== -1 || continentText.indexOf(q) !== -1;
+            row.style.display = show ? '' : 'none';
+            if (show) {
+                var sNoCell = row.querySelector('.s-no');
+                if (sNoCell) sNoCell.textContent = idx++;
+            }
+        });
+        var cardIdx = 1;
+        var cards = document.querySelectorAll('.mobile-card-view .mobile-card');
+        cards.forEach(function(card) {
+            var header = card.querySelector('.mobile-card-header');
+            var text = header ? header.textContent.toLowerCase() : '';
+            var show = !q || text.indexOf(q) !== -1;
+            card.style.display = show ? '' : 'none';
+            if (show) {
+                var sNoSpan = card.querySelector('.card-s-no');
+                if (sNoSpan) sNoSpan.textContent = '#' + (cardIdx++);
+            }
+        });
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        var input = document.getElementById('country_search');
+        if (input) {
+            function setParam(name, value) {
+                var url = new URL(window.location.href);
+                if (value && value.length > 0) url.searchParams.set(name, value);
+                else url.searchParams.delete(name);
+                history.replaceState(null, '', url.toString());
+            }
+            input.addEventListener('input', function() {
+                setParam('q', input.value.trim());
+                filterCountries();
+            });
+            filterCountries();
+        }
+    });
+</script>
 {% endblock %}
 

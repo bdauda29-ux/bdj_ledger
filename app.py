@@ -1444,12 +1444,23 @@ def countries():
     """View all countries"""
     try:
         conn = get_db_connection()
-        countries_list = conn.execute('SELECT id, name, COALESCE(price, 0.0) AS price, continent FROM countries ORDER BY name').fetchall()
+        q = (request.args.get('q') or '').strip()
+        where_sql = ''
+        params = []
+        if q:
+            where_sql = "WHERE (LOWER(name) LIKE LOWER(?) OR LOWER(COALESCE(continent, '')) LIKE LOWER(?) OR CAST(id AS TEXT) LIKE ?)"
+            params = [f'%{q}%', f'%{q}%', f'%{q}%']
+        countries_list = conn.execute(f'''
+            SELECT id, name, COALESCE(price, 0.0) AS price, continent 
+            FROM countries
+            {where_sql}
+            ORDER BY name
+        ''', params).fetchall()
         try:
             edit_id = int(request.args.get('edit_id')) if request.args.get('edit_id') else None
         except ValueError:
             edit_id = None
-        return render_template('countries.html', countries=countries_list, edit_id=edit_id, error=request.args.get('error'), message=request.args.get('message'))
+        return render_template('countries.html', countries=countries_list, edit_id=edit_id, error=request.args.get('error'), message=request.args.get('message'), q=q)
     except Exception as e:
         import traceback
         debug_info = []
