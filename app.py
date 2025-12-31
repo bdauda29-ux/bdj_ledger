@@ -1317,8 +1317,18 @@ def clients():
     if not can('can_view_clients'):
         return redirect(url_for('index'))
     conn = get_db_connection()
-    clients_list = conn.execute('SELECT * FROM clients WHERE model_id = ? ORDER BY balance DESC, client_name', (current_model_id(),)).fetchall()
-    return render_template('clients.html', clients=clients_list)
+    q = (request.args.get('q') or '').strip()
+    where_sql = 'WHERE model_id = ?'
+    params = [current_model_id()]
+    if q:
+        where_sql += " AND (LOWER(client_name) LIKE LOWER(?) OR LOWER(phone_number) LIKE LOWER(?) OR CAST(id AS TEXT) LIKE ?)"
+        params += [f'%{q}%', f'%{q}%', f'%{q}%']
+    clients_list = conn.execute(f'''
+        SELECT * FROM clients
+        {where_sql}
+        ORDER BY balance DESC, client_name
+    ''', params).fetchall()
+    return render_template('clients.html', clients=clients_list, q=q)
 
 @app.route('/clients/add', methods=['GET', 'POST'])
 def add_client():

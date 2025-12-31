@@ -54,6 +54,11 @@
         </div>
 
         <div class="filter-group" style="display: flex; align-items: center; gap: 5px;">
+            <label style="margin: 0; white-space: nowrap;">Search:</label>
+            <input type="text" id="transaction_search" class="form-control" style="width: 220px; margin: 0;" placeholder="Type to filter">
+        </div>
+        
+        <div class="filter-group" style="display: flex; align-items: center; gap: 5px;">
             <label style="margin: 0; white-space: nowrap;">Date Range:</label>
             <input type="text" id="date_range" class="form-control" style="width: 220px; margin: 0;" placeholder="Select date range">
             <input type="hidden" name="date_from" id="date_from" value="{{ filters.date_from or '' }}">
@@ -274,6 +279,8 @@
     let originalExportJpegUrl = "";
 
     function filterTransactions(status) {
+        const searchInput = document.getElementById('transaction_search');
+        const q = (searchInput && searchInput.value ? searchInput.value : '').toLowerCase();
         // Update tabs
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         if (status === 'all') document.getElementById('tab-all').classList.add('active');
@@ -291,11 +298,22 @@
             const isPaid = row.getAttribute('data-paid') === '1' || row.getAttribute('data-paid') === 'True';
             const amount = parseFloat(row.getAttribute('data-amount')) || 0;
             const amountN = parseFloat(row.getAttribute('data-amount-n')) || 0;
+            const textJoin = [
+                row.querySelector('td:nth-child(2)')?.textContent || '',
+                row.querySelector('td:nth-child(3)')?.textContent || '',
+                row.querySelector('td:nth-child(4)')?.textContent || '',
+                row.querySelector('td:nth-child(6)')?.textContent || '',
+                row.querySelector('td:nth-child(9)')?.textContent || '',
+                row.querySelector('td:nth-child(14)')?.textContent || ''
+            ].join(' ').toLowerCase();
             
             let show = false;
             if (status === 'all') show = true;
             else if (status === '0' && !isPaid) show = true;
             else if (status === '1' && isPaid) show = true;
+            if (show && q) {
+                show = textJoin.indexOf(q) !== -1;
+            }
 
             if (show) {
                 row.style.display = '';
@@ -317,11 +335,17 @@
         const cards = document.querySelectorAll('.mobile-card');
         cards.forEach(card => {
             const isPaid = card.getAttribute('data-paid') === '1' || card.getAttribute('data-paid') === 'True';
+            const headerText = card.querySelector('.mobile-card-header')?.textContent.toLowerCase() || '';
+            const nameText = card.querySelector('.mobile-card-value')?.textContent.toLowerCase() || '';
+            const combined = (headerText + ' ' + nameText).toLowerCase();
             
             let show = false;
             if (status === 'all') show = true;
             else if (status === '0' && !isPaid) show = true;
             else if (status === '1' && isPaid) show = true;
+            if (show && q) {
+                show = combined.indexOf(q) !== -1;
+            }
 
             if (show) {
                 card.style.display = '';
@@ -368,6 +392,25 @@
         const jpegBtn = document.getElementById('export-jpeg');
         if (pdfBtn) originalExportPdfUrl = pdfBtn.href;
         if (jpegBtn) originalExportJpegUrl = jpegBtn.href;
+        const searchInput = document.getElementById('transaction_search');
+        if (searchInput) {
+            function setParam(name, value) {
+                const url = new URL(window.location.href);
+                if (value && value.length > 0) url.searchParams.set(name, value);
+                else url.searchParams.delete(name);
+                history.replaceState(null, '', url.toString());
+            }
+            searchInput.addEventListener('input', function() {
+                setParam('q', searchInput.value.trim());
+                // keep the current active tab status
+                const active = document.querySelector('.tab.active');
+                let status = '0';
+                if (active && active.id === 'tab-all') status = 'all';
+                else if (active && active.id === 'tab-paid') status = '1';
+                else status = '0';
+                filterTransactions(status);
+            });
+        }
 
         // Initialize with Pending filter (since Pending tab is active by default in HTML)
         filterTransactions('0');
