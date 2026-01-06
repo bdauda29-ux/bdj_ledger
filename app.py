@@ -1554,6 +1554,7 @@ def transactions():
     created_by = request.args.get('created_by')
     date_from = request.args.get('date_from')
     date_to = request.args.get('date_to')
+    applicant = request.args.get('applicant_name')
 
     # Handle 'None' string literal from legacy bad URLs
     if date_from == 'None': date_from = None
@@ -1596,6 +1597,9 @@ def transactions():
     if created_by:
         where_clauses.append('t.created_by = ?')
         params.append(created_by)
+    if applicant:
+        where_clauses.append('t.applicant_name = ?')
+        params.append(applicant)
     if date_from:
         where_clauses.append("date(t.transaction_date) >= date(?)")
         params.append(date_from)
@@ -1612,7 +1616,11 @@ def transactions():
     where_sql = ('WHERE ' + ' AND '.join(where_clauses)) if where_clauses else 'WHERE t.model_id = ?'
 
     transactions_list = conn.execute(f'''
-        SELECT t.* FROM transactions t
+        SELECT t.*, c.id AS client_id
+        FROM transactions t
+        LEFT JOIN clients c
+          ON c.client_name = t.client_name
+         AND c.model_id = t.model_id
         {where_sql}
         ORDER BY t.transaction_date DESC
     ''', params).fetchall()
@@ -1626,7 +1634,7 @@ def transactions():
         {where_sql}
     ''', params).fetchone()
 
-    return render_template('transactions.html', transactions=transactions_list, clients=clients_list, countries=countries_list, creators=creators_list, filters={'client': client, 'country': country, 'created_by': created_by, 'date_from': date_from, 'date_to': date_to, 'paid': paid}, sums=sums, error=error)
+    return render_template('transactions.html', transactions=transactions_list, clients=clients_list, countries=countries_list, creators=creators_list, filters={'client': client, 'country': country, 'created_by': created_by, 'date_from': date_from, 'date_to': date_to, 'paid': paid, 'applicant': applicant}, sums=sums, error=error)
 
 @app.route('/transactions/add', methods=['GET', 'POST'])
 def add_transaction():
