@@ -188,9 +188,9 @@
             <span class="card-s-no">#{{ loop.index }}</span>
             - 
             {% if transaction.client_id %}
-            <a href="{{ url_for('client_transactions', client_id=transaction.client_id) }}">{{ transaction.client_name }} ({{ (transaction.balance or 0)|comma2 }})</a>
+            <a href="{{ url_for('client_transactions', client_id=transaction.client_id) }}">{{ transaction.client_name }} ({{ (transaction.client_balance or 0)|comma2 }})</a>
             {% else %}
-            {{ transaction.client_name }} ({{ (transaction.balance or 0)|comma2 }})
+            {{ transaction.client_name }} ({{ (transaction.client_balance or 0)|comma2 }})
             {% endif %}
         </div>
         <div class="mobile-card-row">
