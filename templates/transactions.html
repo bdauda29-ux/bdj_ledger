@@ -142,9 +142,7 @@
                 <td style="white-space: nowrap;">{{ transaction.transaction_date|date_format }}</td>
                 <td>{{ transaction.created_by or 'System' }}</td>
                 <td class="action-cell">
-                    {% if not transaction.is_paid and (transaction.created_by == session.username or (session.permissions and session.permissions.is_admin)) %}
-                    <a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" class="btn btn-secondary btn-sm" title="Edit">✎</a>
-                    {% endif %}
+
                     {% if session.permissions and session.permissions.is_admin %}
                     {% if not transaction.is_paid %}
                     <form action="{{ url_for('pay_transaction', transaction_id=transaction.id) }}" 
@@ -238,9 +236,7 @@
             <span class="mobile-card-value">{{ transaction.transaction_date|date_format }}</span>
         </div>
         <div class="mobile-card-actions">
-            {% if not transaction.is_paid %}
-            <a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" class="btn btn-secondary btn-sm">Edit</a>
-            {% endif %}
+
             {% if session.permissions and session.permissions.is_admin %}
             {% if not transaction.is_paid %}
             <form action="{{ url_for('pay_transaction', transaction_id=transaction.id) }}" 
