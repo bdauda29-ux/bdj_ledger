@@ -1616,7 +1616,7 @@ def transactions():
     where_sql = ('WHERE ' + ' AND '.join(where_clauses)) if where_clauses else 'WHERE t.model_id = ?'
 
     transactions_list = conn.execute(f'''
-        SELECT t.*, c.id AS client_id, c.balance
+        SELECT t.*, c.id AS client_id, c.balance AS client_balance
         FROM transactions t
         LEFT JOIN clients c
           ON c.client_name = t.client_name
