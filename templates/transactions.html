@@ -128,13 +128,7 @@
                     {{ transaction.applicant_name }}
                     {% endif %}
                 </td>
-                <td>
-                    {% if (session.permissions and session.permissions.is_admin) or transaction.created_by == session.username %}
-                    <a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}">{{ transaction.app_id }}</a>
-                    {% else %}
-                    {{ transaction.app_id }}
-                    {% endif %}
-                </td>
+                <td><a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}">{{ transaction.app_id }}</a></td>
                 <td>
                     {% if transaction.email_link %}
                     <a href="{{ transaction.email_link }}" target="_blank" class="btn btn-primary btn-sm" title="Open Link" style="padding: 2px 6px; font-size: 14px;">🔗</a>
