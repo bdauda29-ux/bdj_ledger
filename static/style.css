@@ -473,8 +473,161 @@ footer p {
     margin: 0;
 }
 
+/* Search & Filter Container */
+.search-filter-container {
+    margin-bottom: 20px;
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.search-bar-wrapper {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.filter-toggle-wrapper {
+    position: relative;
+}
+
+.filter-toggle-btn {
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #555;
+    transition: all 0.2s;
+}
+
+.filter-toggle-btn:hover, .filter-toggle-btn.active {
+    background: #e9ecef;
+    color: #333;
+    border-color: #ced4da;
+}
+
+.filter-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 8px;
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    width: 300px;
+    z-index: 1000;
+    padding: 15px;
+    display: none;
+}
+
+.filter-dropdown.show {
+    display: block;
+}
+
+.filter-dropdown-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.filter-dropdown-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.close-filter-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #999;
+}
+
+.filter-group-vertical {
+    margin-bottom: 15px;
+}
+
+.filter-group-vertical label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.filter-group-vertical select,
+.filter-group-vertical input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.filter-actions-vertical {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.btn-block {
+    flex: 1;
+    display: block;
+    width: 100%;
+    text-align: center;
+}
+
+.btn-outline {
+    background: white;
+    border: 1px solid #ddd;
+    color: #555;
+}
+
+.btn-outline:hover {
+    background: #f8f9fa;
+}
+
+.search-input-wrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-wrapper .search-icon {
+    position: absolute;
+    left: 12px;
+    color: #999;
+    pointer-events: none;
+}
+
+.search-input-wrapper input {
+    width: 100%;
+    padding: 10px 10px 10px 40px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 15px;
+    transition: all 0.2s;
+}
+
+.search-input-wrapper input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    outline: none;
+}
+
 /* Responsive */
-/* Tablet */
 @media (max-width: 992px) {
     .container {
         padding: 15px;
@@ -499,289 +652,17 @@ footer p {
     }
 }
 
-/* Mobile */
 @media (max-width: 768px) {
-    .container {
-        padding: 10px;
-    }
-    
-    .navbar .container {
-        flex-wrap: wrap;
-    }
-    
-    .navbar h1 {
-        font-size: 1.2rem;
-    }
-    
-    .menu-toggle {
-        display: block;
-    }
-    
-    .nav-menu {
-        display: none;
+    .filter-dropdown {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         width: 100%;
-        flex-direction: column;
-        gap: 0;
-        margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid rgba(255,255,255,0.2);
-    }
-    
-    .nav-menu.active {
-        display: flex;
-    }
-    
-    .nav-menu li {
-        width: 100%;
-    }
-    
-    .nav-menu a {
-        padding: 0.75rem;
-        border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-    
-    .page-header {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 1rem;
-    }
-    
-    .page-header h2 {
-        font-size: 1.3rem;
-    }
-    
-    .page-header .btn {
-        width: 100%;
-        text-align: center;
-    }
-    
-    .action-buttons .btn {
-        width: 100%;
-        text-align: center;
-    }
-    
-    /* Hide table, show card view on mobile */
-    .table-container {
-        display: none !important;
-    }
-    
-    .mobile-card-view {
-        display: block !important;
-    }
-    
-    .form-container {
-        padding: 1.25rem;
+        height: 100%;
         margin: 0;
         border-radius: 0;
-        box-shadow: none;
-        background: transparent;
+        overflow-y: auto;
     }
-    
-    .form-container h2 {
-        font-size: 1.3rem;
-    }
-    
-    .form-group {
-        margin-bottom: 1.25rem;
-    }
-    
-    .form-group input,
-    .form-group select {
-        font-size: 16px; /* Prevents zoom on iOS */
-        padding: 0.875rem;
-    }
-    
-    .form-actions {
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-    
-    .form-actions .btn {
-        width: 100%;
-        min-height: 44px;
-    }
-    
-    .btn {
-        padding: 0.75rem 1rem;
-        font-size: 1rem;
-        width: 100%;
-        text-align: center;
-        min-height: 44px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .btn-sm {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.875rem;
-        width: auto;
-    }
-    
-    .data-table td .btn-sm {
-        width: 100%;
-        margin-bottom: 0.5rem;
-    }
-    
-    .data-table td .btn-sm:last-child {
-        margin-bottom: 0;
-    }
-    
-    .empty-state {
-        padding: 2rem 1rem;
-        font-size: 0.95rem;
-    }
-    
-    footer {
-        padding: 1rem 0;
-        font-size: 0.875rem;
-    }
-}
-
-/* Hide spinner for number inputs */
-.no-spinner::-webkit-inner-spin-button, 
-.no-spinner::-webkit-outer-spin-button { 
-    -webkit-appearance: none; 
-    margin: 0; 
-}
-.no-spinner {
-    -moz-appearance: textfield;
-}
-
-/* Small mobile */
-@media (max-width: 480px) {
-    .navbar h1 {
-        font-size: 1.1rem;
-    }
-    
-    .container {
-        padding: 8px;
-    }
-    
-    .form-container {
-        padding: 1rem;
-    }
-    
-    .form-container h2 {
-        font-size: 1.2rem;
-        margin-bottom: 1rem;
-    }
-    
-    .page-header h2 {
-        font-size: 1.2rem;
-    }
-    
-    .mobile-card {
-        padding: 0.875rem;
-    }
-    
-    .mobile-card-header {
-        font-size: 1rem;
-    }
-    
-    .mobile-card-row {
-        font-size: 0.9rem;
-        flex-direction: column;
-        gap: 0.25rem;
-    }
-    
-    .mobile-card-value {
-        text-align: left;
-        font-weight: 500;
-    }
-    
-    .alert {
-        padding: 0.875rem;
-        font-size: 0.9rem;
-    }
-}
-
-.balance-positive {
-    background-color: #ffdddd;
-}
-
-.balance-zero {
-    background-color: #ddffdd;
-}
-
-/* Mobile specific for filters */
-@media (max-width: 768px) {
-    .filter-form {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .filter-form select,
-    .filter-form input,
-    .filter-form .form-control {
-        width: 100% !important; /* Override inline styles like width: 220px */
-        min-width: 0;
-    }
-    
-    .filter-form .btn {
-        width: 100%;
-        margin-top: 10px;
-    }
-
-    .summary-boxes {
-        flex-direction: column;
-    }
-}
-
-.summary-boxes {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
-}
-
-.summary-box {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    flex: 1;
-    min-width: 200px;
-    text-align: center;
-}
-
-/* Filter Bar */
-.filter-bar {
-    background: white;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    margin-bottom: 20px;
-}
-
-.filter-form {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    align-items: flex-end;
-}
-
-.filter-form label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 500;
-    font-size: 0.9rem;
-}
-
-.filter-form select,
-.filter-form input {
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    min-width: 150px;
-}
-
-.summary-box h3 {
-    margin-bottom: 0.5rem;
-    color: #667eea;
-}
-
-.summary-box p {
-    font-size: 2rem;
-    font-weight: 600;
 }
