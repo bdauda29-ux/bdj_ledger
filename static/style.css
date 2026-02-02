@@ -26,13 +26,13 @@ body {
 /* Navigation */
 .navbar {
     background-color: #8864dd;
-    color: #333;
+    color: white;
     padding: 1rem 0;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     position: sticky;
     top: 0;
     z-index: 1000;
-    border-bottom: 1px solid #eee;
+    border-bottom: none;
 }
 
 .navbar .container {
@@ -46,41 +46,72 @@ body {
     font-size: 1.5rem;
     font-weight: 600;
     margin: 0;
-    color: #333;
+    color: white;
+}
+
+.navbar-model-text {
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: bold;
+    font-size: 1.3rem;
+}
+
+.font-controls {
+    display: flex;
+    gap: 5px;
+}
+
+.navbar-font-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: all 0.2s;
+}
+
+.navbar-font-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: white;
 }
 
 .nav-menu {
     display: flex;
     list-style: none;
-    gap: 2.5rem;
+    gap: 1rem;
     margin: 0;
     padding: 0;
 }
 
 .nav-menu a {
-    color: #333;
+    color: white;
     text-decoration: none;
     font-weight: 500;
     transition: all 0.2s;
-    padding: 0.5rem 0;
+    padding: 0.5rem 1rem;
     display: block;
-    border-bottom: 3px solid transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
 }
 
 .nav-menu a:hover {
-    color: #000;
-    border-bottom: 3px solid #333;
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: white;
 }
 
 /* Mobile menu toggle */
 .menu-toggle {
     display: none;
     background: none;
-    border: none;
-    color: #333;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    color: white;
     font-size: 1.5rem;
     cursor: pointer;
-    padding: 0.5rem;
+    padding: 0.2rem 0.5rem;
 }
 
 .menu-toggle:hover {
