@@ -1968,9 +1968,8 @@ def pay_transaction(transaction_id):
             return redirect(url_for('transactions'))
         balance_before = client['balance']
         amount_to_deduct = transaction['amount_n']
-        # Allow negative balance as per user confirmation on frontend
-        # if amount_to_deduct > balance_before:
-        #    return redirect(url_for('transactions', error='Insufficient balance to pay this transaction'))
+        if amount_to_deduct > balance_before:
+            return redirect(url_for('transactions', error='Insufficient balance to pay this transaction'))
         balance_after = balance_before - amount_to_deduct
         conn.execute('UPDATE clients SET balance = ? WHERE id = ? AND model_id = ?', (balance_after, client['id'], current_model_id()))
         conn.execute('UPDATE transactions SET is_paid = 1 WHERE id = ?', (transaction_id,))

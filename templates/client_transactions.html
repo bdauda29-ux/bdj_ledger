@@ -162,7 +162,7 @@ function confirmPayment(amount, balance, clientName) {
             window.location.href = "{{ url_for('clients') }}?q=" + encodeURIComponent(clientName);
             return false;
         } else {
-            return confirm("Proceed with payment despite insufficient balance?");
+            return false;
         }
     }
     return confirm(`Pay ₦${amount.toLocaleString()} from client balance?`);
