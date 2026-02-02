@@ -1232,6 +1232,20 @@ def index():
                 total_balance = 0
             
         if total_balance is None: total_balance = 0.0
+
+        # Calculate Total Wallet Balance
+        total_wallet_balance = 0
+        if wallet:
+            w_dollars = wallet.get('dollars') or 0
+            w_providus = wallet.get('providus_dollars') or 0
+            w_rate = wallet.get('rate') or 0
+            w_naira_1 = wallet.get('naira_1') or 0
+            w_naira = wallet.get('naira') or 0
+            w_taj = wallet.get('taj_naira') or 0
+            w_unpaid = wallet.get('unpaid_n') or 0
+            w_debt = wallet.get('debt') or 0
+            
+            total_wallet_balance = (w_dollars * w_rate) + (w_providus * w_rate) + w_naira_1 + w_naira + w_taj + w_unpaid - w_debt - total_balance
         
         # Get only today's transactions (SQLite and Postgres compatible via PGConn)
         sql_trans = '''
@@ -1273,6 +1287,7 @@ def index():
                                total_clients=total_clients,
                                total_transactions=total_transactions,
                                total_balance=total_balance,
+                               total_wallet_balance=total_wallet_balance,
                                transactions=transactions,
                                today_sums=today_sums,
                                selected_date=selected_date,

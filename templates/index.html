@@ -6,6 +6,49 @@
 <div class="dashboard">
     <h2>Dashboard</h2>
     
+    <div class="analysis-cards">
+        {% if session.permissions and session.permissions.is_admin %}
+        <div class="analysis-card card-blue">
+            <div class="card-content">
+                <div class="card-info">
+                    <span class="card-title">TOTAL WALLET BALANCE</span>
+                    <h3 class="card-number">{{ (total_wallet_balance or 0)|comma2 }}</h3>
+                </div>
+                <div class="card-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+            </div>
+            <a href="{{ url_for('wallet_view') }}" class="card-link">View Wallet <i class="fas fa-arrow-right"></i></a>
+        </div>
+        {% endif %}
+
+        <div class="analysis-card card-green">
+            <div class="card-content">
+                <div class="card-info">
+                    <span class="card-title">TOTAL TRANSACTIONS</span>
+                    <h3 class="card-number">{{ total_transactions }}</h3>
+                </div>
+                <div class="card-icon">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+            </div>
+            <a href="{{ url_for('transactions') }}" class="card-link">View Transactions <i class="fas fa-arrow-right"></i></a>
+        </div>
+
+        <div class="analysis-card card-orange">
+            <div class="card-content">
+                <div class="card-info">
+                    <span class="card-title">CLIENT'S BALANCE</span>
+                    <h3 class="card-number">{{ (total_balance or 0)|comma2 }}</h3>
+                </div>
+                <div class="card-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+            </div>
+            <a href="{{ url_for('clients') }}" class="card-link">View Clients <i class="fas fa-arrow-right"></i></a>
+        </div>
+    </div>
+
     {% if session.permissions and session.permissions.is_admin %}
     {% if wallet %}
     <div class="wallet-preview" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #2196f3;">
@@ -30,23 +73,6 @@
     </div>
     {% endif %}
     {% endif %}
-
-    <div class="summary-boxes">
-        {% if session.permissions and session.permissions.is_admin %}
-        <div class="summary-box">
-            <h3>Total Wallet Balance</h3>
-            <p>{% if wallet %}{{ (((wallet.dollars or 0) * (wallet.rate or 0)) + ((wallet.providus_dollars or 0) * (wallet.rate or 0)) + (wallet.naira_1 or 0) + (wallet.naira or 0) + (wallet.taj_naira or 0) + (wallet.unpaid_n or 0) - (wallet.debt or 0) - (total_balance or 0))|comma2 }}{% else %}0{% endif %}</p>
-        </div>
-        {% endif %}
-        <div class="summary-box">
-            <h3>Total Transactions</h3>
-            <p>{{ total_transactions }}</p>
-        </div>
-        <div class="summary-box">
-            <h3>Client's Balance</h3>
-            <p style="font-size: 2.5rem;">{{ (total_balance or 0)|comma2 }}</p>
-        </div>
-    </div>
 
     <div class="today-summary" style="margin-top: 20px; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
         <h3>Totals for {{ selected_date|date_format }}</h3>

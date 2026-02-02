@@ -55,7 +55,7 @@
                     <form action="{{ url_for('pay_transaction', transaction_id=transaction.id) }}" 
                           method="POST" 
                           style="display: inline;"
-                          onsubmit="return confirmPayment({{ transaction.amount_n or 0 }}, {{ client.balance or 0 }}, '{{ client.client_name|replace("'", "\\'") }}');">
+                          onsubmit="return confirmPayment({{ transaction.amount_n or 0 }}, {{ client.balance or 0 }}, '{{ client.client_name|replace("'", "\\'") }}', {{ client.id }});">
                         <button type="submit" class="btn btn-success btn-sm">Pay</button>
                     </form>
                     {% else %}
@@ -156,10 +156,13 @@
 <p class="empty-state">No transactions for this client yet.</p>
 {% endif %}
 <script>
-function confirmPayment(amount, balance, clientName) {
+function confirmPayment(amount, balance, clientName, clientId) {
     if (balance < amount) {
-        if (confirm(`Insufficient Balance!\n\nClient: ${clientName}\nBalance: ₦${balance.toLocaleString()}\nTransaction Amount: ₦${amount.toLocaleString()}\n\nDo you want to add funds now?`)) {
-            window.location.href = "{{ url_for('clients') }}?q=" + encodeURIComponent(clientName);
+        var needed = amount - balance;
+        var addAmount = prompt(`Insufficient Balance!\n\nClient: ${clientName}\nBalance: ₦${balance.toLocaleString()}\nTransaction Amount: ₦${amount.toLocaleString()}\nNeeded: ₦${needed.toLocaleString()}\n\nEnter amount to add funds now (or cancel to abort):`, needed);
+        
+        if (addAmount) {
+            window.location.href = `/clients/${clientId}/update_balance?amount=${addAmount}&type=credit`;
             return false;
         } else {
             return false;
