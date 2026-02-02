@@ -1434,6 +1434,10 @@ def update_balance(client_id):
         conn.execute('INSERT INTO balance_history (client_id, amount, type, balance_before, balance_after, description, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
                      (client_id, amount, type, balance_before, balance_after, description, current_model_id()))
         conn.commit()
+        
+        next_url = request.args.get('next')
+        if next_url:
+            return redirect(next_url)
         return redirect(url_for('clients'))
     except Exception:
         import traceback
