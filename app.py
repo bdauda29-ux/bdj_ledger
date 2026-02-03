@@ -47,7 +47,7 @@ try:
 except Exception:
     np = None
 
-# Postgres (optional) support
+# Postgres (optional) support - configured for Neon DB
 try:
     import psycopg2
     import psycopg2.extras
