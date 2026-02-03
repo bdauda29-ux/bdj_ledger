@@ -23,6 +23,7 @@ ledger.db
 traceback.log
 reproduce_*.py
 test_*.py
+.env
 
 # OS
 .DS_Store

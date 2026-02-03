@@ -10,6 +10,7 @@ import sys
 import io
 import base64
 import zipfile
+import ssl
 import qrcode
 import barcode
 from barcode.writer import ImageWriter
@@ -177,19 +178,27 @@ if pymysql is not None:
             # Parse DSN or expect it to be a dict/connection string
             # pymysql.connect takes arguments, not a DSN string usually. 
             # We'll assume MYSQL_URL is in standard URI format: mysql://user:pass@host:port/db
-            from urllib.parse import urlparse
+            from urllib.parse import urlparse, parse_qs
             p = urlparse(dsn)
+            qs = parse_qs(p.query)
             
-            # Handle query params for ssl, etc if needed (simplified here)
-            self.conn = pymysql.connect(
-                host=p.hostname,
-                user=p.username,
-                password=p.password,
-                database=p.path.lstrip('/'),
-                port=p.port or 3306,
-                # Use default Cursor (tuples) so we can wrap it for index access
-                autocommit=False
-            )
+            connect_args = {
+                'host': p.hostname,
+                'user': p.username,
+                'password': p.password,
+                'database': p.path.lstrip('/'),
+                'port': p.port or 3306,
+                'autocommit': False
+            }
+
+            # Check for SSL requirements (common for cloud providers like Aiven)
+            # Example: ?ssl-mode=REQUIRED or ?ssl={"ca": ...}
+            if 'ssl-mode' in qs and qs['ssl-mode'][0].upper() == 'REQUIRED':
+                # Create a default SSL context
+                # This uses system CA certificates
+                connect_args['ssl'] = ssl.create_default_context()
+
+            self.conn = pymysql.connect(**connect_args)
             
         def _convert_sql(self, sql):
             # MySQL uses %s as placeholder, just like Postgres (via psycopg2 default)
