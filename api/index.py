@@ -10,6 +10,16 @@ os.environ.setdefault('DISABLE_AUTH', '1')
 
 try:
     from wsgi import application as app
+    
+    # Auto-initialize SQLite DB if it doesn't exist (for serverless cold starts)
+    if not os.environ.get('POSTGRES_URL'):
+        db_path = os.environ.get('DATABASE')
+        if db_path and not os.path.exists(db_path):
+            print(f"Initializing ephemeral SQLite database at {db_path}...", file=sys.stderr)
+            with app.app_context():
+                from app import init_db
+                init_db()
+                
 except Exception as e:
     # Fallback app to show import errors
     from flask import Flask
