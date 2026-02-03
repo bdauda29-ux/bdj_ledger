@@ -51,6 +51,13 @@ try:
 except Exception:
     psycopg2 = None
 
+# MySQL (optional) support
+try:
+    import pymysql
+    import pymysql.cursors
+except ImportError:
+    pymysql = None
+
 app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.config['TEMPLATES_AUTO_RELOAD'] = True
@@ -62,8 +69,20 @@ POSTGRES_URL = (
     or os.getenv('DATABASE_URL_NON_POOLING')
     or os.getenv('DATABASE_URL')
 )
+# Check if it's actually a Postgres URL
+if POSTGRES_URL and not POSTGRES_URL.startswith(('postgres://', 'postgresql://')):
+    # Could be MySQL or something else if we are blindly grabbing DATABASE_URL
+    pass
+
+MYSQL_URL = os.getenv('MYSQL_URL')
+if not MYSQL_URL and POSTGRES_URL and POSTGRES_URL.startswith('mysql'):
+     MYSQL_URL = POSTGRES_URL
+     POSTGRES_URL = None
+
 if psycopg2 is None:
     POSTGRES_URL = None
+if pymysql is None:
+    MYSQL_URL = None
 
 @app.template_filter('comma2')
 def comma2(val):
@@ -105,6 +124,86 @@ if psycopg2 is not None:
                 cur = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
                 cur.execute(self._convert_sql(sql), params or [])
                 return cur
+            except Exception as e:
+                try:
+                    self.conn.rollback()
+                except Exception:
+                    pass
+                raise e
+        def commit(self):
+            self.conn.commit()
+        def close(self):
+            self.conn.close()
+
+if pymysql is not None:
+    class MySQLRow(dict):
+        def __init__(self, cursor, row_tuple):
+            super().__init__()
+            self._tuple = row_tuple
+            if cursor.description:
+                for i, desc in enumerate(cursor.description):
+                    self[desc[0]] = row_tuple[i]
+        
+        def __getitem__(self, key):
+            if isinstance(key, int):
+                return self._tuple[key]
+            return super().__getitem__(key)
+
+    class MySQLCursorWrapper:
+        def __init__(self, cursor):
+            self.cursor = cursor
+            
+        def __getattr__(self, name):
+            return getattr(self.cursor, name)
+            
+        def fetchone(self):
+            row = self.cursor.fetchone()
+            if row is None: return None
+            return MySQLRow(self.cursor, row)
+            
+        def fetchall(self):
+            rows = self.cursor.fetchall()
+            return [MySQLRow(self.cursor, r) for r in rows]
+            
+        def __iter__(self):
+            for row in self.cursor:
+                yield MySQLRow(self.cursor, row)
+
+    class MySQLConn:
+        def __init__(self, dsn):
+            # Parse DSN or expect it to be a dict/connection string
+            # pymysql.connect takes arguments, not a DSN string usually. 
+            # We'll assume MYSQL_URL is in standard URI format: mysql://user:pass@host:port/db
+            from urllib.parse import urlparse
+            p = urlparse(dsn)
+            
+            # Handle query params for ssl, etc if needed (simplified here)
+            self.conn = pymysql.connect(
+                host=p.hostname,
+                user=p.username,
+                password=p.password,
+                database=p.path.lstrip('/'),
+                port=p.port or 3306,
+                # Use default Cursor (tuples) so we can wrap it for index access
+                autocommit=False
+            )
+            
+        def _convert_sql(self, sql):
+            # MySQL uses %s as placeholder, just like Postgres (via psycopg2 default)
+            # SQLite uses ?
+            sql = sql.replace('?', '%s')
+            # MySQL doesn't support "date('now', 'localtime')" directly in same way as SQLite
+            sql = sql.replace("date('now','localtime')", 'CURRENT_DATE()')
+            # CURRENT_TIMESTAMP is standard
+            # Handle last_insert_rowid() -> LAST_INSERT_ID()
+            sql = sql.replace('last_insert_rowid()', 'LAST_INSERT_ID()')
+            return sql
+
+        def execute(self, sql, params=None):
+            try:
+                cur = self.conn.cursor()
+                cur.execute(self._convert_sql(sql), params or [])
+                return MySQLCursorWrapper(cur)
             except Exception as e:
                 try:
                     self.conn.rollback()
@@ -405,6 +504,248 @@ def init_db():
         conn.commit()
         conn.close()
         return
+
+    elif MYSQL_URL:
+        # --- MySQL Initialization ---
+        db = MySQLConn(MYSQL_URL)
+        conn = db.conn
+        conn.autocommit = True
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        
+        # MySQL doesn't support "CREATE TABLE IF NOT EXISTS ... ( id SERIAL ... )"
+        # We need AUTO_INCREMENT
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS clients (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                client_name VARCHAR(255) NOT NULL,
+                phone_number VARCHAR(255) NOT NULL,
+                balance DOUBLE NOT NULL DEFAULT 0.0,
+                model_id INT,
+                UNIQUE KEY idx_clients_unique (client_name, model_id)
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS countries (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                price DOUBLE NOT NULL,
+                model_id INT,
+                continent VARCHAR(255),
+                UNIQUE KEY idx_countries_unique (name, model_id)
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS transactions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                client_name VARCHAR(255) NOT NULL,
+                email TEXT,
+                service_type VARCHAR(255) DEFAULT 'eVisa',
+                applicant_name TEXT,
+                app_id BIGINT NOT NULL,
+                country_name VARCHAR(255) NOT NULL,
+                country_price DOUBLE,
+                rate DOUBLE,
+                addition DOUBLE,
+                amount DOUBLE NOT NULL,
+                amount_n DOUBLE,
+                transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                deleted TINYINT(1) DEFAULT 0,
+                is_paid TINYINT(1) DEFAULT 0,
+                model_id INT,
+                email_link TEXT,
+                created_by VARCHAR(255),
+                UNIQUE KEY idx_transactions_app_unique (app_id, model_id),
+                FOREIGN KEY (client_name) REFERENCES clients(client_name),
+                FOREIGN KEY (country_name) REFERENCES countries(name)
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS balance_history (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                client_id INT NOT NULL,
+                transaction_id INT,
+                amount DOUBLE NOT NULL,
+                type VARCHAR(50) NOT NULL,
+                balance_before DOUBLE NOT NULL,
+                balance_after DOUBLE NOT NULL,
+                description TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                model_id INT,
+                FOREIGN KEY (client_id) REFERENCES clients(id),
+                FOREIGN KEY (transaction_id) REFERENCES transactions(id)
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS deleted_transactions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                original_id INT,
+                client_name VARCHAR(255),
+                email TEXT,
+                service_type VARCHAR(255),
+                applicant_name TEXT,
+                app_id BIGINT,
+                country_name VARCHAR(255),
+                country_price DOUBLE,
+                rate DOUBLE,
+                addition DOUBLE,
+                amount DOUBLE,
+                amount_n DOUBLE,
+                is_paid TINYINT(1) DEFAULT 0,
+                transaction_date TIMESTAMP,
+                deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                model_id INT,
+                email_link TEXT,
+                created_by VARCHAR(255)
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(255) NOT NULL UNIQUE,
+                password_hash VARCHAR(255) NOT NULL,
+                email VARCHAR(255),
+                can_edit_client TINYINT(1) DEFAULT 1,
+                can_delete_client TINYINT(1) DEFAULT 1,
+                can_add_transaction TINYINT(1) DEFAULT 1,
+                can_edit_transaction TINYINT(1) DEFAULT 1,
+                can_delete_transaction TINYINT(1) DEFAULT 1,
+                can_view_clients TINYINT(1) DEFAULT 1,
+                is_admin TINYINT(1) DEFAULT 1
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS models (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL UNIQUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS wallet (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                dollars DOUBLE DEFAULT 0,
+                naira DOUBLE DEFAULT 0,
+                rate DOUBLE DEFAULT 0,
+                model_id INT,
+                UNIQUE KEY idx_wallet_model (model_id)
+            )
+        ''')
+        
+        # Helper to ensure columns exist (Migration)
+        def ensure_column(table, column, col_type):
+            try:
+                cursor.execute("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = %s AND column_name = %s AND table_schema = DATABASE()
+                """, (table, column))
+                if not cursor.fetchone():
+                    print(f"Adding missing column: {table}.{column}", file=sys.stderr)
+                    cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+            except Exception as e:
+                print(f"Error ensuring column {table}.{column}: {e}", file=sys.stderr)
+
+        required_columns = [
+            ('transactions', 'applicant_name', 'TEXT'),
+            ('transactions', 'email_link', 'TEXT'),
+            ('transactions', 'service_type', "VARCHAR(255) DEFAULT 'eVisa'"),
+            ('transactions', 'country_price', 'DOUBLE'),
+            ('transactions', 'rate', 'DOUBLE'),
+            ('transactions', 'addition', 'DOUBLE'),
+            ('transactions', 'amount_n', 'DOUBLE'),
+            ('transactions', 'deleted', 'TINYINT(1) DEFAULT 0'),
+            ('transactions', 'is_paid', 'TINYINT(1) DEFAULT 0'),
+            ('transactions', 'created_by', 'VARCHAR(255)'),
+            ('transactions', 'model_id', 'INT'),
+            ('wallet', 'providus_dollars', 'DOUBLE DEFAULT 0'),
+            ('wallet', 'naira_1', 'DOUBLE DEFAULT 0'),
+            ('wallet', 'taj_naira', 'DOUBLE DEFAULT 0'),
+            ('wallet', 'debt', 'DOUBLE DEFAULT 0'),
+            ('balance_history', 'model_id', 'INT'),
+            ('clients', 'model_id', 'INT'),
+            ('countries', 'model_id', 'INT'),
+            ('countries', 'continent', 'VARCHAR(255)'),
+            ('deleted_transactions', 'email_link', 'TEXT'),
+            ('deleted_transactions', 'created_by', 'VARCHAR(255)'),
+            ('users', 'can_view_clients', 'TINYINT(1) DEFAULT 1')
+        ]
+
+        for table, col, dtype in required_columns:
+            ensure_column(table, col, dtype)
+
+        conn.commit()
+
+        # Seed countries
+        country_names = [
+            'TWP', '32pgs', '32pgs COD', '64pgs', '64pgs COD',
+            'Afghanistan','Albania','Algeria','Andorra','Angola','Antigua and Barbuda','Argentina','Armenia','Australia','Austria','Azerbaijan',
+            'Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium','Belize','Benin','Bhutan','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Brunei','Bulgaria','Burkina Faso','Burundi',
+            'Cabo Verde','Cambodia','Cameroon','Canada','Central African Republic','Chad','Chile','China','Colombia','Comoros','Congo','Costa Rica','Côte d’Ivoire','Croatia','Cuba','Cyprus','Czechia',
+            'Democratic Republic of the Congo','Denmark','Djibouti','Dominica','Dominican Republic','Ecuador','Egypt','El Salvador','Equatorial Guinea','Eritrea','Estonia','Eswatini','Ethiopia',
+            'Fiji','Finland','France','Gabon','Gambia','Georgia','Germany','Ghana','Greece','Grenada','Guatemala','Guinea','Guinea-Bissau','Guyana',
+            'Haiti','Honduras','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy',
+            'Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kiribati','Kuwait','Kyrgyzstan','Laos','Latvia','Lebanon','Lesotho','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg',
+            'Madagascar','Malawi','Malaysia','Maldives','Mali','Malta','Marshall Islands','Mauritania','Mauritius','Mexico','Micronesia','Moldova','Monaco','Mongolia','Montenegro','Morocco','Mozambique','Myanmar',
+            'Namibia','Nauru','Nepal','Netherlands','New Zealand','Nicaragua','Niger','Nigeria','North Korea','North Macedonia','Norway',
+            'Oman','Pakistan','Palau','Panama','Papua New Guinea','Paraguay','Peru','Philippines','Poland','Portugal','Qatar',
+            'Romania','Russia','Rwanda','Saint Kitts and Nevis','Saint Lucia','Saint Vincent and the Grenadines','Samoa','San Marino','Sao Tome and Principe','Saudi Arabia','Senegal','Serbia','Seychelles','Sierra Leone','Singapore','Slovakia','Slovenia','Solomon Islands','Somalia','South Africa','South Korea','South Sudan','Spain','Sri Lanka','Sudan','Suriname','Sweden','Switzerland','Syria',
+            'Taiwan','Tajikistan','Tanzania','Thailand','Togo','Tonga','Trinidad and Tobago','Tunisia','Turkey','Turkmenistan','Tuvalu',
+            'Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Vanuatu','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe',
+            'TWP', '32pgs', '32pgs COD', '64pgs', '64pgs COD'
+        ]
+        
+        # Check existing
+        cursor.execute("SELECT name FROM countries")
+        existing_countries = set(row['name'] for row in cursor.fetchall())
+        new_countries = [n for n in country_names if n not in existing_countries]
+        
+        if new_countries:
+            cursor.executemany(
+                "INSERT INTO countries (name, price, continent) VALUES (%s, %s, %s)", 
+                [(n, 0.0, None) for n in new_countries]
+            )
+        
+        # Populate continents
+        continent_by_country = {
+            'Afghanistan':'Asia','Albania':'Europe','Algeria':'Africa','Andorra':'Europe','Angola':'Africa','Antigua and Barbuda':'North America','Argentina':'South America','Armenia':'Asia','Australia':'Oceania','Austria':'Europe','Azerbaijan':'Asia',
+            'Bahamas':'North America','Bahrain':'Asia','Bangladesh':'Asia','Barbados':'North America','Belarus':'Europe','Belgium':'Europe','Belize':'North America','Benin':'Africa','Bhutan':'Asia','Bolivia':'South America','Bosnia and Herzegovina':'Europe','Botswana':'Africa','Brazil':'South America','Brunei':'Asia','Bulgaria':'Europe','Burkina Faso':'Africa','Burundi':'Africa',
+            'Cabo Verde':'Africa','Cambodia':'Asia','Cameroon':'Africa','Canada':'North America','Central African Republic':'Africa','Chad':'Africa','Chile':'South America','China':'Asia','Colombia':'South America','Comoros':'Africa','Congo':'Africa','Costa Rica':'North America','Côte d’Ivoire':'Africa','Croatia':'Europe','Cuba':'North America','Cyprus':'Asia','Czechia':'Europe',
+            'Democratic Republic of the Congo':'Africa','Denmark':'Europe','Djibouti':'Africa','Dominica':'North America','Dominican Republic':'North America','Ecuador':'South America','Egypt':'Africa','El Salvador':'North America','Equatorial Guinea':'Africa','Eritrea':'Africa','Estonia':'Europe','Eswatini':'Africa','Ethiopia':'Africa',
+            'Fiji':'Oceania','Finland':'Europe','France':'Europe','Gabon':'Africa','Gambia':'Africa','Georgia':'Asia','Germany':'Europe','Ghana':'Africa','Greece':'Europe','Grenada':'North America','Guatemala':'North America','Guinea':'Africa','Guinea-Bissau':'Africa','Guyana':'South America',
+            'Haiti':'North America','Honduras':'North America','Hungary':'Europe','Iceland':'Europe','India':'Asia','Indonesia':'Asia','Iran':'Asia','Iraq':'Asia','Ireland':'Europe','Israel':'Asia','Italy':'Europe',
+            'Jamaica':'North America','Japan':'Asia','Jordan':'Asia','Kazakhstan':'Asia','Kenya':'Africa','Kiribati':'Oceania','Kuwait':'Asia','Kyrgyzstan':'Asia','Laos':'Asia','Latvia':'Europe','Lebanon':'Asia','Lesotho':'Africa','Liberia':'Africa','Libya':'Africa','Liechtenstein':'Europe','Lithuania':'Europe','Luxembourg':'Europe',
+            'Madagascar':'Africa','Malawi':'Africa','Malaysia':'Asia','Maldives':'Asia','Mali':'Africa','Malta':'Europe','Marshall Islands':'Oceania','Mauritania':'Africa','Mauritius':'Africa','Mexico':'North America','Micronesia':'Oceania','Moldova':'Europe','Monaco':'Europe','Mongolia':'Asia','Montenegro':'Europe','Morocco':'Africa','Mozambique':'Africa','Myanmar':'Asia',
+            'Namibia':'Africa','Nauru':'Oceania','Nepal':'Asia','Netherlands':'Europe','New Zealand':'Oceania','Nicaragua':'North America','Niger':'Africa','Nigeria':'Africa','North Korea':'Asia','North Macedonia':'Europe','Norway':'Europe',
+            'Oman':'Asia','Pakistan':'Asia','Palau':'Oceania','Panama':'North America','Papua New Guinea':'Oceania','Paraguay':'South America','Peru':'South America','Philippines':'Asia','Poland':'Europe','Portugal':'Europe','Qatar':'Asia',
+            'Romania':'Europe','Russia':'Europe','Rwanda':'Africa','Saint Kitts and Nevis':'North America','Saint Lucia':'North America','Saint Vincent and the Grenadines':'North America','Samoa':'Oceania','San Marino':'Europe','Sao Tome and Principe':'Africa','Saudi Arabia':'Asia','Senegal':'Africa','Serbia':'Europe','Seychelles':'Africa','Sierra Leone':'Africa','Singapore':'Asia','Slovakia':'Europe','Slovenia':'Europe','Solomon Islands':'Oceania','Somalia':'Africa','South Africa':'Africa','South Korea':'Asia','South Sudan':'Africa','Spain':'Europe','Sri Lanka':'Asia','Sudan':'Africa','Suriname':'South America','Sweden':'Europe','Switzerland':'Europe','Syria':'Asia',
+            'Taiwan':'Asia','Tajikistan':'Asia','Tanzania':'Africa','Thailand':'Asia','Togo':'Africa','Tonga':'Oceania','Trinidad and Tobago':'North America','Tunisia':'Africa','Turkey':'Asia','Turkmenistan':'Asia','Tuvalu':'Oceania',
+            'Uganda':'Africa','Ukraine':'Europe','United Arab Emirates':'Asia','United Kingdom':'Europe','United States':'North America','Uruguay':'South America','Uzbekistan':'Asia','Vanuatu':'Oceania','Venezuela':'South America','Vietnam':'Asia','Yemen':'Asia','Zambia':'Africa','Zimbabwe':'Africa',
+            'TWP':'Africa', '32pgs':'Africa', '32pgs COD':'Africa', '64pgs':'Africa', '64pgs COD':'Africa'
+        }
+        for n, cont in continent_by_country.items():
+            cursor.execute('UPDATE countries SET continent = %s WHERE name = %s AND (continent IS NULL OR continent = "")', (cont, n))
+
+        # Admin User
+        cursor.execute('SELECT * FROM users WHERE username = %s', ('admin',))
+        user = cursor.fetchone()
+        if not user:
+            default_hash = hashlib.sha256('admin'.encode()).hexdigest()
+            cursor.execute('INSERT INTO users (username, password_hash, is_admin) VALUES (%s, %s, 1)', ('admin', default_hash))
+        else:
+             cursor.execute('UPDATE users SET is_admin = 1, can_edit_client = 1, can_delete_client = 1, can_add_transaction = 1, can_edit_transaction = 1, can_delete_transaction = 1 WHERE username = %s', ('admin',))
+        
+        conn.commit()
+        conn.close()
+        return
+
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
 
@@ -746,6 +1087,8 @@ def get_db_connection():
     if 'db' not in g:
         if POSTGRES_URL:
             g.db = PGConn(POSTGRES_URL)
+        elif MYSQL_URL:
+            g.db = MySQLConn(MYSQL_URL)
         else:
             g.db = sqlite3.connect(DATABASE, timeout=20)
             g.db.row_factory = sqlite3.Row
@@ -2521,6 +2864,9 @@ def health_init():
         if POSTGRES_URL:
             rows = conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public'").fetchall()
             names = [r['table_name'] for r in rows]
+        elif MYSQL_URL:
+            rows = conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema=DATABASE()").fetchall()
+            names = [r['table_name'] for r in rows]
         else:
             rows = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
             names = [r['name'] for r in rows]
@@ -2544,6 +2890,18 @@ def debug_schema():
                 WHERE table_name = 'transactions'
             """).fetchall()
             info.append("<h3>Postgres - transactions table columns:</h3>")
+            info.append("<ul>")
+            for c in cols:
+                info.append(f"<li>{c['column_name']}: {c['data_type']}</li>")
+            info.append("</ul>")
+        elif MYSQL_URL:
+            # Check transactions table schema
+            cols = conn.execute("""
+                SELECT column_name, data_type 
+                FROM information_schema.columns 
+                WHERE table_name = 'transactions' AND table_schema = DATABASE()
+            """).fetchall()
+            info.append("<h3>MySQL - transactions table columns:</h3>")
             info.append("<ul>")
             for c in cols:
                 info.append(f"<li>{c['column_name']}: {c['data_type']}</li>")
