@@ -20,6 +20,9 @@ from reportlab.lib.units import inch
 from reportlab.lib import colors
 from PIL import Image, ImageFilter, ImageEnhance, ImageOps
 from email.message import EmailMessage
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Optional PDF tools
 try:

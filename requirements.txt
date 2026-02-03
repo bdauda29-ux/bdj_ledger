@@ -10,5 +10,6 @@ pypdf==3.17.4
 pymupdf
 qrcode
 python-barcode
+python-dotenv
 # opencv-python-headless # Commented out to reduce slug size for Vercel
 # pdf2docx # Commented out to reduce slug size for Vercel
