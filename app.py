@@ -62,7 +62,7 @@ try:
 except ImportError:
     pymysql = None
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/static', static_folder='static')
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.secret_key = os.getenv('SECRET_KEY', 'change-this-secret-key')
