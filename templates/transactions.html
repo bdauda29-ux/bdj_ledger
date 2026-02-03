@@ -3,33 +3,24 @@
 {% block title %}Transactions - Ledger System{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h2>Transactions</h2>
-    <a href="{{ url_for('add_transaction') }}" class="btn btn-primary">Add New Transaction</a>
-    <a href="{{ url_for('transactions_bin') }}" class="btn btn-secondary">Bin</a>
+<div class="page-actions-bar">
+    <div class="tabs">
+        <a href="javascript:void(0)" class="tab active" id="tab-pending" onclick="filterTransactions('0')">Pending</a>
+        <a href="javascript:void(0)" class="tab" id="tab-paid" onclick="filterTransactions('1')">Paid</a>
+        <a href="javascript:void(0)" class="tab" id="tab-all" onclick="filterTransactions('all')">All</a>
+    </div>
+    <div class="actions">
+        <a href="{{ url_for('add_transaction') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Add Transaction</a>
+        <a href="{{ url_for('transactions_bin') }}" class="btn btn-secondary"><i class="fas fa-trash"></i> Bin</a>
+    </div>
 </div>
-<!-- Tabs -->
-<div class="tabs">
-    <a href="javascript:void(0)" class="tab active" id="tab-pending" onclick="filterTransactions('0')">Pending</a>
-    <a href="javascript:void(0)" class="tab" id="tab-paid" onclick="filterTransactions('1')">Paid</a>
-    <a href="javascript:void(0)" class="tab" id="tab-all" onclick="filterTransactions('all')">All</a>
-    <style>
-        .tabs { display:flex; gap:8px; margin-bottom:10px; }
-        .tab { padding:6px 10px; border:1px solid #ccc; border-radius:4px; text-decoration:none; color: #333; }
-        .tab.active { background:#eee; font-weight: bold; border-color: #999; }
-        .tab:hover { background:#f5f5f5; }
-        /* Remove underline from links in table and mobile cards and inherit color */
-        .data-table a, .mobile-card a { text-decoration: none; color: inherit; }
-    </style>
-</div>
+
 <!-- Search & Filter Bar -->
 <div class="search-filter-container">
     <div class="search-bar-wrapper">
         <div class="filter-toggle-wrapper">
             <button type="button" class="filter-toggle-btn" id="filterToggleBtn" title="Filter Transactions">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                </svg>
+                <i class="fas fa-filter"></i>
             </button>
             
             <!-- Filter Dropdown -->
@@ -79,23 +70,23 @@
 
                     <div class="filter-actions-vertical">
                         <button type="submit" class="btn btn-primary btn-block">Apply Filters</button>
-                        <a href="{{ url_for('transactions') }}" class="btn btn-outline btn-block">Clear All</a>
+                        <a href="{{ url_for('transactions') }}" class="btn btn-outline btn-block" style="text-align: center;">Clear All</a>
                     </div>
                 </form>
             </div>
         </div>
         
         <div class="search-input-wrapper">
-             <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+             <i class="fas fa-search search-icon"></i>
              <input type="text" id="transaction_search" placeholder="Search transactions..." value="{{ request.args.get('q', '') }}">
         </div>
     </div>
 </div>
 
 <!-- Export Options -->
-<div class="export-options" style="margin: 15px 0; display: flex; gap: 10px; flex-wrap: wrap;">
-    <a id="export-pdf" href="{{ url_for('export_transactions', format='pdf', client_name=filters.client, country_name=filters.country, created_by=filters.created_by, date_from=filters.date_from, date_to=filters.date_to, paid='0') }}" class="btn btn-info" style="flex: 1; text-align: center; min-width: 120px;">Export PDF</a>
-    <a id="export-jpeg" href="{{ url_for('export_transactions', format='jpeg', client_name=filters.client, country_name=filters.country, created_by=filters.created_by, date_from=filters.date_from, date_to=filters.date_to, paid='0') }}" class="btn btn-info" style="flex: 1; text-align: center; min-width: 120px;">Export JPEG</a>
+<div class="export-options" style="display: flex; gap: 10px; margin-bottom: 1.5rem;">
+    <a id="export-pdf" href="{{ url_for('export_transactions', format='pdf', client_name=filters.client, country_name=filters.country, created_by=filters.created_by, date_from=filters.date_from, date_to=filters.date_to, paid='0') }}" class="btn btn-info" style="flex: 1; text-align: center;">Export PDF</a>
+    <a id="export-jpeg" href="{{ url_for('export_transactions', format='jpeg', client_name=filters.client, country_name=filters.country, created_by=filters.created_by, date_from=filters.date_from, date_to=filters.date_to, paid='0') }}" class="btn btn-info" style="flex: 1; text-align: center;">Export JPEG</a>
 </div>
 
 {% if error %}
@@ -134,26 +125,27 @@
                 <td class="s-no">{{ loop.index }}</td>
                 <td>
                     {% if transaction.client_id %}
-                    <a href="{{ url_for('client_transactions', client_id=transaction.client_id) }}">{{ transaction.client_name }} ({{ (transaction.client_balance or 0)|comma2 }})</a>
+                    <a href="{{ url_for('client_transactions', client_id=transaction.client_id) }}" style="color: var(--primary-color); font-weight: 500;">{{ transaction.client_name }}</a>
+                    <div style="font-size: 0.8em; color: var(--text-muted);">{{ (transaction.client_balance or 0)|comma2 }}</div>
                     {% else %}
-                    {{ transaction.client_name }} ({{ (transaction.client_balance or 0)|comma2 }})
+                    {{ transaction.client_name }} <span style="font-size: 0.8em; color: var(--text-muted);">({{ (transaction.client_balance or 0)|comma2 }})</span>
                     {% endif %}
                 </td>
                 <td>
                     {% if transaction.applicant_name %}
-                    <a href="{{ url_for('transactions', applicant_name=transaction.applicant_name) }}">{{ transaction.applicant_name }}</a>
+                    <a href="{{ url_for('transactions', applicant_name=transaction.applicant_name) }}" style="color: inherit;">{{ transaction.applicant_name }}</a>
                     {% else %}
                     {{ transaction.applicant_name }}
                     {% endif %}
                 </td>
-                <td><a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}">{{ transaction.app_id }}</a></td>
+                <td><a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" style="color: inherit;">{{ transaction.app_id }}</a></td>
                 <td>
                     {% if transaction.email_link %}
-                    <a href="{{ transaction.email_link }}" target="_blank" class="btn btn-primary btn-sm" title="Open Link" style="padding: 2px 6px; font-size: 14px;">🔗</a>
+                    <a href="{{ transaction.email_link }}" target="_blank" class="btn btn-primary btn-sm" title="Open Link" style="padding: 2px 6px; font-size: 12px;"><i class="fas fa-link"></i></a>
                     {% endif %}
                 </td>
                 <td>{{ transaction.country_name }}</td>
-                <td><span class="country-price-logo">{{ (transaction.country_price or 0)|comma2 }}</span></td>
+                <td>{{ (transaction.country_price or 0)|comma2 }}</td>
                 <td class="text-right">{{ (transaction.rate or 0)|comma2 }}</td>
                 <td class="text-right">{{ (transaction.addition or 0)|comma2 }}</td>
                 <td>{{ transaction.service_type }}</td>
@@ -162,21 +154,20 @@
                 <td style="white-space: nowrap;">{{ transaction.transaction_date|date_format }}</td>
                 <td>{{ transaction.created_by or 'System' }}</td>
                 <td class="action-cell">
-
                     {% if session.permissions and session.permissions.is_admin %}
                     {% if not transaction.is_paid %}
                     <form action="{{ url_for('pay_transaction', transaction_id=transaction.id) }}" 
                           method="POST" 
                           style="display: inline;"
                           onsubmit="return confirmPayment({{ transaction.amount_n or 0 }}, {{ transaction.client_balance or 0 }}, '{{ transaction.client_name|replace("'", "\\'") }}', {{ transaction.client_id }});">
-                        <button type="submit" class="btn btn-success btn-sm" title="Pay">✔</button>
+                        <button type="submit" class="btn btn-success btn-sm" title="Pay"><i class="fas fa-check"></i></button>
                     </form>
                     {% else %}
                     <form action="{{ url_for('undo_pay_transaction', transaction_id=transaction.id) }}" 
                           method="POST" 
                           style="display: inline;"
                           onsubmit="return confirm('Undo payment and restore client balance?');">
-                        <button type="submit" class="btn btn-secondary btn-sm" title="Undo Pay">↩</button>
+                        <button type="submit" class="btn btn-secondary btn-sm" title="Undo Pay"><i class="fas fa-undo"></i></button>
                     </form>
                     {% endif %}
                     {% endif %}
@@ -185,7 +176,7 @@
                           method="POST" 
                           style="display: inline;"
                           onsubmit="return confirm('Are you sure you want to delete this transaction?');">
-                        <button type="submit" class="btn btn-danger btn-sm" title="Delete">🗑</button>
+                        <button type="submit" class="btn btn-danger btn-sm" title="Delete"><i class="fas fa-trash"></i></button>
                     </form>
                     {% endif %}
                 </td>
@@ -203,83 +194,87 @@
          data-amount="{{ transaction.amount or 0 }}" 
          data-amount-n="{{ transaction.amount_n or 0 }}">
         <div class="mobile-card-header">
-            <span class="card-s-no">#{{ loop.index }}</span>
-            - 
-            {% if transaction.client_id %}
-            <a href="{{ url_for('client_transactions', client_id=transaction.client_id) }}">{{ transaction.client_name }} ({{ (transaction.client_balance or 0)|comma2 }})</a>
-            {% else %}
-            {{ transaction.client_name }} ({{ (transaction.client_balance or 0)|comma2 }})
-            {% endif %}
+            <div>
+                <span class="card-s-no">#{{ loop.index }}</span>
+                {% if transaction.client_id %}
+                <a href="{{ url_for('client_transactions', client_id=transaction.client_id) }}" style="color: var(--primary-color);">{{ transaction.client_name }}</a>
+                {% else %}
+                {{ transaction.client_name }}
+                {% endif %}
+            </div>
+            <span style="font-size: 0.85em; color: var(--text-secondary);">{{ (transaction.client_balance or 0)|comma2 }}</span>
         </div>
         <div class="mobile-card-row">
-            <span class="mobile-card-label">Applicant Name:</span>
+            <span class="mobile-card-label">Applicant:</span>
             <span class="mobile-card-value">
                 {% if transaction.applicant_name %}
-                <a href="{{ url_for('transactions', applicant_name=transaction.applicant_name) }}">{{ transaction.applicant_name }}</a>
+                <a href="{{ url_for('transactions', applicant_name=transaction.applicant_name) }}" style="color: inherit;">{{ transaction.applicant_name }}</a>
                 {% else %}
                 {{ transaction.applicant_name }}
                 {% endif %}
             </span>
         </div>
-        <div class="mobile-card-row" style="justify-content: center; align-items: center; gap: 10px;">
+        <div class="mobile-card-row" style="align-items: center;">
             <span class="mobile-card-label-sm">App ID:</span>
-            <span class="mobile-card-value-sm" style="font-weight: bold;">
-                <a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}">{{ transaction.app_id }}</a>
-            </span>
-            {% if transaction.email_link %}
             <span class="mobile-card-value-sm">
-                <a href="{{ transaction.email_link }}" target="_blank" class="btn btn-primary btn-sm" style="padding: 1px 6px; font-size: 11px;">🔗</a>
+                <a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" style="color: inherit;">{{ transaction.app_id }}</a>
+                {% if transaction.email_link %}
+                <a href="{{ transaction.email_link }}" target="_blank" class="btn btn-primary btn-sm" style="padding: 1px 6px; font-size: 10px; margin-left: 5px;"><i class="fas fa-link"></i></a>
+                {% endif %}
             </span>
-            {% endif %}
         </div>
 
-        <div class="mobile-card-row" style="justify-content: center; background-color: #f8f9fa; padding: 4px; border-radius: 4px; margin: 4px 0;">
-            <span class="mobile-card-value-sm" style="font-weight: bold; width: 100%; text-align: center;">({{ transaction.country_name }} - <span class="country-price-logo">{{ (transaction.country_price or 0)|comma2 }}</span>)</span>
+        <div class="mobile-card-row" style="background-color: #f8f9fa; padding: 6px; border-radius: 4px; margin: 8px 0;">
+            <span class="mobile-card-value-sm" style="width: 100%; text-align: center;">{{ transaction.country_name }} • {{ (transaction.country_price or 0)|comma2 }}</span>
         </div>
 
-        <div class="mobile-card-row mobile-grouped-row">
+        <div class="mobile-grouped-row">
             <div class="mobile-half-col">
-                <span class="mobile-card-label-sm">Rate:</span>
+                <span class="mobile-card-label-sm">Rate</span>
                 <span class="mobile-card-value-sm">{{ (transaction.rate or 0)|comma2 }}</span>
             </div>
             <div class="mobile-half-col">
-                <span class="mobile-card-label-sm">Add:</span>
+                <span class="mobile-card-label-sm">Add</span>
                 <span class="mobile-card-value-sm">{{ (transaction.addition or 0)|comma2 }}</span>
             </div>
         </div>
 
-        <div class="mobile-card-row" style="justify-content: center; background-color: #f8f9fa; padding: 4px; border-radius: 4px; margin: 4px 0;">
-            <span class="mobile-card-value-sm" style="font-weight: bold; width: 100%; text-align: center;">$ {{ (transaction.amount or 0)|comma2 }} - <strong style="font-size: 1.2em;">₦ {{ (transaction.amount_n or 0)|comma2 }}</strong></span>
+        <div class="mobile-card-row" style="background-color: #f8f9fa; padding: 8px; border-radius: 4px; margin: 8px 0; border: 1px solid var(--border-color);">
+            <div style="width: 100%; text-align: center;">
+                <div style="font-size: 0.85em; color: var(--text-secondary);">$ {{ (transaction.amount or 0)|comma2 }}</div>
+                <div style="font-size: 1.1em; font-weight: 700; color: var(--text-primary);">₦ {{ (transaction.amount_n or 0)|comma2 }}</div>
+            </div>
         </div>
+        
         <div class="mobile-card-row">
             <span class="mobile-card-label">Date:</span>
             <span class="mobile-card-value">{{ transaction.transaction_date|date_format }}</span>
         </div>
+        
         <div class="mobile-card-actions">
-
             {% if session.permissions and session.permissions.is_admin %}
             {% if not transaction.is_paid %}
             <form action="{{ url_for('pay_transaction', transaction_id=transaction.id) }}" 
                   method="POST" 
-                  style="display: inline; flex: 1;"
+                  style="flex: 1;"
                   onsubmit="return confirmPayment({{ transaction.amount_n or 0 }}, {{ transaction.client_balance or 0 }}, '{{ transaction.client_name|replace("'", "\\'") }}', {{ transaction.client_id }});">
-                <button type="submit" class="btn btn-success btn-sm" style="width: 100%;">✔</button>
+                <button type="submit" class="btn btn-success btn-sm" style="width: 100%;"><i class="fas fa-check"></i> Pay</button>
             </form>
             {% else %}
             <form action="{{ url_for('undo_pay_transaction', transaction_id=transaction.id) }}" 
                   method="POST" 
-                  style="display: inline; flex: 1;"
+                  style="flex: 1;"
                   onsubmit="return confirm('Undo payment and restore client balance?');">
-                <button type="submit" class="btn btn-secondary btn-sm" style="width: 100%;">Undo Pay</button>
+                <button type="submit" class="btn btn-secondary btn-sm" style="width: 100%;"><i class="fas fa-undo"></i> Undo</button>
             </form>
             {% endif %}
             {% endif %}
             {% if not transaction.is_paid %}
             <form action="{{ url_for('delete_transaction', transaction_id=transaction.id) }}" 
                   method="POST" 
-                  style="display: inline; flex: 1;"
+                  style="flex: 1;"
                   onsubmit="return confirm('Are you sure you want to delete this transaction?');">
-                <button type="submit" class="btn btn-danger btn-sm" style="width: 100%;">🗑</button>
+                <button type="submit" class="btn btn-danger btn-sm" style="width: 100%;"><i class="fas fa-trash"></i> Delete</button>
             </form>
             {% endif %}
         </div>
@@ -287,19 +282,18 @@
     {% endfor %}
 </div>
 {% else %}
-<p class="empty-state">No transactions yet. <a href="{{ url_for('add_transaction') }}">Add your first transaction</a></p>
+<p class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-muted);">No transactions yet. <a href="{{ url_for('add_transaction') }}" style="color: var(--primary-color);">Add your first transaction</a></p>
 {% endif %}
 
 <!-- Summary and Query Info -->
 {% if transactions %}
-<div class="transaction-summary" style="margin-top: 30px; padding: 20px; background-color: #f5f5f5; border-radius: 5px;">
-    <h3>Transaction Summary</h3>
+<div class="transaction-summary">
+    <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: var(--text-primary);">Transaction Summary</h3>
     
-    <!-- Query Info -->
-    <div style="margin-bottom: 15px; padding: 10px; background-color: white; border-radius: 3px;">
+    <div class="summary-card">
         <strong>Query Results:</strong>
-        <p style="margin: 5px 0;">
-            Total Transactions: <strong id="total-count">{{ transactions|length }}</strong>
+        <p style="margin: 5px 0; color: var(--text-secondary); font-size: 0.9rem;">
+            Total: <strong style="color: var(--text-primary);">{{ transactions|length }}</strong>
             {% if filters.client %}| Client: <strong>{{ filters.client }}</strong>{% endif %}
             {% if filters.country %}| Country: <strong>{{ filters.country }}</strong>{% endif %}
             {% if filters.created_by %}| Created By: <strong>{{ filters.created_by }}</strong>{% endif %}
@@ -308,11 +302,15 @@
         </p>
     </div>
     
-    <!-- Sums -->
-    <div style="padding: 10px; background-color: white; border-radius: 3px; border-left: 4px solid #28a745;">
-        <strong style="font-size: 16px;">Sum Amount:</strong> <span id="sum-amount" style="font-size: 16px; color: #28a745;">{{ (sums['sum_amount'] or 0)|comma2 }}</span>
-        <br>
-        <strong style="font-size: 16px;">Sum Amount N:</strong> <span id="sum-amount-n" style="font-size: 16px; color: #28a745;">{{ (sums['sum_amount_n'] or 0)|comma2 }}</span>
+    <div class="summary-card success">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <strong>Sum Amount:</strong> 
+            <span id="sum-amount" style="font-weight: 700; color: #17ad37;">{{ (sums['sum_amount'] or 0)|comma2 }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+            <strong>Sum Amount N:</strong> 
+            <span id="sum-amount-n" style="font-weight: 700; color: #17ad37;">{{ (sums['sum_amount_n'] or 0)|comma2 }}</span>
+        </div>
     </div>
 </div>
 {% endif %}

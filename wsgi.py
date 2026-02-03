@@ -1,11 +1,4 @@
-from app import app, init_db
+from app import app as application
 
-# Initialize database on startup for WSGI servers
-try:
-    init_db()
-except Exception as e:
-    print(f"Error initializing database: {e}")
-    app.config['STARTUP_ERROR'] = str(e)
-
-# Expose WSGI application object
-application = app
+if __name__ == "__main__":
+    application.run()

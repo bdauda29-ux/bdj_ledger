@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Ledger System{% endblock %}</title>
-    <link href="https://fonts.cdnfonts.com/css/liberation-sans" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ range(1, 100000) | random }}">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
@@ -12,9 +14,10 @@
     <style>
         /* Tom Select Dark Mode/Theme Adjustments if needed */
         .ts-control {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 10px 15px;
+            box-shadow: none;
         }
         .ts-wrapper.single .ts-control {
             box-shadow: none;
@@ -24,63 +27,139 @@
     {% block head %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar">
-        <div class="container">
-            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-                <h1>BDJ Ledger</h1>
-                <span class="navbar-model-text">Model: {{ session.model_name or 'None' }}</span>
-                
-                <div class="font-controls">
-                    <button onclick="changeFontSize(1)" title="Increase Font" class="navbar-font-btn">A+</button>
-                    <button onclick="changeFontSize(-1)" title="Decrease Font" class="navbar-font-btn">A-</button>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">
+                    <i class="fas fa-layer-group"></i>
                 </div>
+                <span class="logo-text">BDJ Ledger</span>
             </div>
 
-            <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">☰</button>
-            <ul class="nav-menu" id="navMenu">
-                <li><a href="{{ url_for('index') }}">Home</a></li>
-                <li><a href="{{ url_for('transactions') }}">Transactions</a></li>
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('index') }}" class="nav-item {% if request.endpoint == 'index' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-th-large"></i></div>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+                <a href="{{ url_for('transactions') }}" class="nav-item {% if request.endpoint == 'transactions' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-exchange-alt"></i></div>
+                    <span class="nav-text">Transactions</span>
+                </a>
                 {% if session.permissions and session.permissions.can_view_clients %}
-                <li><a href="{{ url_for('clients') }}">Clients</a></li>
+                <a href="{{ url_for('clients') }}" class="nav-item {% if request.endpoint == 'clients' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-users"></i></div>
+                    <span class="nav-text">Clients</span>
+                </a>
                 {% endif %}
-                <li><a href="{{ url_for('countries') }}">Countries</a></li>
-                <li><a href="{{ url_for('image_processing') }}">Image Tools</a></li>
-                <li><a href="{{ url_for('pdf_tools') }}">PDF Tools</a></li>
-                <li><a href="{{ url_for('barcode_generator') }}">Barcode Gen</a></li>
-                {% if not session.username %}
-                <li><a href="{{ url_for('login') }}">Login</a></li>
-                {% endif %}
-            </ul>
-        </div>
-    </nav>
-    
-    <main class="container">
-        {% if error %}
-        <div class="alert alert-error">{{ error }}</div>
-        {% endif %}
-        {% if message %}
-        <div class="alert alert-success">{{ message }}</div>
-        {% endif %}
-        
-        {% block content %}{% endblock %}
-    </main>
-    
-    <footer>
-        <div class="container" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;">
-            <p>&copy; 2024 Ledger System. All rights reserved.</p>
-            <ul class="nav-menu" style="display:flex; gap:10px; list-style:none; margin:0; padding:0;">
+                <a href="{{ url_for('countries') }}" class="nav-item {% if request.endpoint == 'countries' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-globe"></i></div>
+                    <span class="nav-text">Countries</span>
+                </a>
+                
+                <div class="nav-divider"></div>
+                
+                <a href="{{ url_for('image_processing') }}" class="nav-item {% if request.endpoint == 'image_processing' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-images"></i></div>
+                    <span class="nav-text">Image Tools</span>
+                </a>
+                <a href="{{ url_for('pdf_tools') }}" class="nav-item {% if request.endpoint == 'pdf_tools' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-file-pdf"></i></div>
+                    <span class="nav-text">PDF Tools</span>
+                </a>
+                <a href="{{ url_for('barcode_generator') }}" class="nav-item {% if request.endpoint == 'barcode_generator' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-barcode"></i></div>
+                    <span class="nav-text">Barcode</span>
+                </a>
+
                 {% if session.permissions and session.permissions.is_admin %}
-                <li><a href="{{ url_for('models') }}">Models</a></li>
-                <li><a href="{{ url_for('wallet_view') }}">Wallet</a></li>
-                <li><a href="{{ url_for('list_users') }}">Users</a></li>
+                <div class="nav-divider"></div>
+                <a href="{{ url_for('wallet_view') }}" class="nav-item {% if request.endpoint == 'wallet_view' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-wallet"></i></div>
+                    <span class="nav-text">Wallet</span>
+                </a>
+                <a href="{{ url_for('models') }}" class="nav-item {% if request.endpoint == 'models' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-cubes"></i></div>
+                    <span class="nav-text">Models</span>
+                </a>
+                <a href="{{ url_for('list_users') }}" class="nav-item {% if request.endpoint == 'list_users' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-user-cog"></i></div>
+                    <span class="nav-text">Users</span>
+                </a>
                 {% endif %}
+            </nav>
+
+            <div class="sidebar-footer">
                 {% if session.username %}
-                <li><a href="{{ url_for('change_password') }}">Change Password</a></li>
-                <li><a href="{{ url_for('logout') }}">Logout ({{ session.username }})</a></li>
+                <a href="{{ url_for('logout') }}" class="nav-item logout">
+                    <div class="nav-icon"><i class="fas fa-sign-out-alt"></i></div>
+                    <span class="nav-text">Logout</span>
+                </a>
+                {% else %}
+                <a href="{{ url_for('login') }}" class="nav-item">
+                    <div class="nav-icon"><i class="fas fa-sign-in-alt"></i></div>
+                    <span class="nav-text">Login</span>
+                </a>
                 {% endif %}
-            </ul>
-        </div>
-    </footer>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <h2 class="page-title">
+                        {% if request.endpoint == 'index' %}Dashboard
+                        {% elif request.endpoint == 'transactions' %}Transactions
+                        {% elif request.endpoint == 'clients' %}Client Management
+                        {% elif request.endpoint == 'countries' %}Countries
+                        {% else %}{{ self.title() }}{% endif %}
+                    </h2>
+                    <span class="current-date">{{ selected_date|default('') }}</span>
+                </div>
+                
+                <div class="header-right">
+                    {% if session.model_name %}
+                    <div class="model-badge">
+                        <i class="fas fa-tag"></i> {{ session.model_name }}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="font-controls">
+                        <button onclick="changeFontSize(1)" title="Increase Font" class="icon-btn"><i class="fas fa-plus"></i></button>
+                        <button onclick="changeFontSize(-1)" title="Decrease Font" class="icon-btn"><i class="fas fa-minus"></i></button>
+                    </div>
+
+                    {% if session.username %}
+                    <div class="user-profile">
+                        <div class="user-avatar">
+                            {{ session.username[0]|upper }}
+                        </div>
+                        <span class="user-name">{{ session.username }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                {% if error %}
+                <div class="alert alert-error">
+                    <i class="fas fa-exclamation-circle"></i> {{ error }}
+                </div>
+                {% endif %}
+                {% if message %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> {{ message }}
+                </div>
+                {% endif %}
+                
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Removed old footer, moved logout to sidebar -->
     
     <script src="{{ url_for('static', filename='main.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
