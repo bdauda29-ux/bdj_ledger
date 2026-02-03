@@ -542,7 +542,7 @@ body {
     color: #555;
 }
 
-/* Analysis Cards */
+/* Analysis Cards - Modern Light Theme */
 .analysis-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -551,19 +551,27 @@ body {
 }
 
 .analysis-card {
-    border-radius: 8px;
+    background: white;
+    border-radius: 12px;
     overflow: hidden;
-    color: white;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    color: #333;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    border: 1px solid rgba(0,0,0,0.03);
     display: flex;
     flex-direction: column;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.analysis-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
 }
 
 .analysis-card .card-content {
-    padding: 20px;
+    padding: 24px;
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     flex: 1;
 }
 
@@ -572,66 +580,72 @@ body {
 }
 
 .analysis-card .card-title {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     text-transform: uppercase;
-    opacity: 0.9;
+    color: #8898aa;
+    font-weight: 600;
     letter-spacing: 0.5px;
     display: block;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .analysis-card .card-number {
-    font-size: 2.2rem;
+    font-size: 2rem;
     font-weight: 700;
+    color: #32325d;
     margin: 0;
     line-height: 1.1;
 }
 
 .analysis-card .card-icon {
-    font-size: 3rem;
-    opacity: 0.3;
+    font-size: 1.5rem;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
     margin-left: 15px;
+    opacity: 1;
 }
 
 .analysis-card .card-link {
-    background: rgba(0,0,0,0.1);
-    color: white;
+    background: transparent;
+    color: #525f7f;
     text-decoration: none;
-    padding: 10px 20px;
-    font-size: 0.9rem;
+    padding: 12px 24px;
+    font-size: 0.85rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: background 0.2s;
+    border-top: 1px solid #f6f9fc;
+    transition: all 0.2s;
+    font-weight: 500;
 }
 
 .analysis-card .card-link:hover {
-    background: rgba(0,0,0,0.2);
+    color: #5e72e4;
+    background: #f6f9fc;
 }
 
-.card-blue {
-    background: #0d6efd; /* Blue */
+.card-blue .card-icon {
+    background: rgba(94, 114, 228, 0.1);
+    color: #5e72e4;
 }
 
-.card-green {
-    background: #198754; /* Green */
-}
-
-.card-orange {
-    background: #ffc107; /* Orange/Yellow */
-    color: #333; /* Dark text for better contrast on yellow */
-}
-
-.card-orange .card-link {
-    color: #333;
-}
-
-.card-orange .card-title {
-    opacity: 0.8;
+.card-green .card-icon {
+    background: rgba(45, 206, 137, 0.1);
+    color: #2dce89;
 }
 
 .card-orange .card-icon {
-    opacity: 0.2;
+    background: rgba(251, 99, 64, 0.1);
+    color: #fb6340;
+}
+
+/* Ensure no conflicts with old styles */
+.card-blue, .card-green, .card-orange {
+    background: white;
 }
 
 /* Mobile Responsive */

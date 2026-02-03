@@ -1282,7 +1282,41 @@ def index():
                 }
             else:
                 today_sums = {'sum_amount': 0, 'sum_amount_n': 0}
-        
+
+        # --- Chart Data Aggregation ---
+        # 1. Transactions per Country
+        sql_country = '''
+            SELECT country_name, COUNT(*) as count 
+            FROM transactions 
+            WHERE model_id = ? AND deleted = 0 
+            GROUP BY country_name 
+            ORDER BY count DESC
+        '''
+        country_rows = conn.execute(sql_country, (mid,)).fetchall()
+        country_data = {}
+        for row in country_rows:
+            # Handle both dict-like and tuple-like rows
+            if isinstance(row, (tuple, list)):
+                country_data[row[0]] = row[1]
+            else:
+                country_data[row['country_name']] = row['count']
+
+        # 2. Transactions per Client
+        sql_client = '''
+            SELECT client_name, COUNT(*) as count 
+            FROM transactions 
+            WHERE model_id = ? AND deleted = 0 
+            GROUP BY client_name 
+            ORDER BY count DESC
+        '''
+        client_rows = conn.execute(sql_client, (mid,)).fetchall()
+        client_data = {}
+        for row in client_rows:
+            if isinstance(row, (tuple, list)):
+                client_data[row[0]] = row[1]
+            else:
+                client_data[row['client_name']] = row['count']
+
         return render_template('index.html', 
                                total_clients=total_clients,
                                total_transactions=total_transactions,
@@ -1292,6 +1326,8 @@ def index():
                                today_sums=today_sums,
                                selected_date=selected_date,
                                wallet=wallet,
+                               country_data=country_data,
+                               client_data=client_data,
                                error=request.args.get('error'),
                                message=request.args.get('message'))
     except Exception as e:

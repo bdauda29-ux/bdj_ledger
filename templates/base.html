@@ -21,6 +21,7 @@
             background-image: none;
         }
     </style>
+    {% block head %}{% endblock %}
 </head>
 <body>
     <nav class="navbar">
@@ -84,6 +85,7 @@
     <script src="{{ url_for('static', filename='main.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    {% block scripts %}{% endblock %}
     <script>
         // Font size control
         function changeFontSize(direction) {
