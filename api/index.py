@@ -11,15 +11,14 @@ os.environ.setdefault('DISABLE_AUTH', '1')
 try:
     from wsgi import application as app
     
-    # Auto-initialize DB if needed (Postgres or SQLite)
-    # This ensures tables exist on Vercel cold start
-    with app.app_context():
-        try:
-            from app import init_db
-            init_db()
-        except Exception as e:
-            print(f"DB Initialization failed: {e}", file=sys.stderr)
-
+    # Auto-initialize SQLite DB if it doesn't exist (for serverless cold starts)
+    if not os.environ.get('POSTGRES_URL'):
+        db_path = os.environ.get('DATABASE')
+        if db_path and not os.path.exists(db_path):
+            print(f"Initializing ephemeral SQLite database at {db_path}...", file=sys.stderr)
+            with app.app_context():
+                from app import init_db
+                init_db()
                 
 except Exception as e:
     # Fallback app to show import errors
