@@ -1435,8 +1435,12 @@ def update_balance(client_id):
                      (client_id, amount, type, balance_before, balance_after, description, current_model_id()))
         conn.commit()
         
+        # Try to get redirect URL from 'next' param, then referrer, then default to clients
         next_url = request.args.get('next')
-        if next_url:
+        if not next_url:
+            next_url = request.referrer
+            
+        if next_url and 'update_balance' not in next_url:
             return redirect(next_url)
         return redirect(url_for('clients'))
     except Exception:
