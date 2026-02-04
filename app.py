@@ -116,7 +116,15 @@ if psycopg2 is not None:
             self.conn = psycopg2.connect(dsn)
             self.conn.autocommit = False
         def _convert_sql(self, sql):
+            # Handle case-insensitive date replacements
+            sql = sql.replace("DATE(?)", "CAST(? AS DATE)")
             sql = sql.replace("date(?)", "CAST(? AS DATE)")
+            # Handle specific column extraction
+            sql = sql.replace("DATE(transaction_date)", "CAST(transaction_date AS DATE)")
+            sql = sql.replace("date(transaction_date)", "CAST(transaction_date AS DATE)")
+            sql = sql.replace("DATE(t.transaction_date)", "CAST(t.transaction_date AS DATE)")
+            sql = sql.replace("date(t.transaction_date)", "CAST(t.transaction_date AS DATE)")
+            
             sql = sql.replace('?', '%s')
             sql = sql.replace("date('now','localtime')", 'CURRENT_DATE')
             sql = sql.replace('date(', 'DATE(')
@@ -1529,6 +1537,8 @@ def index():
     try:
         conn = get_db_connection()
         mid = current_model_id()
+        print(f"DEBUG: Index page - Model ID: {mid}, Postgres: {bool(POSTGRES_URL)}", file=sys.stderr)
+        
         selected_date = request.args.get('date')
         if not selected_date:
             selected_date = (datetime.utcnow() + timedelta(hours=1)).date().strftime('%Y-%m-%d')
@@ -1611,6 +1621,7 @@ def index():
             ORDER BY transaction_date DESC
         '''
         transactions = conn.execute(sql_trans, (mid, selected_date)).fetchall()
+        print(f"DEBUG: Fetched {len(transactions)} transactions for date {selected_date}", file=sys.stderr)
         
         # Today's totals (same date filter)
         sql_sums = '''
