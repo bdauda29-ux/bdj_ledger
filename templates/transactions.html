@@ -315,11 +315,81 @@
 </div>
 {% endif %}
 
-<!-- Add Fund Modal Removed -->
+<!-- Add Fund Modal -->
+<div id="addFundModal" class="modal-overlay">
+    <div class="custom-modal">
+        <div class="modal-header">
+            <h3>Insufficient Balance</h3>
+        </div>
+        <div class="modal-body">
+            <p><strong>Client:</strong> <span id="modalClientName"></span></p>
+            <p><strong>Current Balance:</strong> <span id="modalBalance"></span></p>
+            <p><strong>Transaction Amount:</strong> <span id="modalTxAmount"></span></p>
+            <p class="text-danger"><strong>Needed:</strong> <span id="modalNeeded"></span></p>
+            
+            <div class="form-group mt-3">
+                <label>Amount to Add:</label>
+                <input type="number" id="modalAddAmount" class="form-control" step="0.01">
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-modal-secondary" onclick="handleAddFundNo()">No</button>
+            <button class="btn btn-modal-primary" onclick="handleAddFundYes()">Yes</button>
+        </div>
+    </div>
+</div>
 
 <script>
+    let currentAddFundParams = null;
+
     function confirmPayment(amount, balance, clientName, clientId) {
+        if (balance < amount) {
+            // Check if user suppressed the add fund popup
+            if (localStorage.getItem('suppressAddFundPopup') === 'true') {
+                return false;
+            }
+
+            var needed = amount - balance;
+            
+            // Populate modal
+            document.getElementById('modalClientName').textContent = clientName;
+            document.getElementById('modalBalance').textContent = '₦' + balance.toLocaleString();
+            document.getElementById('modalTxAmount').textContent = '₦' + amount.toLocaleString();
+            document.getElementById('modalNeeded').textContent = '₦' + needed.toLocaleString();
+            document.getElementById('modalAddAmount').value = needed;
+            
+            // Store params for the Yes action
+            currentAddFundParams = {
+                clientId: clientId,
+                needed: needed
+            };
+            
+            // Show modal
+            document.getElementById('addFundModal').classList.add('show');
+            return false;
+        }
         return confirm(`Pay ₦${amount.toLocaleString()} from client balance?`);
+    }
+
+    function handleAddFundYes() {
+        if (!currentAddFundParams) return;
+        
+        var addAmount = document.getElementById('modalAddAmount').value;
+        if (addAmount && addAmount > 0) {
+            var currentUrl = window.location.href;
+            window.location.href = `/clients/${currentAddFundParams.clientId}/update_balance?amount=${addAmount}&type=credit&next=${encodeURIComponent(currentUrl)}&_t=${new Date().getTime()}`;
+        }
+        closeAddFundModal();
+    }
+
+    function handleAddFundNo() {
+        localStorage.setItem('suppressAddFundPopup', 'true');
+        closeAddFundModal();
+    }
+
+    function closeAddFundModal() {
+        document.getElementById('addFundModal').classList.remove('show');
+        currentAddFundParams = null;
     }
 
     // Store original export URLs
