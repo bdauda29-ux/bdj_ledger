@@ -666,3 +666,159 @@ body {
 /* Mobile Card View */
 .mobile-card-view { display: none; }
 .mobile-card { margin-bottom: 1rem; }
+
+/* ------------------------
+   Form Styling Updates 
+   ------------------------ */
+
+/* Form Card Container */
+.form-container {
+    background: var(--bg-card);
+    padding: 2.5rem;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--card-shadow);
+    max-width: 800px;
+    margin: 0 auto;
+    border: 1px solid rgba(0,0,0,0.02);
+}
+
+.form-container h2 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-bottom: 2rem;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+}
+
+/* Form Groups */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600; /* Bolder label like the reference */
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+/* Inputs & Selects */
+.form-group input,
+.form-group select,
+.form-group textarea,
+.form-control {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    font-size: 0.95rem;
+    font-family: var(--font-family);
+    color: var(--text-primary);
+    background-color: #FFFFFF;
+    border: 1px solid #E5E7EB; /* Light gray border */
+    border-radius: var(--radius-md); /* 12px rounding */
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+
+/* Focus State - Active */
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus,
+.form-control:focus {
+    outline: none;
+    border-color: var(--accent-black); /* Dark border on focus */
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.05); /* Soft ring */
+}
+
+/* Custom Select Arrow */
+.form-group select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 1rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+}
+
+/* Readonly / Disabled */
+.readonly-field, input:disabled {
+    background-color: #F9FAFB;
+    color: var(--text-secondary);
+    cursor: not-allowed;
+    border-color: #F3F4F6;
+}
+
+/* Form Actions */
+.form-actions {
+    margin-top: 2.5rem;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.form-actions .btn {
+    padding: 0.85rem 2rem;
+    font-weight: 600;
+    border-radius: var(--radius-pill);
+    font-size: 0.95rem;
+    letter-spacing: 0.3px;
+    transition: all 0.2s;
+}
+
+/* Primary Button - Yellow */
+.btn-primary {
+    background: var(--primary-color);
+    color: var(--accent-black);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: #FBBF24;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(252, 211, 77, 0.4);
+}
+
+/* Secondary Button */
+.btn-secondary {
+    background: white;
+    color: var(--text-primary);
+    border: 1px solid #E5E7EB;
+}
+
+.btn-secondary:hover {
+    background: #F9FAFB;
+    border-color: #D1D5DB;
+}
+
+/* Tom Select Integration overrides */
+.ts-control {
+    border-radius: var(--radius-md) !important;
+    border: 1px solid #E5E7EB !important;
+    padding: 0.85rem 1rem !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
+    font-family: var(--font-family) !important;
+}
+
+.ts-control.focus {
+    border-color: var(--accent-black) !important;
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.ts-dropdown {
+    border-radius: var(--radius-md) !important;
+    box-shadow: var(--hover-shadow) !important;
+    border: 1px solid #E5E7EB !important;
+    padding: 0.5rem !important;
+}
+
+.ts-dropdown .option {
+    border-radius: var(--radius-sm) !important;
+    padding: 0.5rem 1rem !important;
+}
+
+.ts-dropdown .active {
+    background-color: var(--bg-body) !important;
+    color: var(--text-primary) !important;
+}
