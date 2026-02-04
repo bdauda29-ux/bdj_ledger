@@ -552,30 +552,149 @@ body {
 
 /* Search Filter */
 .search-filter-container {
-    background: var(--bg-card);
-    padding: 1.5rem;
-    border-radius: var(--radius-xl);
-    box-shadow: var(--card-shadow);
-    margin-bottom: 2rem;
+    background: transparent;
+    margin-bottom: 1.5rem;
     display: flex;
-    gap: 1rem;
+    gap: 0.75rem;
     align-items: center;
-    flex-wrap: wrap;
-    border: 1px solid white;
 }
 
-.search-input-wrapper input {
-    border-radius: var(--radius-pill);
-    background: #F3F4F6;
-    border: none;
+.search-bar-wrapper {
+    display: flex;
+    width: 100%;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.filter-toggle-wrapper {
+    position: relative;
 }
 
 .filter-toggle-btn {
-    border-radius: 50%;
-    width: 46px;
-    height: 46px;
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    background: white;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-toggle-btn:hover {
+    background: #F9FAFB;
+    color: var(--text-primary);
+    border-color: #D1D5DB;
+}
+
+.search-input-wrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-wrapper .search-icon {
+    position: absolute;
+    left: 1rem;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.search-input-wrapper input {
+    width: 100%;
+    padding: 0.65rem 1rem 0.65rem 2.5rem;
+    border-radius: var(--radius-md); /* Matching border radius */
+    border: 1px solid var(--border-color);
+    background: white;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+
+.search-input-wrapper input:focus {
+    outline: none;
+    border-color: var(--accent-black);
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
+}
+
+/* Filter Dropdown */
+.filter-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 0.5rem;
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--hover-shadow);
+    width: 300px;
+    padding: 1.5rem;
+    z-index: 50;
+    border: 1px solid var(--border-color);
+    display: none;
+}
+
+.filter-dropdown.show {
+    display: block;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.filter-dropdown-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.filter-dropdown-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.close-filter-btn {
+    background: none;
     border: none;
-    background: #F3F4F6;
+    font-size: 1.25rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.filter-group-vertical {
+    margin-bottom: 1rem;
+}
+
+.filter-group-vertical label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 0.35rem;
+    color: var(--text-secondary);
+}
+
+.filter-group-vertical select,
+.filter-group-vertical input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+}
+
+.filter-actions-vertical {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* Modal */
@@ -665,7 +784,75 @@ body {
 
 /* Mobile Card View */
 .mobile-card-view { display: none; }
-.mobile-card { margin-bottom: 1rem; }
+
+.mobile-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    border: 1px solid var(--border-color);
+}
+
+.mobile-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px dashed var(--border-color);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.mobile-card-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.mobile-card-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.mobile-card-value {
+    color: var(--text-primary);
+    font-weight: 500;
+    text-align: right;
+}
+
+.mobile-card-label-sm {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.mobile-card-value-sm {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.mobile-grouped-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.mobile-half-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.mobile-card-actions {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    gap: 0.5rem;
+}
 
 /* ------------------------
    Form Styling Updates 
