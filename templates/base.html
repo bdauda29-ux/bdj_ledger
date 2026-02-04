@@ -109,21 +109,17 @@
             <!-- Top Header -->
             <header class="top-header">
                 <div class="header-left">
-                    <div class="search-bar-wrapper">
-                        <i class="fas fa-search"></i>
-                        <input type="text" class="search-input" placeholder="Search...">
-                        <span style="font-size: 0.8rem; border: 1px solid #E5E7EB; padding: 2px 6px; border-radius: 4px;">⌘+F</span>
-                    </div>
+                    <h2 class="page-title">
+                        {% if request.endpoint == 'index' %}Dashboard
+                        {% elif request.endpoint == 'transactions' %}Transactions
+                        {% elif request.endpoint == 'clients' %}Client Management
+                        {% elif request.endpoint == 'countries' %}Countries
+                        {% else %}{{ self.title() }}{% endif %}
+                    </h2>
+                    <span class="current-date">{{ selected_date|default('') }}</span>
                 </div>
                 
                 <div class="header-right">
-                    <div class="date-filter">
-                        <i class="far fa-calendar"></i>
-                        <span>18 Oct 2024 - 18 Nov 2024</span>
-                        <i class="fas fa-chevron-down" style="font-size: 0.8rem; margin-left: 4px;"></i>
-                    </div>
-                    <button class="btn" style="background: white; border: 1px solid #E5E7EB; color: var(--text-primary); padding: 0.5rem 1rem;"><i class="fas fa-file-export"></i> Export</button>
-
                     {% if session.model_name %}
                     <div class="model-badge">
                         <i class="fas fa-tag"></i> {{ session.model_name }}

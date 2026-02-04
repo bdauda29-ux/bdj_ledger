@@ -9,46 +9,21 @@
         const countryData = {{ country_data | tojson | safe }};
         const clientData = {{ client_data | tojson | safe }};
 
-        // Helper to get Top N items
+        // Helper to get Top N items (to avoid overcrowding chart)
         function getTopN(data, n) {
             const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
             const top = sorted.slice(0, n);
+            const others = sorted.slice(n);
             const result = {};
             top.forEach(([k, v]) => result[k] = v);
+            if (others.length > 0) {
+                // result['Others'] = others.reduce((acc, [k, v]) => acc + v, 0);
+            }
             return result;
         }
 
         const topCountries = getTopN(countryData, 10);
         const topClients = getTopN(clientData, 10);
-
-        // Chart Config
-        const commonOptions = {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: '#111827',
-                    titleColor: '#fff',
-                    bodyColor: '#fff',
-                    padding: 12,
-                    cornerRadius: 8,
-                    displayColors: false
-                }
-            },
-            scales: {
-                y: { 
-                    beginAtZero: true, 
-                    grid: { borderDash: [4, 4], color: '#E5E7EB', drawBorder: false },
-                    ticks: { font: { size: 11, family: "'Poppins', sans-serif" }, color: '#6B7280' }
-                },
-                x: { 
-                    grid: { display: false },
-                    ticks: { font: { size: 11, family: "'Poppins', sans-serif" }, color: '#6B7280' }
-                }
-            },
-            layout: { padding: 0 }
-        };
 
         // Country Chart
         const countryCtx = document.getElementById('countryChart').getContext('2d');
@@ -59,16 +34,80 @@
                 datasets: [{
                     label: 'Transactions',
                     data: Object.values(topCountries),
-                    backgroundColor: '#004D40', // Primary Teal
-                    borderRadius: 4,
-                    barPercentage: 0.5
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 5,
+                    barPercentage: 0.6
                 }]
             },
-            options: commonOptions
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#fff',
+                        titleColor: '#333',
+                        bodyColor: '#666',
+                        borderColor: '#ddd',
+                        borderWidth: 1,
+                        padding: 10
+                    }
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { borderDash: [2, 2], color: '#f0f0f0' },
+                        ticks: { font: { size: 11 } }
+                    },
+                    x: { 
+                        grid: { display: false },
+                        ticks: { font: { size: 11 } }
+                    }
+                }
+            }
         });
 
-        // Client Chart - Removed as not in current design
-
+        // Client Chart
+        const clientCtx = document.getElementById('clientChart').getContext('2d');
+        new Chart(clientCtx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(topClients),
+                datasets: [{
+                    label: 'Transactions',
+                    data: Object.values(topClients),
+                    backgroundColor: '#10b981',
+                    borderRadius: 5,
+                    barPercentage: 0.6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#fff',
+                        titleColor: '#333',
+                        bodyColor: '#666',
+                        borderColor: '#ddd',
+                        borderWidth: 1,
+                        padding: 10
+                    }
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { borderDash: [2, 2], color: '#f0f0f0' },
+                        ticks: { font: { size: 11 } }
+                    },
+                    x: { 
+                        grid: { display: false },
+                        ticks: { font: { size: 11 } }
+                    }
+                }
+            }
+        });
     });
 </script>
 {% endblock %}
@@ -79,160 +118,179 @@
 
 {% block content %}
 <div class="dashboard">
-    <!-- Hero Section: Total Balance -->
-    <div class="card-balance-hero">
-        <div class="balance-info">
-            <h4>Total Balance</h4>
-            <div class="balance-amount">
-                € {{ (total_wallet_balance or total_balance or 0)|comma2 }}
-                <span class="balance-trend"><i class="fas fa-arrow-up"></i> 15.8%</span>
+    <h2>Dashboard</h2>
+    
+    <div class="analysis-cards">
+        {% if session.permissions and session.permissions.is_admin %}
+        <div class="analysis-card card-blue">
+            <div class="card-content">
+                <div class="card-info">
+                    <span class="card-title">TOTAL WALLET BALANCE</span>
+                    <h3 class="card-number">{{ (total_wallet_balance or 0)|comma2 }}</h3>
+                </div>
+                <div class="card-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
             </div>
+            <a href="{{ url_for('wallet_view') }}" class="card-link">View Wallet <i class="fas fa-arrow-right"></i></a>
         </div>
-        <div class="balance-actions">
-            <a href="{{ url_for('add_transaction') }}" class="btn-glass primary"><i class="fas fa-plus"></i> Add</a>
-            <button class="btn-glass"><i class="fas fa-arrow-up"></i> Send</button>
-            <button class="btn-glass"><i class="fas fa-sync"></i> Request</button>
-            <button class="btn-glass" style="padding: 0.6rem;"><i class="fas fa-ellipsis-h"></i></button>
+        {% endif %}
+
+        <div class="analysis-card card-green">
+            <div class="card-content">
+                <div class="card-info">
+                    <span class="card-title">TOTAL TRANSACTIONS</span>
+                    <h3 class="card-number">{{ total_transactions }}</h3>
+                </div>
+                <div class="card-icon">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+            </div>
+            <a href="{{ url_for('transactions') }}" class="card-link">View Transactions <i class="fas fa-arrow-right"></i></a>
+        </div>
+
+        <div class="analysis-card card-orange">
+            <div class="card-content">
+                <div class="card-info">
+                    <span class="card-title">CLIENT'S BALANCE</span>
+                    <h3 class="card-number">{{ (total_balance or 0)|comma2 }}</h3>
+                </div>
+                <div class="card-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+            </div>
+            <a href="{{ url_for('clients') }}" class="card-link">View Clients <i class="fas fa-arrow-right"></i></a>
         </div>
     </div>
 
-    <!-- Stats Grid -->
-    <div class="dashboard-grid">
-        <!-- Main Chart Section -->
-        <div class="chart-card">
+    <!-- Charts Section -->
+    <div class="charts-section" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-bottom: 30px;">
+        <div class="chart-card" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3 style="margin: 0; color: var(--text-primary); font-size: 1.1rem; font-weight: 600;">Cash Flow</h3>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn" style="background: #F3F4F6; padding: 4px 12px; font-size: 0.8rem;">Weekly</button>
-                    <button class="btn" style="background: transparent; padding: 4px 12px; font-size: 0.8rem; color: var(--text-secondary);">Daily</button>
-                </div>
+                <h3 style="margin: 0; color: #333; font-size: 1.1rem;">Transactions per Country</h3>
+                <button class="btn-icon" style="background: none; border: none; color: #888;"><i class="fas fa-ellipsis-h"></i></button>
             </div>
             <div style="height: 300px; position: relative;">
                 <canvas id="countryChart"></canvas>
             </div>
         </div>
 
-        <!-- Side Stats -->
-        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-            <div class="stat-card">
-                <div class="stat-icon-box green">
-                    <i class="fas fa-arrow-down"></i>
-                </div>
-                <div class="stat-details">
-                    <h5>Income</h5>
-                    <h3>€ 12.378,20</h3>
-                    <span class="text-success" style="font-size: 0.8rem; font-weight: 500;"><i class="fas fa-arrow-up"></i> 45.0%</span>
-                </div>
+        <div class="chart-card" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0; color: #333; font-size: 1.1rem;">Transactions per Client</h3>
+                <button class="btn-icon" style="background: none; border: none; color: #888;"><i class="fas fa-ellipsis-h"></i></button>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon-box green">
-                    <i class="fas fa-arrow-up"></i>
-                </div>
-                <div class="stat-details">
-                    <h5>Expense</h5>
-                    <h3>€ 5.788,21</h3>
-                    <span class="text-danger" style="font-size: 0.8rem; font-weight: 500;"><i class="fas fa-arrow-down"></i> 12.5%</span>
-                </div>
+            <div style="height: 300px; position: relative;">
+                <canvas id="clientChart"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- Secondary Stats Row -->
-    <div class="analysis-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
-        <div class="stat-card">
-            <div class="stat-details">
-                <h5 style="display: flex; align-items: center; gap: 8px;"><i class="fas fa-landmark" style="color: var(--primary-teal);"></i> Business account</h5>
-                <h3>€ 8.672,20</h3>
-                <span class="text-success" style="font-size: 0.8rem;">16.0% <i class="fas fa-arrow-up"></i></span>
-            </div>
+    {% if session.permissions and session.permissions.is_admin %}
+    {% if wallet %}
+    <div class="wallet-preview" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #2196f3;">
+        <h3 style="margin-top: 0; color: #1976d2; font-size: 1.1em;">Wallet Overview</h3>
+        <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: center;">
+            {% if (wallet.dollars or 0) != 0 %}<div><strong>GTB $:</strong> ${{ (wallet.dollars or 0)|comma2 }}</div>{% endif %}
+            {% if (wallet.providus_dollars or 0) != 0 %}<div><strong>Providus $:</strong> ${{ (wallet.providus_dollars or 0)|comma2 }}</div>{% endif %}
+            {% if (wallet.naira or 0) != 0 %}<div><strong>GTB N:</strong> {{ (wallet.naira or 0)|comma2 }}</div>{% endif %}
+            {% if (wallet.naira_1 or 0) != 0 %}<div><strong>Access N:</strong> {{ (wallet.naira_1 or 0)|comma2 }}</div>{% endif %}
+            {% if (wallet.taj_naira or 0) != 0 %}<div><strong>Taj N:</strong> {{ (wallet.taj_naira or 0)|comma2 }}</div>{% endif %}
+            {% if (wallet.debt or 0) != 0 %}<div><strong>Debt:</strong> {{ (wallet.debt or 0)|comma2 }}</div>{% endif %}
+            {% if (wallet.unpaid_n or 0) != 0 %}<div><strong>Unpaid Bal:</strong> <span style="font-size: 1.1em; font-weight: bold;">{{ (wallet.unpaid_n or 0)|comma2 }}</span></div>{% endif %}
+            <div><strong>Total (N):</strong> <strong>{{ (((wallet.dollars or 0) * (wallet.rate or 0)) + ((wallet.providus_dollars or 0) * (wallet.rate or 0)) + (wallet.naira_1 or 0) + (wallet.naira or 0) + (wallet.taj_naira or 0) + (wallet.unpaid_n or 0) - (wallet.debt or 0) - (total_balance or 0))|comma2 }}</strong></div>
         </div>
-        <div class="stat-card">
-            <div class="stat-details">
-                <h5 style="display: flex; align-items: center; gap: 8px;"><i class="fas fa-piggy-bank" style="color: var(--primary-teal);"></i> Total Saving</h5>
-                <h3>€ 3.765,35</h3>
-                <span class="text-danger" style="font-size: 0.8rem;">8.2% <i class="fas fa-arrow-down"></i></span>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-details">
-                <h5 style="display: flex; align-items: center; gap: 8px;"><i class="fas fa-file-invoice-dollar" style="color: var(--primary-teal);"></i> Tax Reserve</h5>
-                <h3>€ 14.376,16</h3>
-                <span class="text-success" style="font-size: 0.8rem;">35.2% <i class="fas fa-arrow-up"></i></span>
-            </div>
+        {% if (wallet.rate or 0) != 0 %}<div style="margin-top: 10px;"><strong>Rate:</strong> {{ wallet.rate or 0 }}</div>{% endif %}
+    </div>
+    {% else %}
+    <div class="wallet-preview" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #2196f3;">
+        <h3 style="margin-top: 0; color: #1976d2; font-size: 1.1em;">Wallet Overview</h3>
+        <p style="margin-bottom: 10px;">No wallet data configured.</p>
+        <a href="{{ url_for('wallet_view') }}" class="btn" style="background-color: #1976d2; color: white; padding: 5px 10px; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Setup Wallet</a>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <div class="today-summary" style="margin-top: 20px; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
+        <h3>Totals for {{ selected_date|date_format }}</h3>
+        <div style="padding: 10px; background-color: white; border-radius: 3px; border-left: 4px solid #28a745;">
+            <strong style="font-size: 16px;">Transactions:</strong> <span style="font-size: 16px;">{{ transactions|length }}</span>
+            <br>
+            <strong style="font-size: 16px;">Sum Amount:</strong> <span style="font-size: 16px; color: #28a745;">{{ (today_sums['sum_amount'] or 0)|comma2 }}</span>
+            <br>
+            <strong style="font-size: 16px;">Sum Amount N:</strong> <span style="font-size: 16px; color: #28a745;">{{ (today_sums['sum_amount_n'] or 0)|comma2 }}</span>
         </div>
     </div>
 
-    <!-- Recent Activity / Transactions -->
-    <div class="dashboard-grid">
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h3 style="font-size: 1.1rem; font-weight: 600;">Recent Activity</h3>
-                <div style="display: flex; gap: 10px;">
-                    <button class="icon-btn" style="width: 32px; height: 32px;"><i class="fas fa-filter"></i></button>
-                    <button class="icon-btn" style="width: 32px; height: 32px;"><i class="fas fa-sort"></i></button>
-                </div>
-            </div>
-            
-            {% if transactions %}
-            <div class="table-container" style="border: none; box-shadow: none;">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th style="background: white; padding-left: 0;">Type</th>
-                            <th style="background: white;">Amount</th>
-                            <th style="background: white;">Status</th>
-                            <th style="background: white;">Method</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for transaction in transactions[:5] %}
-                        <tr>
-                            <td style="padding-left: 0;">
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: #F3F4F6; display: flex; align-items: center; justify-content: center; color: var(--primary-teal);">
-                                        <i class="fas fa-arrow-down"></i>
-                                    </div>
-                                    <div>
-                                        <div style="font-weight: 600;">{{ transaction.client_name }}</div>
-                                        <div style="font-size: 0.8rem; color: var(--text-secondary);">{{ transaction.transaction_date|date_format }}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td style="font-weight: 600;">€ {{ (transaction.amount_n or 0)|comma2 }}</td>
-                            <td><span style="background: #DCFCE7; color: #166534; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">Success</span></td>
-                            <td style="color: var(--text-secondary);">Bank Transfer</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <p class="text-muted">No recent transactions.</p>
-            {% endif %}
-        </div>
 
-        <!-- My Cards Section -->
-        <div class="card" style="background: var(--bg-card);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h3 style="font-size: 1.1rem; font-weight: 600;">My Cards</h3>
-                <a href="#" style="font-size: 0.85rem; color: var(--text-secondary); text-decoration: none;">See All <i class="fas fa-arrow-right"></i></a>
+    <h2>Transactions for {{ selected_date|date_format }}</h2>
+    
+    {% if transactions %}
+    <!-- Desktop Table View -->
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>Client Name</th>
+                    <th>Applicant Name</th>
+                    <th>App ID</th>
+                    <th>Country</th>
+                    <th>Amount N</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in transactions %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ transaction.client_name }}</td>
+                    <td>{{ transaction.applicant_name }}</td>
+                    <td>{{ transaction.app_id }}</td>
+                <td>{{ transaction.country_name }}</td>
+                <td><strong>{{ (transaction.amount_n or 0)|comma2 }}</strong></td>
+                <td>{{ transaction.transaction_date|date_format }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Mobile Card View -->
+    <div class="mobile-card-view">
+        {% for transaction in transactions %}
+        <div class="mobile-card">
+            <div class="mobile-card-header">#{{ loop.index }}</div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Client:</span>
+                <span class="mobile-card-value">{{ transaction.client_name }}</span>
             </div>
-            
-            <!-- Credit Card Visual -->
-            <div style="background: linear-gradient(135deg, #004D40 0%, #00695C 100%); border-radius: 16px; padding: 20px; color: white; position: relative; overflow: hidden; height: 200px; display: flex; flex-direction: column; justify-content: space-between;">
-                <div style="position: absolute; right: -20px; bottom: -20px; width: 150px; height: 150px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
-                
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <i class="fab fa-cc-visa" style="font-size: 2rem;"></i>
-                    <span style="font-family: monospace; font-size: 1.1rem;">**** 2104</span>
-                </div>
-                
-                <div>
-                    <div style="font-size: 0.8rem; opacity: 0.8; margin-bottom: 4px;">Balance</div>
-                    <div style="font-size: 1.5rem; font-weight: 600;">€ 4.540,20</div>
-                </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Applicant Name:</span>
+                <span class="mobile-card-value">{{ transaction.applicant_name }}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">App ID:</span>
+                <span class="mobile-card-value">{{ transaction.app_id }}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Country:</span>
+                <span class="mobile-card-value">{{ transaction.country_name }}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Amount N:</span>
+                <span class="mobile-card-value"><strong>{{ transaction.amount_n|comma2 }}</strong></span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Date:</span>
+                <span class="mobile-card-value">{{ transaction.transaction_date|date_format }}</span>
             </div>
         </div>
+        {% endfor %}
     </div>
+    {% else %}
+    <p class="empty-state">No transactions yet. <a href="{{ url_for('add_transaction') }}">Add your first transaction</a></p>
+    {% endif %}
 </div>
 {% endblock %}
+
