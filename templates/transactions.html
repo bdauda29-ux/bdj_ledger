@@ -344,11 +344,6 @@
 
     function confirmPayment(amount, balance, clientName, clientId) {
         if (balance < amount) {
-            // Check if user suppressed the add fund popup
-            if (localStorage.getItem('suppressAddFundPopup') === 'true') {
-                return false;
-            }
-
             var needed = amount - balance;
             
             // Populate modal
@@ -383,7 +378,6 @@
     }
 
     function handleAddFundNo() {
-        localStorage.setItem('suppressAddFundPopup', 'true');
         closeAddFundModal();
     }
 
