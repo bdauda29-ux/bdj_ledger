@@ -373,6 +373,19 @@ def init_db():
             )
         ''')
         cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_wallet_model ON wallet(model_id)')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS assets (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                amount REAL NOT NULL DEFAULT 0.0,
+                type TEXT NOT NULL,
+                currency TEXT NOT NULL,
+                model_id INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
         
         # --- Postgres Migrations (Robust) ---
         print("Checking Postgres schema migrations...", file=sys.stderr)
@@ -658,6 +671,19 @@ def init_db():
                 UNIQUE KEY idx_wallet_model (model_id)
             )
         ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS assets (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                description TEXT,
+                amount DOUBLE NOT NULL DEFAULT 0.0,
+                type VARCHAR(50) NOT NULL,
+                currency VARCHAR(50) NOT NULL,
+                model_id INT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
         
         # Helper to ensure columns exist (Migration)
         def ensure_column(table, column, col_type):
@@ -859,6 +885,21 @@ def init_db():
         'Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Vanuatu','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe'
     ]
     cursor.executemany('INSERT OR IGNORE INTO countries (name, price, continent) VALUES (?, ?, ?)', [(n, 0.0, None) for n in country_names])
+    
+    # --- Assets Table ---
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS assets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT,
+            amount REAL NOT NULL DEFAULT 0.0,
+            type TEXT NOT NULL,
+            currency TEXT NOT NULL,
+            model_id INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
     continent_by_country = {
         'Afghanistan':'Asia','Albania':'Europe','Algeria':'Africa','Andorra':'Europe','Angola':'Africa','Antigua and Barbuda':'North America','Argentina':'South America','Armenia':'Asia','Australia':'Oceania','Austria':'Europe','Azerbaijan':'Asia',
         'Bahamas':'North America','Bahrain':'Asia','Bangladesh':'Asia','Barbados':'North America','Belarus':'Europe','Belgium':'Europe','Belize':'North America','Benin':'Africa','Bhutan':'Asia','Bolivia':'South America','Bosnia and Herzegovina':'Europe','Botswana':'Africa','Brazil':'South America','Brunei':'Asia','Bulgaria':'Europe','Burkina Faso':'Africa','Burundi':'Africa',
@@ -1530,6 +1571,46 @@ def wallet_view():
         import traceback
         traceback.print_exc()
         return redirect(url_for('index', error=f"Error accessing wallet: {str(e)}"))
+
+@app.route('/assets', methods=['GET', 'POST'])
+def assets():
+    if not can('is_admin'):
+        return redirect(url_for('index'))
+    
+    conn = get_db_connection()
+    
+    if request.method == 'POST':
+        name = request.form.get('name')
+        description = request.form.get('description')
+        try:
+            amount = float(request.form.get('amount', 0))
+        except ValueError:
+            amount = 0.0
+        asset_type = request.form.get('type') # 'asset' or 'debt'
+        currency = request.form.get('currency') # 'Naira' or 'Dollar'
+        
+        if name and amount:
+            conn.execute('''
+                INSERT INTO assets (name, description, amount, type, currency, model_id)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (name, description, amount, asset_type, currency, current_model_id()))
+            conn.commit()
+        return redirect(url_for('assets'))
+        
+    assets_list = conn.execute('SELECT * FROM assets WHERE model_id = ? ORDER BY created_at DESC', (current_model_id(),)).fetchall()
+    
+    # Calculate totals
+    total_assets_naira = sum(a['amount'] for a in assets_list if a['type'] == 'asset' and a['currency'] == 'Naira')
+    total_assets_dollar = sum(a['amount'] for a in assets_list if a['type'] == 'asset' and a['currency'] == 'Dollar')
+    total_debts_naira = sum(a['amount'] for a in assets_list if a['type'] == 'debt' and a['currency'] == 'Naira')
+    total_debts_dollar = sum(a['amount'] for a in assets_list if a['type'] == 'debt' and a['currency'] == 'Dollar')
+    
+    return render_template('assets.html', 
+                           assets=assets_list,
+                           total_assets_naira=total_assets_naira,
+                           total_assets_dollar=total_assets_dollar,
+                           total_debts_naira=total_debts_naira,
+                           total_debts_dollar=total_debts_dollar)
 
 @app.route('/')
 def index():

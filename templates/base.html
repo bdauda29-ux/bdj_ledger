@@ -59,6 +59,10 @@
 
                 {% if session.permissions and session.permissions.is_admin %}
                 <div class="nav-divider"></div>
+                <a href="{{ url_for('assets') }}" class="nav-item {% if request.endpoint == 'assets' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-coins"></i></div>
+                    <span class="nav-text">Asset</span>
+                </a>
                 <a href="{{ url_for('wallet_view') }}" class="nav-item {% if request.endpoint == 'wallet_view' %}active{% endif %}">
                     <div class="nav-icon"><i class="fas fa-wallet"></i></div>
                     <span class="nav-text">Wallet</span>

@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Assets - Ledger System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1 class="page-title">Assets & Debts</h1>
+        <p class="text-muted">Manage your assets and debts</p>
+    </div>
+    <div class="header-actions">
+        <button onclick="openAddModal()" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add New
+        </button>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="dashboard-stats" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 2rem;">
+    <div class="stat-card">
+        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10B981;">
+            <i class="fas fa-money-bill-wave"></i>
+        </div>
+        <div class="stat-info">
+            <h3>Total Assets (₦)</h3>
+            <p class="stat-value">₦{{ total_assets_naira|comma2 }}</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10B981;">
+            <i class="fas fa-dollar-sign"></i>
+        </div>
+        <div class="stat-info">
+            <h3>Total Assets ($)</h3>
+            <p class="stat-value">${{ total_assets_dollar|comma2 }}</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #EF4444;">
+            <i class="fas fa-hand-holding-usd"></i>
+        </div>
+        <div class="stat-info">
+            <h3>Total Debts (₦)</h3>
+            <p class="stat-value">₦{{ total_debts_naira|comma2 }}</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #EF4444;">
+            <i class="fas fa-dollar-sign"></i>
+        </div>
+        <div class="stat-info">
+            <h3>Total Debts ($)</h3>
+            <p class="stat-value">${{ total_debts_dollar|comma2 }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- Assets List -->
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Type</th>
+                <th>Currency</th>
+                <th>Amount</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for asset in assets %}
+            <tr>
+                <td>{{ asset.name }}</td>
+                <td>{{ asset.description }}</td>
+                <td>
+                    <span class="badge {% if asset.type == 'asset' %}badge-success{% else %}badge-danger{% endif %}">
+                        {{ asset.type|title }}
+                    </span>
+                </td>
+                <td>{{ asset.currency }}</td>
+                <td class="font-mono">
+                    {% if asset.currency == 'Naira' %}₦{% else %}${% endif %}{{ asset.amount|comma2 }}
+                </td>
+                <td>{{ asset.created_at|date_format }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" class="text-center py-4">No assets or debts found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Add Modal -->
+<div id="addModal" class="modal-overlay">
+    <div class="custom-modal">
+        <div class="modal-header">
+            <h3>Add Asset / Debt</h3>
+            <button onclick="closeAddModal()" class="close-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <form method="POST">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" name="name" class="form-control" required placeholder="e.g. Land, Loan from X">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea name="description" class="form-control" rows="2" placeholder="Optional details"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Type</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="type" value="asset" checked>
+                            <span>Asset</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="type" value="debt">
+                            <span>Debt</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Currency</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="currency" value="Naira" checked>
+                            <span>Naira (₦)</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="currency" value="Dollar">
+                            <span>Dollar ($)</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Amount</label>
+                    <input type="number" name="amount" class="form-control" step="0.01" required>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeAddModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .radio-group {
+        display: flex;
+        gap: 1rem;
+    }
+    .radio-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+    }
+    .badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    .badge-success { background: #d1fae5; color: #065f46; }
+    .badge-danger { background: #fee2e2; color: #991b1b; }
+</style>
+
+<script>
+    function openAddModal() {
+        const modal = document.getElementById('addModal');
+        modal.classList.add('show');
+        modal.style.display = 'flex';
+    }
+
+    function closeAddModal() {
+        const modal = document.getElementById('addModal');
+        modal.classList.remove('show');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
+    
+    // Close on click outside
+    document.getElementById('addModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeAddModal();
+        }
+    });
+</script>
+{% endblock %}
