@@ -172,6 +172,20 @@ def init_schema(pg_conn):
     ''')
     cur.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_wallet_model ON wallet(model_id)')
 
+    # 9. Assets
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS assets (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            amount REAL NOT NULL DEFAULT 0.0,
+            type TEXT NOT NULL,
+            currency TEXT NOT NULL,
+            model_id INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
     print("Schema initialized.")
 
 def migrate_data():
@@ -195,7 +209,8 @@ def migrate_data():
         'transactions',
         'balance_history',
         'deleted_transactions',
-        'wallet'
+        'wallet',
+        'assets'
     ]
 
     cur = pg_conn.cursor()
