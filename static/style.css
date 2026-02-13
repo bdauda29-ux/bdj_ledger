@@ -1,34 +1,35 @@
 :root {
-    /* Shopfy-inspired Palette (Slate Blue) */
-    --bg-body: #FFFFFF;      /* Clean White background */
-    --bg-card: #F8FAFC;      /* Very light slate for cards */
+    /* Flup Dashboard Palette (Green/Mint) */
+    --bg-body: #F9FAFB;      /* Light Gray background */
+    --bg-card: #FFFFFF;      /* White for cards */
     
     /* Typography Colors */
-    --text-primary: #1E293B; /* Slate 800 */
-    --text-secondary: #64748B; /* Slate 500 */
-    --text-muted: #94A3B8;
+    --text-primary: #1F2937; /* Gray 800 */
+    --text-secondary: #6B7280; /* Gray 500 */
+    --text-muted: #9CA3AF;
     
     /* Accents */
-    --primary-color: #3b5d92; /* Slate Blue (from image buttons) */
+    --primary-color: #10B981; /* Emerald Green */
+    --primary-light: #ECFDF5; /* Very Light Green for active bg */
     --primary-text-on-accent: #FFFFFF;
     
-    --accent-black: #3b5d92; /* Active state matches primary */
+    --accent-black: #10B981; /* Active state uses primary green now */
     --accent-blue: #3B82F6;
     --accent-green: #10B981;
     --accent-red: #EF4444;
     
     /* Gradients (Subtle) */
-    --primary-gradient: linear-gradient(135deg, #3b5d92 0%, #2A4365 100%);
+    --primary-gradient: linear-gradient(135deg, #10B981 0%, #059669 100%);
     
     /* Spacing & Shapes */
-    --border-color: #E2E8F0;
-    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-    --hover-shadow: 0 10px 15px -3px rgba(59, 93, 146, 0.15), 0 4px 6px -2px rgba(59, 93, 146, 0.05);
+    --border-color: #E5E7EB;
+    --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --hover-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     
-    --radius-xl: 1.5rem;  /* 24px - Large rounding for cards */
-    --radius-lg: 1rem;    /* 16px */
-    --radius-md: 0.75rem; /* 12px */
-    --radius-sm: 0.5rem;  /* 8px */
+    --radius-xl: 1rem;    /* Standard rounded corners */
+    --radius-lg: 0.75rem; 
+    --radius-md: 0.5rem; 
+    --radius-sm: 0.25rem;
     --radius-pill: 9999px;
     
     --font-family: 'Poppins', sans-serif;
@@ -55,7 +56,7 @@ body {
     min-height: 100vh;
     background-color: var(--bg-body);
     /* Subtle background glow top right */
-    background-image: radial-gradient(circle at 90% 10%, rgba(59, 93, 146, 0.08) 0%, transparent 40%);
+    background-image: radial-gradient(circle at 90% 10%, rgba(16, 185, 129, 0.05) 0%, transparent 40%);
     background-attachment: fixed;
 }
 
@@ -71,7 +72,8 @@ body {
     left: 0;
     z-index: 100;
     overflow-y: auto;
-    /* Removed background color to blend with body */
+    background: white; /* Clean white sidebar */
+    border-right: 1px solid var(--border-color); /* Separation from main content */
 }
 
 .sidebar-header {
@@ -92,7 +94,7 @@ body {
 .logo-icon {
     width: 40px;
     height: 40px;
-    background: var(--accent-black);
+    background: var(--primary-color);
     border-radius: var(--radius-md);
     display: flex;
     align-items: center;
@@ -126,7 +128,7 @@ body {
     display: flex;
     align-items: center;
     padding: 0.85rem 1.25rem;
-    border-radius: var(--radius-pill); /* Pill shape */
+    border-radius: var(--radius-md); /* Slightly less rounded than pill for this theme */
     color: var(--text-secondary);
     text-decoration: none;
     font-weight: 500;
@@ -135,14 +137,18 @@ body {
 }
 
 .nav-item:hover {
-    background-color: rgba(255, 255, 255, 0.6);
+    background-color: #F3F4F6;
     color: var(--text-primary);
 }
 
 .nav-item.active {
-    background-color: var(--accent-black);
-    color: white;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    background-color: var(--primary-light); /* Light Green background */
+    color: var(--primary-color); /* Green text */
+    box-shadow: none; /* Removed heavy shadow */
+}
+
+.nav-item.active .nav-icon {
+    color: var(--primary-color);
 }
 
 .nav-icon {
@@ -192,12 +198,12 @@ body {
 }
 
 .page-title {
-    font-size: 3rem; /* Larger, bolder title */
-    font-weight: 800; /* Extra Bold */
+    font-size: 1.875rem; /* ~30px */
+    font-weight: 700;
     color: var(--text-primary);
     margin-bottom: 0.5rem;
-    letter-spacing: -1.5px; /* Tighter tracking */
-    line-height: 1.1;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
 }
 
 .current-date {
@@ -470,36 +476,36 @@ body {
     outline: none;
     border-color: var(--primary-color);
     background: white;
-    box-shadow: 0 0 0 3px rgba(252, 211, 77, 0.2);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); /* Green ring */
 }
 
 /* Buttons */
 .btn {
-    padding: 0.85rem 2rem;
-    border-radius: var(--radius-pill); /* Pill buttons */
-    font-weight: 700;
-    font-size: 0.95rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md); /* Standard rounded */
+    font-weight: 600;
+    font-size: 0.9rem;
     cursor: pointer;
     border: none;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transition: all 0.2s ease;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     text-decoration: none;
-    letter-spacing: 0.5px;
+    letter-spacing: normal;
 }
 
 .btn-primary {
     background: var(--primary-color);
     color: white;
-    box-shadow: 0 4px 10px rgba(59, 93, 146, 0.2);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .btn-primary:hover {
-    background: #2c4a7c;
-    transform: translateY(-3px);
-    box-shadow: 0 10px 20px -5px rgba(59, 93, 146, 0.4);
+    background: #059669; /* Darker Emerald */
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .btn-secondary {
@@ -1144,7 +1150,7 @@ body {
 
 /* Specific Stat Card Variants (Optional overrides) */
 .stat-card.primary .stat-icon {
-    background: rgba(59, 93, 146, 0.15);
+    background: rgba(16, 185, 129, 0.15); /* Primary Green tint */
     color: var(--primary-color);
 }
 
