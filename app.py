@@ -1644,6 +1644,17 @@ def edit_asset(asset_id):
             
     return render_template('edit_asset.html', asset=asset)
 
+@app.route('/assets/<int:asset_id>/delete', methods=['POST'])
+def delete_asset(asset_id):
+    if not can('is_admin'):
+        return redirect(url_for('index'))
+    
+    conn = get_db_connection()
+    conn.execute('DELETE FROM assets WHERE id = ? AND model_id = ?', (asset_id, current_model_id()))
+    conn.commit()
+    flash('Asset deleted successfully', 'success')
+    return redirect(url_for('assets'))
+
 @app.route('/')
 def index():
     """Home page - shows dashboard"""

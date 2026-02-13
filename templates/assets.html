@@ -15,6 +15,16 @@
     </div>
 </div>
 
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
 <!-- Summary Cards -->
 <div class="dashboard-stats">
     <div class="stat-card success">
@@ -85,9 +95,16 @@
                 </td>
                 <td>{{ asset.created_at|date_format }}</td>
                 <td>
-                    <a href="{{ url_for('edit_asset', asset_id=asset.id) }}" class="btn-icon text-primary" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </a>
+                    <div style="display: flex; gap: 10px;">
+                        <a href="{{ url_for('edit_asset', asset_id=asset.id) }}" class="btn-icon text-primary" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <form action="{{ url_for('delete_asset', asset_id=asset.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this item?');">
+                            <button type="submit" class="text-danger" title="Delete" style="background:none; border:none; cursor:pointer; font-size: 1rem;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             {% else %}

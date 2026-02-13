@@ -192,11 +192,12 @@ body {
 }
 
 .page-title {
-    font-size: 2.5rem; /* Large, thin title */
-    font-weight: 300;
+    font-size: 3rem; /* Larger, bolder title */
+    font-weight: 800; /* Extra Bold */
     color: var(--text-primary);
-    margin-bottom: 0.25rem;
-    letter-spacing: -1px;
+    margin-bottom: 0.5rem;
+    letter-spacing: -1.5px; /* Tighter tracking */
+    line-height: 1.1;
 }
 
 .current-date {
@@ -474,41 +475,46 @@ body {
 
 /* Buttons */
 .btn {
-    padding: 0.85rem 1.75rem;
+    padding: 0.85rem 2rem;
     border-radius: var(--radius-pill); /* Pill buttons */
-    font-weight: 600;
-    font-size: 0.9rem;
+    font-weight: 700;
+    font-size: 0.95rem;
     cursor: pointer;
     border: none;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     text-decoration: none;
+    letter-spacing: 0.5px;
 }
 
 .btn-primary {
     background: var(--primary-color);
-    color: var(--primary-text-on-accent);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    color: white;
+    box-shadow: 0 4px 10px rgba(59, 93, 146, 0.2);
 }
 
 .btn-primary:hover {
-    background: #FBBF24;
-    transform: translateY(-1px);
-    box-shadow: 0 8px 15px rgba(252, 211, 77, 0.2);
+    background: #2c4a7c;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px -5px rgba(59, 93, 146, 0.4);
 }
 
 .btn-secondary {
-    background: white;
+    background: transparent;
     color: var(--text-primary);
-    border: 1px solid #E5E7EB;
+    border: 2px solid #E2E8F0;
+    box-shadow: none;
 }
 
 .btn-secondary:hover {
-    background: #F9FAFB;
-    transform: translateY(-1px);
+    background: white;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.05);
 }
 
 .btn-danger {
@@ -1156,3 +1162,23 @@ body {
     background: rgba(59, 130, 246, 0.1);
     color: var(--accent-blue);
 }
+
+/* Utility Classes */
+.text-primary {
+    color: var(--primary-color) !important;
+}
+
+.text-danger {
+    color: var(--accent-red) !important;
+}
+
+.text-success {
+    color: var(--accent-green) !important;
+}
+
+.alert-danger {
+    background: #FEF2F2;
+    color: #991B1B;
+    border-left: 4px solid #EF4444;
+}
+
