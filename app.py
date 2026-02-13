@@ -2095,7 +2095,7 @@ def transactions():
     conn = get_db_connection()
     # available filter options
     clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
-    countries_list = conn.execute('SELECT name FROM countries ORDER BY name').fetchall()
+    countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
 
     # collect filters from query params
     client = request.args.get('client_name')
