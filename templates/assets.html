@@ -16,9 +16,9 @@
 </div>
 
 <!-- Summary Cards -->
-<div class="dashboard-stats" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 2rem;">
-    <div class="stat-card">
-        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10B981;">
+<div class="dashboard-stats">
+    <div class="stat-card success">
+        <div class="stat-icon">
             <i class="fas fa-money-bill-wave"></i>
         </div>
         <div class="stat-info">
@@ -26,8 +26,8 @@
             <p class="stat-value">₦{{ total_assets_naira|comma2 }}</p>
         </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10B981;">
+    <div class="stat-card success">
+        <div class="stat-icon">
             <i class="fas fa-dollar-sign"></i>
         </div>
         <div class="stat-info">
@@ -35,8 +35,8 @@
             <p class="stat-value">${{ total_assets_dollar|comma2 }}</p>
         </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #EF4444;">
+    <div class="stat-card danger">
+        <div class="stat-icon">
             <i class="fas fa-hand-holding-usd"></i>
         </div>
         <div class="stat-info">
@@ -44,8 +44,8 @@
             <p class="stat-value">₦{{ total_debts_naira|comma2 }}</p>
         </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #EF4444;">
+    <div class="stat-card danger">
+        <div class="stat-icon">
             <i class="fas fa-dollar-sign"></i>
         </div>
         <div class="stat-info">
