@@ -1612,6 +1612,38 @@ def assets():
                            total_debts_naira=total_debts_naira,
                            total_debts_dollar=total_debts_dollar)
 
+@app.route('/assets/<int:asset_id>/edit', methods=['GET', 'POST'])
+def edit_asset(asset_id):
+    if not can('is_admin'):
+        return redirect(url_for('index'))
+        
+    conn = get_db_connection()
+    asset = conn.execute('SELECT * FROM assets WHERE id = ? AND model_id = ?', (asset_id, current_model_id())).fetchone()
+    
+    if not asset:
+        return redirect(url_for('assets'))
+        
+    if request.method == 'POST':
+        name = request.form.get('name')
+        description = request.form.get('description')
+        try:
+            amount = float(request.form.get('amount', 0))
+        except ValueError:
+            amount = 0.0
+        asset_type = request.form.get('type')
+        currency = request.form.get('currency')
+        
+        if name and amount:
+            conn.execute('''
+                UPDATE assets 
+                SET name = ?, description = ?, amount = ?, type = ?, currency = ?
+                WHERE id = ? AND model_id = ?
+            ''', (name, description, amount, asset_type, currency, asset_id, current_model_id()))
+            conn.commit()
+            return redirect(url_for('assets'))
+            
+    return render_template('edit_asset.html', asset=asset)
+
 @app.route('/')
 def index():
     """Home page - shows dashboard"""
