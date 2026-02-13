@@ -1,29 +1,29 @@
 :root {
-    /* Crextio-inspired Palette */
-    --bg-body: #F9F8F4;      /* Warm beige background */
-    --bg-card: #FFFFFF;      /* White cards */
+    /* Shopfy-inspired Palette (Slate Blue) */
+    --bg-body: #FFFFFF;      /* Clean White background */
+    --bg-card: #F8FAFC;      /* Very light slate for cards */
     
     /* Typography Colors */
-    --text-primary: #1F2937; /* Dark Gray/Black */
-    --text-secondary: #6B7280; /* Muted Gray */
-    --text-muted: #9CA3AF;
+    --text-primary: #1E293B; /* Slate 800 */
+    --text-secondary: #64748B; /* Slate 500 */
+    --text-muted: #94A3B8;
     
     /* Accents */
-    --primary-color: #FCD34D; /* Warm Yellow */
-    --primary-text-on-accent: #1F2937;
+    --primary-color: #3b5d92; /* Slate Blue (from image buttons) */
+    --primary-text-on-accent: #FFFFFF;
     
-    --accent-black: #75A415; /* Updated Green for active states */
+    --accent-black: #3b5d92; /* Active state matches primary */
     --accent-blue: #3B82F6;
     --accent-green: #10B981;
     --accent-red: #EF4444;
     
     /* Gradients (Subtle) */
-    --primary-gradient: linear-gradient(135deg, #FCD34D 0%, #FBBF24 100%);
+    --primary-gradient: linear-gradient(135deg, #3b5d92 0%, #2A4365 100%);
     
     /* Spacing & Shapes */
-    --border-color: #F3F4F6;
-    --card-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.03);
-    --hover-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.01);
+    --border-color: #E2E8F0;
+    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    --hover-shadow: 0 10px 15px -3px rgba(59, 93, 146, 0.15), 0 4px 6px -2px rgba(59, 93, 146, 0.05);
     
     --radius-xl: 1.5rem;  /* 24px - Large rounding for cards */
     --radius-lg: 1rem;    /* 16px */
@@ -55,7 +55,7 @@ body {
     min-height: 100vh;
     background-color: var(--bg-body);
     /* Subtle background glow top right */
-    background-image: radial-gradient(circle at 90% 10%, rgba(252, 211, 77, 0.15) 0%, transparent 40%);
+    background-image: radial-gradient(circle at 90% 10%, rgba(59, 93, 146, 0.08) 0%, transparent 40%);
     background-attachment: fixed;
 }
 
@@ -159,7 +159,7 @@ body {
 }
 
 .nav-item.active .nav-icon {
-    color: var(--primary-color); /* Yellow icon on black bg */
+    color: white; /* White icon on blue bg */
 }
 
 .nav-item.logout {
@@ -1024,17 +1024,17 @@ body {
     transition: all 0.2s;
 }
 
-/* Primary Button - Yellow */
+/* Primary Button - Slate Blue */
 .btn-primary {
     background: var(--primary-color);
-    color: var(--accent-black);
+    color: white; /* White text on blue bg */
     border: none;
 }
 
 .btn-primary:hover {
-    background: #FBBF24;
+    background: #2c4a7c; /* Darker slate blue */
     transform: translateY(-2px);
-    box-shadow: 0 10px 15px -3px rgba(252, 211, 77, 0.4);
+    box-shadow: 0 10px 15px -3px rgba(59, 93, 146, 0.4);
 }
 
 /* Secondary Button */
@@ -1138,8 +1138,8 @@ body {
 
 /* Specific Stat Card Variants (Optional overrides) */
 .stat-card.primary .stat-icon {
-    background: rgba(252, 211, 77, 0.2);
-    color: #D97706;
+    background: rgba(59, 93, 146, 0.15);
+    color: var(--primary-color);
 }
 
 .stat-card.success .stat-icon {
