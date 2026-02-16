@@ -3410,11 +3410,17 @@ def barcode_generator():
                     img.save(img_io, 'PNG')
                 
                 elif code_type == 'code128':
-                    # barcode
                     code128 = barcode.get_barcode_class('code128')
-                    # writer=ImageWriter() ensures it returns an image, not SVG
-                    my_barcode = code128(data, writer=ImageWriter())
-                    my_barcode.write(img_io)
+                    writer = ImageWriter()
+                    my_barcode = code128(data, writer=writer)
+                    writer_options = {
+                        "module_width": 0.4,
+                        "module_height": 30.0,
+                        "font_size": 14,
+                        "text_distance": 1,
+                        "quiet_zone": 2.0,
+                    }
+                    my_barcode.write(img_io, options=writer_options)
                 
                 img_io.seek(0)
                 generated_image = base64.b64encode(img_io.getvalue()).decode('utf-8')
