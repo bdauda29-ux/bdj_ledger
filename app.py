@@ -3412,8 +3412,19 @@ def barcode_generator():
                 elif code_type == 'code128':
                     code128 = barcode.get_barcode_class('code128')
                     writer = ImageWriter()
+
+                    # Try to use a Times-style font if it exists on this system,
+                    # otherwise fall back to the library default so it never crashes.
                     try:
-                        writer.font_path = r"C:\Windows\Fonts\times.ttf"
+                        font_candidates = [
+                            r"C:\Windows\Fonts\times.ttf",
+                            r"C:\Windows\Fonts\Times.ttf",
+                            r"C:\Windows\Fonts\timesi.ttf",
+                        ]
+                        for fpath in font_candidates:
+                            if os.path.exists(fpath):
+                                writer.font_path = fpath
+                                break
                     except Exception:
                         pass
 
