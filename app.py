@@ -3412,15 +3412,27 @@ def barcode_generator():
                 elif code_type == 'code128':
                     code128 = barcode.get_barcode_class('code128')
                     writer = ImageWriter()
-                    my_barcode = code128(data, writer=writer)
+                    try:
+                        writer.font_path = r"C:\Windows\Fonts\times.ttf"
+                    except Exception:
+                        pass
+
                     writer_options = {
-                        "module_width": 0.4,
-                        "module_height": 30.0,
-                        "font_size": 14,
-                        "text_distance": 1,
+                        "module_width": 0.35,
+                        "module_height": 40.0,
+                        "font_size": 18,
+                        "text_distance": 2,
                         "quiet_zone": 2.0,
                     }
-                    my_barcode.write(img_io, options=writer_options)
+
+                    tmp_io = io.BytesIO()
+                    my_barcode = code128(data, writer=writer)
+                    my_barcode.write(tmp_io, options=writer_options)
+                    tmp_io.seek(0)
+                    img = Image.open(tmp_io)
+                    img = img.convert("RGB")
+                    img = img.resize((509, 88), resample=Image.Resampling.NEAREST)
+                    img.save(img_io, format="PNG")
                 
                 img_io.seek(0)
                 generated_image = base64.b64encode(img_io.getvalue()).decode('utf-8')
