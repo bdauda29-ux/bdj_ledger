@@ -441,6 +441,7 @@
     const submitBtn = document.getElementById('submitBtn');
     
     // Form Elements
+    const clientSelect = document.getElementById('client_name');
     const countrySelect = document.getElementById('country_name');
     const serviceTypeSelect = document.getElementById('service_type');
     const rateInput = document.getElementById('rate');
@@ -483,6 +484,20 @@
             filterCountries();
         }
         
+        // Reset selects (and Tom Select UI if present)
+        if (clientSelect) {
+            clientSelect.value = "";
+            if (clientSelect.tomselect) {
+                clientSelect.tomselect.clear();
+            }
+        }
+        if (countrySelect) {
+            countrySelect.value = "";
+            if (countrySelect.tomselect) {
+                countrySelect.tomselect.clear();
+            }
+        }
+
         transactionModal.classList.add('show');
     }
 
@@ -493,38 +508,71 @@
         const id = btn.dataset.id;
         transactionForm.action = `/transactions/${id}/edit`;
         
-        // Populate fields
-        document.getElementById('client_name').value = btn.dataset.client;
-        document.getElementById('service_type').value = btn.dataset.service || 'eVisa';
-        document.getElementById('applicant_name').value = btn.dataset.applicant || '';
+        // Helper to safely get value
+        const getVal = (key) => {
+            return (btn.getAttribute('data-' + key) || '').trim();
+        };
+
+        // Populate Client
+        const clientVal = getVal('client');
+        if (clientSelect) {
+            clientSelect.value = clientVal;
+            if (clientSelect.value !== clientVal) {
+                const match = Array.from(clientSelect.options).find(opt => opt.value.toLowerCase() === clientVal.toLowerCase());
+                if (match) {
+                    clientSelect.value = match.value;
+                }
+            }
+            if (clientSelect.tomselect) {
+                const finalClientVal = clientSelect.value || null;
+                clientSelect.tomselect.setValue(finalClientVal, true);
+            }
+        }
+
+        document.getElementById('service_type').value = getVal('service') || 'eVisa';
+        document.getElementById('applicant_name').value = getVal('applicant');
         document.getElementById('app_id').value = btn.dataset.appId;
-        document.getElementById('country_name').value = btn.dataset.country;
-        document.getElementById('rate').value = btn.dataset.rate;
-        document.getElementById('add').value = btn.dataset.add;
-        document.getElementById('email_link').value = btn.dataset.link || '';
+        document.getElementById('email_link').value = getVal('link');
         
-        const dateStr = btn.dataset.date;
+        // Handle Rate/Add/Date
+        document.getElementById('rate').value = getVal('rate');
+        document.getElementById('add').value = getVal('add');
+        
+        const dateStr = getVal('date');
         if (dateStr && dateStr !== 'None') {
              document.getElementById('transaction_date').value = dateStr.slice(0, 10);
         } else {
              document.getElementById('transaction_date').value = '';
         }
         
-        // Trigger filter and calculation
+        // Handle Country
+        const countryVal = getVal('country');
+        
+        // Trigger filter first (based on service type)
         filterCountries();
         
-        // Manually set country again because filterCountries might have reset it
-        // Check if country exists in filtered list
-        const countryVal = btn.dataset.country;
-        const exists = Array.from(countrySelect.options).some(opt => opt.value === countryVal);
-        if (!exists) {
-            // Re-add if missing (e.g. inconsistent data)
-            const originalOption = allCountryOptions.find(opt => opt.text === countryVal);
-            if (originalOption) {
-                countrySelect.add(originalOption.cloneNode(true));
+        if (countrySelect) {
+            const exists = Array.from(countrySelect.options).some(opt => opt.value === countryVal);
+            if (!exists && countryVal) {
+                const originalOption = allCountryOptions.find(opt => opt.text === countryVal);
+                if (originalOption) {
+                    countrySelect.add(originalOption.cloneNode(true));
+                    countrySelect.value = countryVal;
+                }
+            } else {
+                countrySelect.value = countryVal;
+            }
+
+            if (countrySelect.tomselect) {
+                countrySelect.tomselect.sync();
+                const finalCountryVal = countrySelect.value || null;
+                if (finalCountryVal) {
+                    countrySelect.tomselect.setValue(finalCountryVal, true);
+                } else {
+                    countrySelect.tomselect.clear();
+                }
             }
         }
-        countrySelect.value = countryVal;
         
         calculateAmounts();
         
@@ -576,7 +624,18 @@
                 countrySelect.value = "";
             }
         }
-        
+
+        // Sync Tom Select UI if present
+        if (countrySelect.tomselect) {
+            countrySelect.tomselect.sync();
+            const val = countrySelect.value || null;
+            if (val) {
+                countrySelect.tomselect.setValue(val, true);
+            } else {
+                countrySelect.tomselect.clear();
+            }
+        }
+
         calculateAmounts();
     }
 
