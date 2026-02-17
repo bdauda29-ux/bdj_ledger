@@ -3471,7 +3471,16 @@ def barcode_generator():
                             font = None
 
                     if font is not None:
-                        tw, th = draw.textsize(data, font=font)
+                        try:
+                            bbox = draw.textbbox((0, 0), data, font=font)
+                            tw = bbox[2] - bbox[0]
+                            th = bbox[3] - bbox[1]
+                        except Exception:
+                            try:
+                                tw, th = font.getsize(data)
+                            except Exception:
+                                tw = len(data) * text_height * 0.6
+                                th = text_height
                         text_x = (target_w - tw) // 2
                         text_y = target_h - padding_bottom - th
                         draw.text((text_x, text_y), data, font=font, fill="black")
