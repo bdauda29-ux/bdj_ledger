@@ -3410,40 +3410,73 @@ def barcode_generator():
                     img.save(img_io, 'PNG')
                 
                 elif code_type == 'code128':
+                    # Generate bars only (no text) using python-barcode
+                    from PIL import ImageDraw, ImageFont
+
                     code128 = barcode.get_barcode_class('code128')
                     writer = ImageWriter()
-
-                    # Try to use a Times-style font if it exists on this system,
-                    # otherwise fall back to the library default so it never crashes.
-                    try:
-                        font_candidates = [
-                            r"C:\Windows\Fonts\times.ttf",
-                            r"C:\Windows\Fonts\Times.ttf",
-                            r"C:\Windows\Fonts\timesi.ttf",
-                        ]
-                        for fpath in font_candidates:
-                            if os.path.exists(fpath):
-                                writer.font_path = fpath
-                                break
-                    except Exception:
-                        pass
-
                     writer_options = {
                         "module_width": 0.35,
-                        "module_height": 40.0,
-                        "font_size": 18,
-                        "text_distance": 2,
+                        "module_height": 55.0,
                         "quiet_zone": 2.0,
+                        "write_text": False,
                     }
 
                     tmp_io = io.BytesIO()
                     my_barcode = code128(data, writer=writer)
                     my_barcode.write(tmp_io, options=writer_options)
                     tmp_io.seek(0)
-                    img = Image.open(tmp_io)
-                    img = img.convert("RGB")
-                    img = img.resize((509, 88), resample=Image.Resampling.NEAREST)
-                    img.save(img_io, format="PNG")
+                    bars_img = Image.open(tmp_io).convert("RGB")
+
+                    # Target canvas: 509x88
+                    target_w, target_h = 509, 88
+                    text_height = 11
+                    padding_top = 4
+                    padding_bottom = 4
+                    bar_area_h = max(1, target_h - text_height - padding_top - padding_bottom)
+
+                    # Scale bars to fit width and bar area height, preserving aspect ratio
+                    orig_w, orig_h = bars_img.size
+                    scale = min(target_w / orig_w, bar_area_h / orig_h)
+                    new_w = max(1, int(orig_w * scale))
+                    new_h = max(1, int(orig_h * scale))
+                    bars_resized = bars_img.resize((new_w, new_h), resample=Image.Resampling.LANCZOS)
+
+                    canvas = Image.new("RGB", (target_w, target_h), "white")
+                    paste_x = (target_w - new_w) // 2
+                    paste_y = padding_top
+                    canvas.paste(bars_resized, (paste_x, paste_y))
+
+                    # Draw human-readable text with precise font height
+                    draw = ImageDraw.Draw(canvas)
+                    font = None
+                    try:
+                        font_candidates = [
+                            r"C:\Windows\Fonts\times.ttf",
+                            r"C:\Windows\Fonts\Times.ttf",
+                            r"C:\Windows\Fonts\timesi.ttf",
+                        ]
+                            # pick first existing font
+                        for fpath in font_candidates:
+                            if os.path.exists(fpath):
+                                font = ImageFont.truetype(fpath, text_height)
+                                break
+                    except Exception:
+                        font = None
+
+                    if font is None:
+                        try:
+                            font = ImageFont.load_default()
+                        except Exception:
+                            font = None
+
+                    if font is not None:
+                        tw, th = draw.textsize(data, font=font)
+                        text_x = (target_w - tw) // 2
+                        text_y = target_h - padding_bottom - th
+                        draw.text((text_x, text_y), data, font=font, fill="black")
+
+                    canvas.save(img_io, format="PNG")
                 
                 img_io.seek(0)
                 generated_image = base64.b64encode(img_io.getvalue()).decode('utf-8')
