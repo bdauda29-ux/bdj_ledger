@@ -3428,8 +3428,8 @@ def barcode_generator():
                     tmp_io.seek(0)
                     bars_img = Image.open(tmp_io).convert("RGB")
 
-                    # Target canvas: 509x88
-                    target_w, target_h = 509, 88
+                    # Target canvas: match sample image size (≈501x109)
+                    target_w, target_h = 501, 109
                     text_height = 11
                     padding_top = 4
                     padding_bottom = 4
