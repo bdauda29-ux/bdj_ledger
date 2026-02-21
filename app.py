@@ -66,6 +66,8 @@ app = Flask(__name__, static_url_path='/static', static_folder='static')
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.secret_key = os.getenv('SECRET_KEY', 'change-this-secret-key')
+# Session expiry: default 30 minutes, override with SESSION_TIMEOUT_MINUTES env var
+app.permanent_session_lifetime = timedelta(minutes=int(os.getenv('SESSION_TIMEOUT_MINUTES', '30')))
 DATABASE = os.getenv('DATABASE', 'ledger.db')
 POSTGRES_URL = (
     os.getenv('POSTGRES_URL')
@@ -1221,6 +1223,7 @@ def login():
                     'can_view_clients': bool(pv('can_view_clients', 1)),
                     'is_admin': bool(pv('is_admin', 0))
                 }
+                session.permanent = True
                 return redirect(url_for('models'))
         return render_template('login.html', error='Invalid credentials')
     return render_template('login.html')
