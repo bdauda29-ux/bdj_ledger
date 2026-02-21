@@ -1167,11 +1167,12 @@ def login_required():
 
 @app.before_request
 def require_login():
-    allowed = {'/login', '/logout'}
+    allowed = {'/login', '/logout', '/forgot'}
     path = request.path
     if path.startswith('/static/'):
         return
-    if path in allowed or path.startswith('/models'):
+    # Allow unauthenticated access to password reset routes
+    if path in allowed or path.startswith('/reset/'):
         return
     # Allow disabling auth/model requirement for serverless testing environments
     if os.getenv('DISABLE_AUTH', '0') == '1':
