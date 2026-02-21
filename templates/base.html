@@ -22,6 +22,7 @@
                 <span class="logo-text">BDJ Ledger</span>
             </div>
 
+            {% if session.get('user_id') %}
             <nav class="sidebar-nav">
                 <a href="{{ url_for('index') }}" class="nav-item {% if request.endpoint == 'index' %}active{% endif %}">
                     <div class="nav-icon"><i class="fas fa-th-large"></i></div>
@@ -77,6 +78,7 @@
                 </a>
                 {% endif %}
             </nav>
+            {% endif %}
 
             <div class="sidebar-footer">
                 {% if session.username %}
@@ -95,6 +97,7 @@
 
         <!-- Main Content Area -->
         <main class="main-content">
+            {% if session.get('user_id') %}
             <!-- Top Header -->
             <header class="top-header">
                 <div class="header-left">
@@ -130,6 +133,7 @@
                     {% endif %}
                 </div>
             </header>
+            {% endif %}
 
             <div class="content-wrapper">
                 {% if error %}
@@ -245,7 +249,7 @@
                                 setTimeout(function() { window.location.href = link.href; }, 120);
                             }
                         });
-                    } catch (_) {}
+                    } catch (e) {}
                 });
             }
         });
@@ -254,9 +258,6 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register("{{ url_for('static', filename='sw.js') }}")
-                    .then(registration => {
-                        console.log('ServiceWorker registration successful');
-                    })
                     .catch(err => {
                         console.log('ServiceWorker registration failed: ', err);
                     });
