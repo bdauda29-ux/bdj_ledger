@@ -1178,15 +1178,9 @@ def require_login():
         return
     # Allow disabling auth/model requirement for serverless testing environments
     if os.getenv('DISABLE_AUTH', '0') == '1':
-        if not session.get('model_id'):
-            conn = get_db_connection()
-            m = conn.execute('SELECT id, name FROM models WHERE name = ?', ('Default',)).fetchone()
-            if not m:
-                conn.execute('INSERT INTO models (name) VALUES (?)', ('Default',))
-                conn.commit()
-                m = conn.execute('SELECT id, name FROM models WHERE name = ?', ('Default',)).fetchone()
-            session['model_id'] = m['id']
-            session['model_name'] = m['name']
+        # Skip login enforcement but still require explicit model selection
+        if not session.get('model_id') and not path.startswith('/models'):
+            return redirect(url_for('models'))
         return
     if not login_required():
         return redirect(url_for('login'))
