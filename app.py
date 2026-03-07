@@ -1200,7 +1200,7 @@ def require_login():
     if os.getenv('DISABLE_AUTH', '0') == '1':
         # Skip login enforcement but still require explicit model selection
         if not session.get('model_id') and not path.startswith('/models'):
-            return redirect(url_for('models'))
+            return redirect(url_for('login'))
         return
     if not login_required():
         return redirect(url_for('login'))
