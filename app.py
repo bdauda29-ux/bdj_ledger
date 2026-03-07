@@ -1075,6 +1075,22 @@ def init_db():
         cursor.execute('ALTER TABLE users ADD COLUMN email TEXT')
     except sqlite3.OperationalError:
         pass
+    try:
+        cursor.execute('ALTER TABLE users ADD COLUMN surname TEXT')
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute('ALTER TABLE users ADD COLUMN passport_number TEXT')
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute('ALTER TABLE users ADD COLUMN passport_expiry TEXT')
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute('ALTER TABLE users ADD COLUMN nationality TEXT')
+    except sqlite3.OperationalError:
+        pass
     for col, default in [
         ('can_edit_client', 1),
         ('can_delete_client', 1),
@@ -1169,7 +1185,7 @@ def login_required():
 
 @app.before_request
 def require_login():
-    allowed = {'/login', '/logout', '/forgot'}
+    allowed = {'/login', '/logout', '/forgot', '/register'}
     path = request.path
     if path.startswith('/static/'):
         return
@@ -1193,6 +1209,38 @@ def current_model_id():
 def can(permission):
     perms = session.get('permissions', {})
     return bool(perms.get(permission)) or bool(perms.get('is_admin'))
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form.get('username','').strip()
+        password = request.form.get('password','')
+        surname = request.form.get('surname','')
+        passport_number = request.form.get('passport_number','')
+        passport_expiry = request.form.get('passport_expiry','')
+        nationality = request.form.get('nationality','')
+        
+        if not username or not password:
+            return render_template('register.html', error='Username and password required')
+            
+        conn = get_db_connection()
+        try:
+            # Hash password
+            pw_hash = hashlib.sha256(password.encode()).hexdigest()
+            # Insert user with basic permissions
+            conn.execute('''
+                INSERT INTO users (username, password_hash, surname, passport_number, passport_expiry, nationality, 
+                                   is_admin, can_edit_client, can_delete_client, can_add_transaction, can_edit_transaction, can_delete_transaction, can_view_clients)
+                VALUES (?, ?, ?, ?, ?, ?, 0, 1, 0, 1, 0, 0, 1)
+            ''', (username, pw_hash, surname, passport_number, passport_expiry, nationality))
+            conn.commit()
+            return redirect(url_for('login'))
+        except Exception as e:
+            if 'unique' in str(e).lower() or isinstance(e, sqlite3.IntegrityError):
+                return render_template('register.html', error='Username already exists')
+            return render_template('register.html', error=f'Error creating account: {str(e)}')
+            
+    return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -3622,3 +3670,11 @@ def pdf_tools():
             return f"Error processing PDF: {str(e)}"
 
     return render_template('pdf_tools.html')
+
+# Ensure database is initialized
+try:
+    with app.app_context():
+        init_db()
+except Exception as e:
+    print(f"Warning: Database initialization failed: {e}", file=sys.stderr)
+
