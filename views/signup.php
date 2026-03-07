@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Login</title>
+<title>Sign Up</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -41,21 +41,22 @@ input:focus{border-color:var(--ring);box-shadow:0 0 0 3px rgba(79,70,229,.25)}
 <body>
 <div class="wrap">
   <div class="card">
-    <h1>Login</h1>
+    <h1>Create Account</h1>
     <?php if (isset($error)): ?>
         <div class="error"><?= htmlspecialchars($error) ?></div>
     <?php endif; ?>
-    <form method="post" action="/login">
+    <form method="post" action="/signup">
+      <label>Full Name</label>
+      <input type="text" name="name" required>
       <label>Email</label>
       <input type="email" name="email" required>
       <label>Password</label>
       <input type="password" name="password" required>
       <div class="row">
-        <a class="link" href="/signup">Create account</a>
-        <button class="btn" type="submit">Sign in</button>
+        <a class="link" href="/login">Already have an account?</a>
+        <button class="btn" type="submit">Sign Up</button>
       </div>
     </form>
-    <div class="hint">Already registered? Use your email and password.</div>
   </div>
 </div>
 </body>
