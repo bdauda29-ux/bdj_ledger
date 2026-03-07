@@ -1206,7 +1206,7 @@ def require_login():
         return redirect(url_for('login'))
     # Require model selection for app routes
     if not session.get('model_id') and not path.startswith('/models'):
-        return redirect(url_for('models'))
+        return redirect(url_for('login'))
 
 def current_model_id():
     return session.get('model_id')
