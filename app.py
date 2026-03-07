@@ -431,7 +431,11 @@ def init_db():
             ('countries', 'continent', 'TEXT'),
             ('deleted_transactions', 'email_link', 'TEXT'),
             ('deleted_transactions', 'created_by', 'TEXT'),
-            ('users', 'can_view_clients', 'INTEGER DEFAULT 1')
+            ('users', 'can_view_clients', 'INTEGER DEFAULT 1'),
+            ('users', 'surname', 'TEXT'),
+            ('users', 'passport_number', 'TEXT'),
+            ('users', 'passport_expiry', 'TEXT'),
+            ('users', 'nationality', 'TEXT')
         ]
 
         for table, col, dtype in required_columns:
