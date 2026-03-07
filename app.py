@@ -1270,6 +1270,14 @@ def login():
                     'is_admin': bool(pv('is_admin', 0))
                 }
                 session.permanent = True
+                
+                # Auto-select model if only one exists
+                models = conn.execute('SELECT id, name FROM models').fetchall()
+                if len(models) == 1:
+                    session['model_id'] = models[0]['id']
+                    session['model_name'] = models[0]['name']
+                    return redirect(url_for('index'))
+                
                 return redirect(url_for('models'))
         return render_template('login.html', error='Invalid credentials')
     return render_template('login.html')
@@ -1369,6 +1377,14 @@ def add_model():
         try:
             conn.execute('INSERT INTO models (name) VALUES (?)', (name,))
             conn.commit()
+            
+            # Auto-select the newly created model
+            new_model = conn.execute('SELECT id, name FROM models WHERE name = ?', (name,)).fetchone()
+            if new_model:
+                session['model_id'] = new_model['id']
+                session['model_name'] = new_model['name']
+                return redirect(url_for('index'))
+            
             return redirect(url_for('models'))
         except Exception as e:
             if 'unique' in str(e).lower() or isinstance(e, sqlite3.IntegrityError):
