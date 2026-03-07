@@ -3,52 +3,212 @@
 {% block title %}Add User - Ledger System{% endblock %}
 
 {% block content %}
+<style>
+    /* Jetstream-inspired Styling */
+    :root {
+        --primary: #111827;
+        --primary-hover: #1f2937;
+        --ring: #4f46e5;
+        --bg-body: #f8fafc;
+        --card-bg: #ffffff;
+        --border-color: #e5e7eb;
+        --text-primary: #0f172a;
+    }
+    
+    .form-container h2 {
+        font-family: 'Inter', system-ui, sans-serif;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    label {
+        display: block;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        font-family: 'Inter', system-ui, sans-serif;
+    }
+    
+    input[type="text"],
+    input[type="password"],
+    input[type="date"],
+    select {
+        width: 100%;
+        padding: 0.7rem 0.8rem;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 1rem;
+        color: var(--text-primary);
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    
+    input:focus, select:focus {
+        border-color: var(--ring);
+        outline: none;
+        box-shadow: 0 0 0 1px var(--ring);
+    }
+    
+    /* Permissions Grid */
+    .permissions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+        background: #f9fafb;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        cursor: pointer;
+        font-weight: 400;
+        margin-bottom: 0;
+    }
+    
+    input[type="checkbox"] {
+        width: 1.25rem;
+        height: 1.25rem;
+        border-radius: 4px;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        accent-color: var(--ring);
+    }
+    
+    /* Buttons */
+    .btn {
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        border-radius: 6px;
+        transition: all 0.2s;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+    }
+    
+    .btn-primary {
+        background-color: var(--primary);
+        border-color: var(--primary);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: var(--primary-hover);
+        border-color: var(--primary-hover);
+    }
+    
+    .btn-secondary {
+        background-color: white;
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        margin-left: 1rem;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #f3f4f6;
+    }
+</style>
+
 <div class="form-container">
     <h2>Add User</h2>
     {% if error %}
     <div class="alert alert-error">{{ error }}</div>
     {% endif %}
     <form method="POST" class="form">
+        <!-- Account Info -->
         <div class="form-group">
             <label for="username">Username</label>
             <input type="text" name="username" id="username" required>
         </div>
+        
         <div class="form-group">
             <label for="password">Password</label>
             <input type="password" name="password" id="password" required>
         </div>
+
+        <!-- Personal Info -->
         <div class="form-group">
-            <label class="checkbox-label">
-                <input type="checkbox" name="is_admin" style="width: auto; margin: 0;"> 
-                <strong>Is Admin</strong>
-            </label>
+            <label for="surname">Surname</label>
+            <input type="text" name="surname" id="surname" placeholder="e.g. Doe">
         </div>
+
+        <div class="form-group">
+            <label for="passport_number">Passport Number</label>
+            <input type="text" name="passport_number" id="passport_number" placeholder="A12345678">
+        </div>
+
+        <div class="form-group">
+            <label for="passport_expiry">Passport Expiry Date</label>
+            <input type="date" name="passport_expiry" id="passport_expiry">
+        </div>
+
+        <div class="form-group">
+            <label for="nationality">Nationality</label>
+            <select name="nationality" id="nationality">
+                <option value="" disabled selected>Select nationality</option>
+                <option value="NG">Nigeria</option>
+                <option value="US">United States</option>
+                <option value="UK">United Kingdom</option>
+                <option value="CA">Canada</option>
+                <option value="GH">Ghana</option>
+                <option value="ZA">South Africa</option>
+                <option value="KE">Kenya</option>
+                <option value="AE">UAE</option>
+                <option value="CN">China</option>
+                <option value="IN">India</option>
+            </select>
+        </div>
+
+        <!-- Roles & Permissions -->
+        <div class="form-group" style="margin-top: 2rem;">
+            <label class="checkbox-label" style="font-weight: 600; color: var(--text-primary);">
+                <input type="checkbox" name="is_admin"> 
+                Make this user an Admin
+            </label>
+            <p style="font-size: 0.8rem; color: #64748b; margin-top: 0.25rem; margin-left: 2rem;">Admins have full access to all settings and user management.</p>
+        </div>
+
         <div class="form-group">
             <label style="margin-bottom: 10px; display: block;">Permissions</label>
             <div class="permissions-grid">
-                <label class="checkbox-label" style="gap: 8px;">
-                    <input type="checkbox" name="can_view_clients" checked style="width: auto; margin: 0;"> View Clients
+                <label class="checkbox-label">
+                    <input type="checkbox" name="can_view_clients" checked> View Clients
                 </label>
-                <label class="checkbox-label" style="gap: 8px;">
-                    <input type="checkbox" name="can_edit_client" checked style="width: auto; margin: 0;"> Edit Client
+                <label class="checkbox-label">
+                    <input type="checkbox" name="can_edit_client" checked> Edit Client
                 </label>
-                <label class="checkbox-label" style="gap: 8px;">
-                    <input type="checkbox" name="can_delete_client" checked style="width: auto; margin: 0;"> Delete Client
+                <label class="checkbox-label">
+                    <input type="checkbox" name="can_delete_client" checked> Delete Client
                 </label>
-                <label class="checkbox-label" style="gap: 8px;">
-                    <input type="checkbox" name="can_add_transaction" checked style="width: auto; margin: 0;"> Add Transaction
+                <label class="checkbox-label">
+                    <input type="checkbox" name="can_add_transaction" checked> Add Transaction
                 </label>
-                <label class="checkbox-label" style="gap: 8px;">
-                    <input type="checkbox" name="can_edit_transaction" checked style="width: auto; margin: 0;"> Edit Transaction
+                <label class="checkbox-label">
+                    <input type="checkbox" name="can_edit_transaction" checked> Edit Transaction
                 </label>
-                <label class="checkbox-label" style="gap: 8px;">
-                    <input type="checkbox" name="can_delete_transaction" checked style="width: auto; margin: 0;"> Delete Transaction
+                <label class="checkbox-label">
+                    <input type="checkbox" name="can_delete_transaction" checked> Delete Transaction
                 </label>
             </div>
         </div>
+
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Create</button>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Create User</button>
             <a class="btn btn-secondary" href="{{ url_for('list_users') }}">Cancel</a>
         </div>
     </form>
+</div>
 {% endblock %}
