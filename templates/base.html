@@ -15,75 +15,66 @@
 </head>
 <body>
     <div class="app-container">
-        {% if session.get('user_id') %}
-        <!-- Sidebar Navigation (FractionAcre Style) -->
-        <aside class="sidebar">
-            <div class="sidebar-brand">
-                <img src="{{ url_for('static', filename='logo.svg') }}" alt="Logo" class="logo-image">
-                <span class="logo-text">Ledger</span>
+        <!-- Top Navigation Bar -->
+        <nav class="top-navbar">
+            <div class="navbar-brand">
+                <img src="{{ url_for('static', filename='logo.svg') }}" alt="BDJ Ledger" class="logo-image">
+                <span class="logo-text">Finux</span>
             </div>
-            
-            <nav class="sidebar-nav">
-                <a href="{{ url_for('index') }}" class="nav-item {% if request.endpoint == 'index' %}active{% endif %}">
-                    <i class="fas fa-home nav-icon"></i> Dashboard
-                </a>
-                <a href="{{ url_for('transactions') }}" class="nav-item {% if request.endpoint == 'transactions' %}active{% endif %}">
-                    <i class="fas fa-exchange-alt nav-icon"></i> Transactions
-                </a>
+
+            {% if session.get('user_id') %}
+            <div class="navbar-links">
+                <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">Dashboard</a>
+                <a href="{{ url_for('transactions') }}" class="nav-link {% if request.endpoint == 'transactions' %}active{% endif %}">Transactions</a>
                 
                 {% if session.permissions and session.permissions.can_view_clients %}
-                <a href="{{ url_for('clients') }}" class="nav-item {% if request.endpoint == 'clients' %}active{% endif %}">
-                    <i class="fas fa-users nav-icon"></i> Clients
-                </a>
+                <a href="{{ url_for('clients') }}" class="nav-link {% if request.endpoint == 'clients' %}active{% endif %}">Clients</a>
                 {% endif %}
                 
-                <a href="{{ url_for('countries') }}" class="nav-item {% if request.endpoint == 'countries' %}active{% endif %}">
-                    <i class="fas fa-globe nav-icon"></i> Countries
-                </a>
+                <a href="{{ url_for('countries') }}" class="nav-link {% if request.endpoint == 'countries' %}active{% endif %}">Countries</a>
                 
-                <!-- Tools Group -->
-                <div style="margin-top: 1rem; padding-left: 1rem; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Tools</div>
-                <a href="{{ url_for('image_processing') }}" class="nav-item {% if request.endpoint == 'image_processing' %}active{% endif %}">
-                    <i class="fas fa-image nav-icon"></i> Image Tools
-                </a>
-                <a href="{{ url_for('pdf_tools') }}" class="nav-item {% if request.endpoint == 'pdf_tools' %}active{% endif %}">
-                    <i class="fas fa-file-pdf nav-icon"></i> PDF Tools
-                </a>
-                <a href="{{ url_for('barcode_generator') }}" class="nav-item {% if request.endpoint == 'barcode_generator' %}active{% endif %}">
-                    <i class="fas fa-barcode nav-icon"></i> Barcode
-                </a>
+                <div class="nav-dropdown">
+                    <span class="nav-link dropdown-toggle">Tools</span>
+                    <div class="dropdown-menu">
+                        <a href="{{ url_for('image_processing') }}" class="dropdown-item">Image Tools</a>
+                        <a href="{{ url_for('pdf_tools') }}" class="dropdown-item">PDF Tools</a>
+                        <a href="{{ url_for('barcode_generator') }}" class="dropdown-item">Barcode</a>
+                    </div>
+                </div>
 
                 {% if session.permissions and session.permissions.is_admin %}
-                <div style="margin-top: 1rem; padding-left: 1rem; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Admin</div>
-                <a href="{{ url_for('assets') }}" class="nav-item {% if request.endpoint == 'assets' %}active{% endif %}">
-                    <i class="fas fa-boxes nav-icon"></i> Assets
-                </a>
-                <a href="{{ url_for('wallet_view') }}" class="nav-item {% if request.endpoint == 'wallet_view' %}active{% endif %}">
-                    <i class="fas fa-wallet nav-icon"></i> Wallet
-                </a>
-                <a href="{{ url_for('models') }}" class="nav-item {% if request.endpoint == 'models' %}active{% endif %}">
-                    <i class="fas fa-layer-group nav-icon"></i> Models
-                </a>
-                <a href="{{ url_for('list_users') }}" class="nav-item {% if request.endpoint == 'list_users' %}active{% endif %}">
-                    <i class="fas fa-user-cog nav-icon"></i> Users
-                </a>
+                <div class="nav-dropdown">
+                    <span class="nav-link dropdown-toggle">Admin</span>
+                    <div class="dropdown-menu">
+                        <a href="{{ url_for('assets') }}" class="dropdown-item">Assets</a>
+                        <a href="{{ url_for('wallet_view') }}" class="dropdown-item">Wallet</a>
+                        <a href="{{ url_for('models') }}" class="dropdown-item">Models</a>
+                        <a href="{{ url_for('list_users') }}" class="dropdown-item">Users</a>
+                    </div>
+                </div>
                 {% endif %}
-            </nav>
+            </div>
 
-            <div class="sidebar-footer">
-                <div class="user-profile-sidebar" onclick="window.location.href='{{ url_for('logout') }}'" title="Click to logout">
+            <div class="navbar-actions">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search here">
+                </div>
+                
+                <div class="action-icons">
+                    <button class="icon-btn"><i class="fas fa-bell"></i></button>
+                    <button class="icon-btn"><i class="fas fa-cog"></i></button>
+                </div>
+
+                <div class="user-profile">
                     <div class="user-avatar">
                         {% if session.username %}{{ session.username[0]|upper }}{% else %}U{% endif %}
                     </div>
-                    <div class="user-info">
-                        <div class="user-name">{{ session.username }}</div>
-                        <div class="user-email">Logged in</div>
-                    </div>
-                    <i class="fas fa-sign-out-alt logout-icon"></i>
+                    <a href="{{ url_for('logout') }}" class="logout-btn" title="Logout"><i class="fas fa-sign-out-alt"></i></a>
                 </div>
             </div>
-        </aside>
-        {% endif %}
+            {% endif %}
+        </nav>
 
         <!-- Main Content Area -->
         <main class="main-content">
@@ -98,40 +89,162 @@
                         {% elif request.endpoint == 'countries' %}Countries
                         {% else %}{{ self.title() }}{% endif %}
                     </h2>
+                    <span class="current-date">{{ selected_date|default('') }}</span>
                 </div>
                 
-                <div class="header-actions">
-                    <button class="btn btn-outline"><i class="fas fa-bell"></i></button>
-                    <button class="btn btn-outline"><i class="fas fa-cog"></i></button>
+                <div class="header-right">
                     {% if session.model_name %}
-                    <span class="status-badge status-success">
+                    <div class="model-badge">
                         <i class="fas fa-tag"></i> {{ session.model_name }}
-                    </span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="font-controls">
+                        <button onclick="changeFontSize(1)" title="Increase Font" class="icon-btn"><i class="fas fa-plus"></i></button>
+                        <button onclick="changeFontSize(-1)" title="Decrease Font" class="icon-btn"><i class="fas fa-minus"></i></button>
+                    </div>
+
+                    {% if session.username %}
+                    <div class="user-profile">
+                        <div class="user-avatar">
+                            {{ session.username[0]|upper }}
+                        </div>
+                        <span class="user-name">{{ session.username }}</span>
+                    </div>
                     {% endif %}
                 </div>
             </header>
             {% endif %}
 
-            <!-- Flash Messages -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}" style="margin-bottom: 1.5rem; padding: 1rem; border-radius: var(--radius-md); background: {% if category == 'error' %}var(--status-failed-bg){% else %}var(--status-success-bg){% endif %}; color: {% if category == 'error' %}var(--status-failed-text){% else %}var(--status-success-text){% endif %}; border: 1px solid {% if category == 'error' %}#fecaca{% else %}#a7f3d0{% endif %};">
-                            {{ message }}
-                        </div>
-                    {% endfor %}
+            <div class="content-wrapper">
+                {% if error %}
+                <div class="alert alert-error">
+                    <i class="fas fa-exclamation-circle"></i> {{ error }}
+                </div>
                 {% endif %}
-            {% endwith %}
-
-            <!-- Page Content -->
-            <div class="content-card">
+                {% if message %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> {{ message }}
+                </div>
+                {% endif %}
+                
                 {% block content %}{% endblock %}
             </div>
         </main>
     </div>
 
+    <!-- Removed old footer, moved logout to sidebar -->
+    
+    <script src="{{ url_for('static', filename='main.js') }}?v=1"></script>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     {% block scripts %}{% endblock %}
+    <script>
+        // Font size control
+        function changeFontSize(direction) {
+            const html = document.documentElement;
+            const style = window.getComputedStyle(html, null).getPropertyValue('font-size');
+            let currentSize = parseFloat(style);
+            
+            // Default 16px if not set
+            if (!currentSize) currentSize = 16;
+            
+            if (direction === 1) {
+                currentSize += 1;
+            } else {
+                currentSize -= 1;
+            }
+            
+            // Limits (12px to 24px)
+            if (currentSize < 12) currentSize = 12;
+            if (currentSize > 24) currentSize = 24;
+            
+            html.style.fontSize = currentSize + 'px';
+            localStorage.setItem('preferred-font-size', currentSize);
+        }
+
+        // Apply saved font size on load
+        (function() {
+            const savedSize = localStorage.getItem('preferred-font-size');
+            if (savedSize) {
+                document.documentElement.style.fontSize = savedSize + 'px';
+            }
+        })();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('select').forEach(function(el) {
+                if (el.tomselect) return;
+                new TomSelect(el, {
+                    create: false,
+                    sortField: {
+                        field: "text",
+                        direction: "asc"
+                    }
+                });
+            });
+        });
+    </script>
+    <script>
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menuToggle');
+        const navMenu = document.getElementById('navMenu');
+        
+        if (menuToggle && navMenu) {
+            menuToggle.addEventListener('click', function() {
+                navMenu.classList.toggle('active');
+            });
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', function(event) {
+                if (window.innerWidth <= 768) {
+                    if (!event.target.closest('.navbar')) {
+                        navMenu.classList.remove('active');
+                    }
+                }
+            });
+        }
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var main = document.querySelector('main.container');
+            var navMenuEl = document.getElementById('navMenu');
+            if (main) {
+                main.style.opacity = '0';
+                main.style.transition = 'opacity 150ms ease-in';
+                requestAnimationFrame(function() { main.style.opacity = '1'; });
+            }
+            if (navMenuEl) {
+                var links = navMenuEl.querySelectorAll('a');
+                var path = window.location.pathname;
+                links.forEach(function(link) {
+                    try {
+                        var linkPath = new URL(link.href, window.location.origin).pathname;
+                        if (linkPath === path) {
+                            link.classList.add('active');
+                        }
+                        link.addEventListener('click', function(e) {
+                            if (main) {
+                                e.preventDefault();
+                                navMenuEl.classList.remove('active');
+                                main.style.opacity = '0';
+                                setTimeout(function() { window.location.href = link.href; }, 120);
+                            }
+                        });
+                    } catch (e) {}
+                });
+            }
+        });
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register("{{ url_for('static', filename='sw.js') }}")
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>
+

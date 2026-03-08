@@ -8,14 +8,49 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=1">
+<style>
+/* Login specific overrides if needed, otherwise rely on style.css */
+.wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+.login-card {
+    width: 100%;
+    max-width: 400px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--card-shadow);
+    padding: 2.5rem;
+}
+.login-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+.login-header h1 {
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+.footer-row {
+    margin-top: 2rem;
+}
+.btn-login {
+    width: 100%;
+}
+</style>
 </head>
 <body>
-<div class="auth-wrapper">
-  <div class="auth-card">
-    <div class="auth-header">
-        <img src="{{ url_for('static', filename='logo.svg') }}" alt="Logo" class="auth-logo">
+<div class="app-container wrap">
+  <div class="login-card">
+    <div class="login-header">
+        <img src="{{ url_for('static', filename='logo.svg') }}" alt="Logo" style="width: 48px; height: 48px; margin-bottom: 1rem; border-radius: var(--radius-md);">
         <h1>Welcome Back</h1>
-        <p class="auth-subtitle">Sign in to your account</p>
+        <p style="color: var(--text-secondary);">Sign in to your account</p>
     </div>
 
     {% if error %}
@@ -40,11 +75,8 @@
           <input type="password" name="password" class="form-control" required placeholder="Enter your password">
       </div>
       
-      <div class="auth-footer-row auth-footer-col">
-        <button class="btn btn-primary btn-full-width" type="submit">Log in</button>
-        <div class="auth-footer-link-wrapper">
-            <a href="{{ url_for('forgot_password') }}" class="auth-link">Forgot Password?</a>
-        </div>
+      <div class="footer-row">
+        <button class="btn btn-primary btn-login" type="submit">Log in</button>
       </div>
     </form>
   </div>
