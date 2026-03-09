@@ -70,15 +70,48 @@ body {
     left: 0;
     z-index: 100;
     overflow-y: auto;
+    overflow-x: hidden;
     background: white; /* Clean white sidebar */
     border-right: 1px solid var(--border-color); /* Separation from main content */
+    transition: width 0.3s ease, padding 0.3s ease;
 }
 
 .sidebar-header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     padding: 0.5rem 0.5rem;
     margin-bottom: 3rem;
+    width: 100%;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: opacity 0.2s ease, width 0.2s ease;
+}
+
+.sidebar-toggle {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    transition: all 0.2s;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.sidebar-toggle:hover {
+    background: var(--bg-body);
+    color: var(--primary-color);
 }
 
 .logo-image {
@@ -184,6 +217,7 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    transition: margin-left 0.3s ease;
 }
 
 /* Top Header */
@@ -1184,5 +1218,50 @@ body {
     background: #FEF2F2;
     color: #991B1B;
     border-left: 4px solid #EF4444;
+}
+
+/* --- Collapsible Sidebar Styles --- */
+
+.app-container.sidebar-collapsed .sidebar {
+    width: 80px;
+    padding: 2rem 0.75rem;
+}
+
+.app-container.sidebar-collapsed .main-content {
+    margin-left: 80px;
+}
+
+.app-container.sidebar-collapsed .logo-container {
+    display: none;
+}
+
+.app-container.sidebar-collapsed .sidebar-header {
+    justify-content: center;
+    padding: 0;
+    margin-bottom: 2rem;
+}
+
+.app-container.sidebar-collapsed .sidebar-toggle {
+    margin: 0;
+    width: 100%;
+    height: 40px;
+}
+
+.app-container.sidebar-collapsed .nav-text {
+    display: none;
+}
+
+.app-container.sidebar-collapsed .nav-item {
+    justify-content: center;
+    padding: 0.85rem 0;
+}
+
+.app-container.sidebar-collapsed .nav-icon {
+    margin-right: 0;
+    font-size: 1.25rem;
+}
+
+.app-container.sidebar-collapsed .nav-divider {
+    margin: 1.5rem 0.5rem;
 }
 
