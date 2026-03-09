@@ -1658,12 +1658,17 @@ def assets():
     total_debts_naira = sum(a['amount'] for a in assets_list if a['type'] == 'debt' and a['currency'] == 'Naira')
     total_debts_dollar = sum(a['amount'] for a in assets_list if a['type'] == 'debt' and a['currency'] == 'Dollar')
     
+    grand_total_naira = total_assets_naira - total_debts_naira
+    grand_total_dollar = total_assets_dollar - total_debts_dollar
+    
     return render_template('assets.html', 
                            assets=assets_list,
                            total_assets_naira=total_assets_naira,
                            total_assets_dollar=total_assets_dollar,
                            total_debts_naira=total_debts_naira,
-                           total_debts_dollar=total_debts_dollar)
+                           total_debts_dollar=total_debts_dollar,
+                           grand_total_naira=grand_total_naira,
+                           grand_total_dollar=grand_total_dollar)
 
 @app.route('/assets/<int:asset_id>/edit', methods=['GET', 'POST'])
 def edit_asset(asset_id):
