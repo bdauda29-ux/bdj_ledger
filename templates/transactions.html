@@ -454,6 +454,31 @@
     let allCountryOptions = []; 
     
     document.addEventListener('DOMContentLoaded', function() {
+        // Filter Toggle Logic
+        const filterToggleBtn = document.getElementById('filterToggleBtn');
+        const filterDropdown = document.getElementById('filterDropdown');
+        const closeFilterBtn = document.getElementById('closeFilterBtn');
+
+        if (filterToggleBtn && filterDropdown) {
+            filterToggleBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                filterDropdown.classList.toggle('show');
+            });
+
+            // Close when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!filterDropdown.contains(e.target) && !filterToggleBtn.contains(e.target)) {
+                    filterDropdown.classList.remove('show');
+                }
+            });
+
+            if (closeFilterBtn) {
+                closeFilterBtn.addEventListener('click', function() {
+                    filterDropdown.classList.remove('show');
+                });
+            }
+        }
+
         // Initialize country options after DOM load
         if (countrySelect) {
             allCountryOptions = Array.from(countrySelect.options).slice(1);
@@ -467,38 +492,47 @@
     });
 
     function openAddModal() {
-        transactionForm.reset();
-        modalTitle.textContent = "Add Transaction";
-        submitBtn.textContent = "Add Transaction";
-        transactionForm.action = "{{ url_for('add_transaction') }}";
-        
-        // Set default date to today
-        const dateInput = document.getElementById('transaction_date');
-        if (dateInput) {
-            dateInput.value = new Date().toISOString().slice(0, 10);
-        }
-        
-        // Reset filter
-        if (serviceTypeSelect) {
-            serviceTypeSelect.value = "eVisa";
-            filterCountries();
-        }
-        
-        // Reset selects (and Tom Select UI if present)
-        if (clientSelect) {
-            clientSelect.value = "";
-            if (clientSelect.tomselect) {
-                clientSelect.tomselect.clear();
+        try {
+            if (!transactionForm || !modalTitle || !submitBtn || !transactionModal) {
+                console.error("Modal elements not found");
+                return;
             }
-        }
-        if (countrySelect) {
-            countrySelect.value = "";
-            if (countrySelect.tomselect) {
-                countrySelect.tomselect.clear();
+            transactionForm.reset();
+            modalTitle.textContent = "Add Transaction";
+            submitBtn.textContent = "Add Transaction";
+            transactionForm.action = "{{ url_for('add_transaction') }}";
+            
+            // Set default date to today
+            const dateInput = document.getElementById('transaction_date');
+            if (dateInput) {
+                dateInput.value = new Date().toISOString().slice(0, 10);
             }
-        }
+            
+            // Reset filter
+            if (serviceTypeSelect) {
+                serviceTypeSelect.value = "eVisa";
+                filterCountries();
+            }
+            
+            // Reset selects (and Tom Select UI if present)
+            if (clientSelect) {
+                clientSelect.value = "";
+                if (clientSelect.tomselect) {
+                    clientSelect.tomselect.clear();
+                }
+            }
+            if (countrySelect) {
+                countrySelect.value = "";
+                if (countrySelect.tomselect) {
+                    countrySelect.tomselect.clear();
+                }
+            }
 
-        transactionModal.classList.add('show');
+            transactionModal.classList.add('show');
+        } catch (e) {
+            console.error("Error opening modal:", e);
+            alert("Error opening modal. Please check console.");
+        }
     }
 
     function openEditModal(btn) {
