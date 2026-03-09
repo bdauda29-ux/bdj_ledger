@@ -14,6 +14,7 @@
     --primary-light: #E5E7EB; /* Gray 200 */
     --primary-text-on-accent: #FFFFFF;
     
+    --accent-black: #111827; /* Added missing variable */
     --accent-blue: #4F46E5;  /* Indigo 600 (Focus ring) */
     --accent-green: #10B981; /* Emerald 500 */
     --accent-red: #EF4444;   /* Red 500 */

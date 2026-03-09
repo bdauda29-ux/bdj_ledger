@@ -112,7 +112,6 @@
                 <th class="text-right">Amount</th>
                 <th class="text-right">Amount N</th>
                 <th style="white-space: nowrap;">Date</th>
-                <th>Created By</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -164,7 +163,6 @@
                 <td class="text-right">$ {{ (transaction.amount or 0)|comma2 }}</td>
                 <td class="text-right"><strong>{{ (transaction.amount_n or 0)|comma2 }}</strong></td>
                 <td style="white-space: nowrap;">{{ transaction.transaction_date|date_format }}</td>
-                <td>{{ transaction.created_by or 'System' }}</td>
                 <td class="action-cell">
                     {% if session.permissions and session.permissions.is_admin %}
                     {% if not transaction.is_paid %}
@@ -242,14 +240,11 @@
                     data-service="{{ transaction.service_type }}"
                     data-date="{{ transaction.transaction_date }}"
                     style="color: inherit;">{{ transaction.app_id }}</a>
-                {% if transaction.email_link %}
-                <a href="{{ transaction.email_link }}" target="_blank" class="btn btn-primary btn-sm" style="padding: 1px 6px; font-size: 10px; margin-left: 5px;"><i class="fas fa-link"></i></a>
-                {% endif %}
             </span>
         </div>
 
         <div class="mobile-card-row" style="background-color: #f8f9fa; padding: 6px; border-radius: 4px; margin: 8px 0;">
-            <span class="mobile-card-value-sm" style="width: 100%; text-align: center;">{{ transaction.country_name }} • {{ (transaction.country_price or 0)|comma2 }}</span>
+            <span class="mobile-card-value-sm" style="width: 100%; text-align: center;">{{ transaction.country_name }}</span>
         </div>
 
         <div class="mobile-grouped-row">
