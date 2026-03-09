@@ -3,7 +3,125 @@
 {% block title %}Models - Ledger System{% endblock %}
 
 {% block content %}
-<div class="page-header" style="margin-bottom: 2rem;">
+<style>
+    /* Jetstream-inspired Styling for Models Page */
+    :root {
+        --primary: #111827; /* Dark navy/black button */
+        --primary-hover: #1f2937;
+        --ring: #4f46e5; /* Indigo focus ring */
+        --bg-body: #f8fafc;
+        --card-bg: #ffffff;
+        --border-color: #e5e7eb;
+        --text-primary: #0f172a;
+        --text-muted: #64748b;
+    }
+    
+    .page-header h2 {
+        font-family: 'Inter', system-ui, sans-serif;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    /* Buttons */
+    .btn {
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        transition: all 0.2s;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    
+    .btn-primary {
+        background-color: var(--primary);
+        border-color: var(--primary);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: var(--primary-hover);
+        border-color: var(--primary-hover);
+    }
+    
+    .btn-secondary {
+        background-color: white;
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+    }
+    
+    .btn-secondary:hover {
+        background-color: #f3f4f6;
+    }
+    
+    .btn-danger {
+        background-color: #ef4444;
+        border-color: #ef4444;
+        color: white;
+    }
+    
+    .btn-danger:hover {
+        background-color: #dc2626;
+        border-color: #dc2626;
+    }
+    
+    /* Tables */
+    .table-container {
+        border-radius: 8px;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+    }
+    
+    .data-table thead th {
+        background-color: #f9fafb;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        padding: 0.75rem 1rem;
+    }
+    
+    .data-table tbody td {
+        padding: 0.75rem 1rem;
+        color: var(--text-primary);
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+    }
+    
+    /* Alerts */
+    .alert {
+        border-radius: 6px;
+        font-size: 0.875rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid transparent;
+    }
+    
+    .alert-success {
+        background-color: #ecfdf5;
+        color: #065f46;
+        border-color: #d1fae5;
+    }
+    
+    /* Inputs */
+    input[type="text"] {
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        padding: 0.5rem;
+        font-size: 0.875rem;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    
+    input[type="text"]:focus {
+        border-color: var(--ring);
+        outline: none;
+        box-shadow: 0 0 0 1px var(--ring);
+    }
+</style>
+
+<div class="page-header">
     <h2>Models</h2>
     <a href="{{ url_for('add_model') }}" class="btn btn-primary">Create New Model</a>
 </div>

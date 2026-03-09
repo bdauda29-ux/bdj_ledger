@@ -15,66 +15,85 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Top Navigation Bar -->
-        <nav class="top-navbar">
-            <div class="navbar-brand">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
                 <img src="{{ url_for('static', filename='logo.svg') }}" alt="BDJ Ledger" class="logo-image">
-                <span class="logo-text">Finux</span>
+                <span class="logo-text">BDJ Ledger</span>
             </div>
 
             {% if session.get('user_id') %}
-            <div class="navbar-links">
-                <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">Dashboard</a>
-                <a href="{{ url_for('transactions') }}" class="nav-link {% if request.endpoint == 'transactions' %}active{% endif %}">Transactions</a>
-                
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('index') }}" class="nav-item {% if request.endpoint == 'index' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-th-large"></i></div>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+                <a href="{{ url_for('transactions') }}" class="nav-item {% if request.endpoint == 'transactions' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-exchange-alt"></i></div>
+                    <span class="nav-text">Transactions</span>
+                </a>
                 {% if session.permissions and session.permissions.can_view_clients %}
-                <a href="{{ url_for('clients') }}" class="nav-link {% if request.endpoint == 'clients' %}active{% endif %}">Clients</a>
+                <a href="{{ url_for('clients') }}" class="nav-item {% if request.endpoint == 'clients' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-users"></i></div>
+                    <span class="nav-text">Clients</span>
+                </a>
                 {% endif %}
+                <a href="{{ url_for('countries') }}" class="nav-item {% if request.endpoint == 'countries' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-globe"></i></div>
+                    <span class="nav-text">Countries</span>
+                </a>
                 
-                <a href="{{ url_for('countries') }}" class="nav-link {% if request.endpoint == 'countries' %}active{% endif %}">Countries</a>
+                <div class="nav-divider"></div>
                 
-                <div class="nav-dropdown">
-                    <span class="nav-link dropdown-toggle">Tools</span>
-                    <div class="dropdown-menu">
-                        <a href="{{ url_for('image_processing') }}" class="dropdown-item">Image Tools</a>
-                        <a href="{{ url_for('pdf_tools') }}" class="dropdown-item">PDF Tools</a>
-                        <a href="{{ url_for('barcode_generator') }}" class="dropdown-item">Barcode</a>
-                    </div>
-                </div>
+                <a href="{{ url_for('image_processing') }}" class="nav-item {% if request.endpoint == 'image_processing' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-images"></i></div>
+                    <span class="nav-text">Image Tools</span>
+                </a>
+                <a href="{{ url_for('pdf_tools') }}" class="nav-item {% if request.endpoint == 'pdf_tools' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-file-pdf"></i></div>
+                    <span class="nav-text">PDF Tools</span>
+                </a>
+                <a href="{{ url_for('barcode_generator') }}" class="nav-item {% if request.endpoint == 'barcode_generator' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-barcode"></i></div>
+                    <span class="nav-text">Barcode</span>
+                </a>
 
                 {% if session.permissions and session.permissions.is_admin %}
-                <div class="nav-dropdown">
-                    <span class="nav-link dropdown-toggle">Admin</span>
-                    <div class="dropdown-menu">
-                        <a href="{{ url_for('assets') }}" class="dropdown-item">Assets</a>
-                        <a href="{{ url_for('wallet_view') }}" class="dropdown-item">Wallet</a>
-                        <a href="{{ url_for('models') }}" class="dropdown-item">Models</a>
-                        <a href="{{ url_for('list_users') }}" class="dropdown-item">Users</a>
-                    </div>
-                </div>
+                <div class="nav-divider"></div>
+                <a href="{{ url_for('assets') }}" class="nav-item {% if request.endpoint == 'assets' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-coins"></i></div>
+                    <span class="nav-text">Asset</span>
+                </a>
+                <a href="{{ url_for('wallet_view') }}" class="nav-item {% if request.endpoint == 'wallet_view' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-wallet"></i></div>
+                    <span class="nav-text">Wallet</span>
+                </a>
+                <a href="{{ url_for('models') }}" class="nav-item {% if request.endpoint == 'models' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-cubes"></i></div>
+                    <span class="nav-text">Models</span>
+                </a>
+                <a href="{{ url_for('list_users') }}" class="nav-item {% if request.endpoint == 'list_users' %}active{% endif %}">
+                    <div class="nav-icon"><i class="fas fa-user-cog"></i></div>
+                    <span class="nav-text">Users</span>
+                </a>
+                {% endif %}
+            </nav>
+            {% endif %}
+
+            <div class="sidebar-footer">
+                {% if session.username %}
+                <a href="{{ url_for('logout') }}" class="nav-item logout">
+                    <div class="nav-icon"><i class="fas fa-sign-out-alt"></i></div>
+                    <span class="nav-text">Logout</span>
+                </a>
+                {% else %}
+                <a href="{{ url_for('login') }}" class="nav-item">
+                    <div class="nav-icon"><i class="fas fa-sign-in-alt"></i></div>
+                    <span class="nav-text">Login</span>
+                </a>
                 {% endif %}
             </div>
-
-            <div class="navbar-actions">
-                <form class="search-bar" action="{{ url_for('transactions') }}" method="GET">
-                    <button type="submit" style="background:none; border:none; padding:0; cursor:pointer; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); z-index: 10;"><i class="fas fa-search" style="position: static; transform: none;"></i></button>
-                    <input type="text" name="q" placeholder="Search here" value="{{ request.args.get('q', '') }}">
-                </form>
-                
-                <div class="action-icons">
-                    <button class="icon-btn"><i class="fas fa-bell"></i></button>
-                    <button class="icon-btn"><i class="fas fa-cog"></i></button>
-                </div>
-
-                <div class="user-profile">
-                    <div class="user-avatar">
-                        {% if session.username %}{{ session.username[0]|upper }}{% else %}U{% endif %}
-                    </div>
-                    <a href="{{ url_for('logout') }}" class="logout-btn" title="Logout"><i class="fas fa-sign-out-alt"></i></a>
-                </div>
-            </div>
-            {% endif %}
-        </nav>
+        </aside>
 
         <!-- Main Content Area -->
         <main class="main-content">
