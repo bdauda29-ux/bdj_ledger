@@ -1437,12 +1437,6 @@ def add_user():
     if request.method == 'POST':
         username = request.form.get('username','').strip()
         password = request.form.get('password','')
-        
-        # New fields
-        surname = request.form.get('surname', '').strip()
-        passport_number = request.form.get('passport_number', '').strip()
-        passport_expiry = request.form.get('passport_expiry', '').strip()
-        nationality = request.form.get('nationality', '').strip()
 
         if not username or not password:
             return render_template('add_user.html', error='Username and password required')
@@ -1460,13 +1454,11 @@ def add_user():
             conn.execute('''
                 INSERT INTO users (
                     username, password_hash, 
-                    surname, passport_number, passport_expiry, nationality,
                     is_admin, can_edit_client, can_delete_client, 
                     can_add_transaction, can_edit_transaction, can_delete_transaction, can_view_clients
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 username, hashlib.sha256(password.encode()).hexdigest(),
-                surname, passport_number, passport_expiry, nationality,
                 flags['is_admin'], flags['can_edit_client'], flags['can_delete_client'], 
                 flags['can_add_transaction'], flags['can_edit_transaction'], flags['can_delete_transaction'], flags['can_view_clients']
             ))
