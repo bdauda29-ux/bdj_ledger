@@ -422,6 +422,7 @@ def init_db():
             ('transactions', 'created_by', 'TEXT'),
             ('transactions', 'model_id', 'INTEGER'),
             ('wallet', 'providus_dollars', 'REAL DEFAULT 0'),
+            ('wallet', 'bybit_dollars', 'REAL DEFAULT 0'),
             ('wallet', 'naira_1', 'REAL DEFAULT 0'),
             ('wallet', 'taj_naira', 'REAL DEFAULT 0'),
             ('wallet', 'debt', 'REAL DEFAULT 0'),
@@ -718,6 +719,7 @@ def init_db():
             ('transactions', 'created_by', 'VARCHAR(255)'),
             ('transactions', 'model_id', 'INT'),
             ('wallet', 'providus_dollars', 'DOUBLE DEFAULT 0'),
+            ('wallet', 'bybit_dollars', 'DOUBLE DEFAULT 0'),
             ('wallet', 'naira_1', 'DOUBLE DEFAULT 0'),
             ('wallet', 'taj_naira', 'DOUBLE DEFAULT 0'),
             ('wallet', 'debt', 'DOUBLE DEFAULT 0'),
@@ -1135,6 +1137,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             dollars REAL DEFAULT 0,
             providus_dollars REAL DEFAULT 0,
+            bybit_dollars REAL DEFAULT 0,
             naira REAL DEFAULT 0,
             naira_1 REAL DEFAULT 0,
             rate REAL DEFAULT 0,
@@ -1143,6 +1146,10 @@ def init_db():
     ''')
     try:
         cursor.execute('ALTER TABLE wallet ADD COLUMN providus_dollars REAL DEFAULT 0')
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute('ALTER TABLE wallet ADD COLUMN bybit_dollars REAL DEFAULT 0')
     except sqlite3.OperationalError:
         pass
     try:
@@ -1521,7 +1528,7 @@ def internal_error(error):
 
 def ensure_wallet_columns(conn):
     """Ensure wallet table has new columns (runtime migration fix)"""
-    new_cols = ['providus_dollars', 'naira_1', 'taj_naira', 'debt']
+    new_cols = ['providus_dollars', 'bybit_dollars', 'naira_1', 'taj_naira', 'debt']
     for col in new_cols:
         try:
             conn.execute(f'SELECT {col} FROM wallet LIMIT 1')
@@ -1579,6 +1586,10 @@ def wallet_view():
             except ValueError:
                 providus_dollars = 0.0
             try:
+                bybit_dollars = float(request.form.get('bybit_dollars') or 0)
+            except ValueError:
+                bybit_dollars = 0.0
+            try:
                 naira = float(request.form.get('naira') or 0)
             except ValueError:
                 naira = 0.0
@@ -1602,11 +1613,11 @@ def wallet_view():
             # Upsert
             exists = conn.execute('SELECT 1 FROM wallet WHERE model_id = ?', (mid,)).fetchone()
             if exists:
-                conn.execute('UPDATE wallet SET dollars = ?, providus_dollars = ?, naira = ?, naira_1 = ?, taj_naira = ?, debt = ?, rate = ? WHERE model_id = ?', 
-                             (dollars, providus_dollars, naira, naira_1, taj_naira, debt, rate, mid))
+                conn.execute('UPDATE wallet SET dollars = ?, providus_dollars = ?, bybit_dollars = ?, naira = ?, naira_1 = ?, taj_naira = ?, debt = ?, rate = ? WHERE model_id = ?', 
+                             (dollars, providus_dollars, bybit_dollars, naira, naira_1, taj_naira, debt, rate, mid))
             else:
-                conn.execute('INSERT INTO wallet (dollars, providus_dollars, naira, naira_1, taj_naira, debt, rate, model_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                             (dollars, providus_dollars, naira, naira_1, taj_naira, debt, rate, mid))
+                conn.execute('INSERT INTO wallet (dollars, providus_dollars, bybit_dollars, naira, naira_1, taj_naira, debt, rate, model_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                             (dollars, providus_dollars, bybit_dollars, naira, naira_1, taj_naira, debt, rate, mid))
             conn.commit()
             return redirect(url_for('wallet_view', message='Wallet updated'))
             
@@ -1777,6 +1788,7 @@ def index():
         if wallet:
             w_dollars = wallet.get('dollars') or 0
             w_providus = wallet.get('providus_dollars') or 0
+            w_bybit = wallet.get('bybit_dollars') or 0
             w_rate = wallet.get('rate') or 0
             w_naira_1 = wallet.get('naira_1') or 0
             w_naira = wallet.get('naira') or 0
@@ -1784,7 +1796,7 @@ def index():
             w_unpaid = wallet.get('unpaid_n') or 0
             w_debt = wallet.get('debt') or 0
             
-            total_wallet_balance = (w_dollars * w_rate) + (w_providus * w_rate) + w_naira_1 + w_naira + w_taj + w_unpaid - w_debt - total_balance
+            total_wallet_balance = (w_dollars * w_rate) + (w_providus * w_rate) + (w_bybit * w_rate) + w_naira_1 + w_naira + w_taj + w_unpaid - w_debt - total_balance
         
         # Get only today's transactions (SQLite and Postgres compatible via PGConn)
         sql_trans = '''

@@ -162,6 +162,7 @@ def init_schema(pg_conn):
             id SERIAL PRIMARY KEY,
             dollars REAL DEFAULT 0,
             providus_dollars REAL DEFAULT 0,
+            bybit_dollars REAL DEFAULT 0,
             naira REAL DEFAULT 0,
             naira_1 REAL DEFAULT 0,
             taj_naira REAL DEFAULT 0,

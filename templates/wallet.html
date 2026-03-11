@@ -20,6 +20,11 @@
         </div>
 
         <div class="form-group">
+            <label for="bybit_dollars">Bybit $</label>
+            <input type="number" step="0.01" id="bybit_dollars" name="bybit_dollars" class="form-control" value="{{ wallet.bybit_dollars if wallet else 0 }}">
+        </div>
+
+        <div class="form-group">
             <label for="naira">GTB N</label>
             <input type="number" step="0.01" id="naira" name="naira" class="form-control" value="{{ wallet.naira if wallet else 0 }}" required>
         </div>
