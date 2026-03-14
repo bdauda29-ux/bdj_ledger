@@ -63,25 +63,27 @@
             <p class="stat-value">${{ total_debts_dollar|comma2 }}</p>
         </div>
     </div>
-    <div class="stat-card primary">
-        <div class="stat-icon">
-            <i class="fas fa-coins"></i>
-        </div>
-        <div class="stat-info">
-            <h3>Grand Total (₦)</h3>
-            <p class="stat-value">₦{{ grand_total_naira|comma2 }}</p>
-        </div>
-    </div>
-    <div class="stat-card primary">
-        <div class="stat-icon">
-            <i class="fas fa-coins"></i>
-        </div>
-        <div class="stat-info">
-            <h3>Grand Total ($)</h3>
-            <p class="stat-value">${{ grand_total_dollar|comma2 }}</p>
-        </div>
-    </div>
 </div>
+
+<div class="table-container" style="margin-top: 1rem; padding: 0;">
+    <table class="data-table" style="border: 1px solid var(--border-color);">
+        <thead>
+            <tr>
+                <th colspan="2">Grand Totals</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Grand Total (₦)</td>
+                <td class="font-mono">₦{{ grand_total_naira|comma2 }}</td>
+            </tr>
+            <tr>
+                <td>Grand Total ($)</td>
+                <td class="font-mono">${{ grand_total_dollar|comma2 }}</td>
+            </tr>
+        </tbody>
+    </table>
+    </div>
 
 <h3 style="margin-bottom: 1rem; color: var(--text-primary);">Assets</h3>
 <div class="table-container" style="margin-bottom: 2rem;">
