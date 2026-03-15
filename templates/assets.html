@@ -26,7 +26,8 @@
 {% endwith %}
 
 <!-- Summary Cards -->
-<div class="dashboard-stats">
+<div class="dashboard-stats assets-summary">
+    {% if (total_assets_naira or 0) != 0 %}
     <div class="stat-card success">
         <div class="stat-icon">
             <i class="fas fa-money-bill-wave"></i>
@@ -36,6 +37,8 @@
             <p class="stat-value">₦{{ total_assets_naira|comma2 }}</p>
         </div>
     </div>
+    {% endif %}
+    {% if (total_assets_dollar or 0) != 0 %}
     <div class="stat-card success">
         <div class="stat-icon">
             <i class="fas fa-dollar-sign"></i>
@@ -45,6 +48,8 @@
             <p class="stat-value">${{ total_assets_dollar|comma2 }}</p>
         </div>
     </div>
+    {% endif %}
+    {% if (total_debts_naira or 0) != 0 %}
     <div class="stat-card danger">
         <div class="stat-icon">
             <i class="fas fa-hand-holding-usd"></i>
@@ -54,6 +59,8 @@
             <p class="stat-value">₦{{ total_debts_naira|comma2 }}</p>
         </div>
     </div>
+    {% endif %}
+    {% if (total_debts_dollar or 0) != 0 %}
     <div class="stat-card danger">
         <div class="stat-icon">
             <i class="fas fa-dollar-sign"></i>
@@ -63,16 +70,17 @@
             <p class="stat-value">${{ total_debts_dollar|comma2 }}</p>
         </div>
     </div>
+    {% endif %}
 </div>
 
-<div class="alert" style="margin-top: 1rem; background: #EEF2FF; color: var(--text-primary); border-left: 4px solid var(--accent-blue);">
-    <i class="fas fa-coins" style="color: var(--accent-blue);"></i>
-    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-        <div style="font-weight: 700;">Grand Totals</div>
-        <div>
-            Grand Total (₦): <span class="font-mono">₦{{ grand_total_naira|comma2 }}</span>
-            <span style="margin: 0 0.5rem;">·</span>
-            Grand Total ($): <span class="font-mono">${{ grand_total_dollar|comma2 }}</span>
+<div class="alert grand-total-alert">
+    <i class="fas fa-coins grand-total-icon"></i>
+    <div class="grand-total-content">
+        <div class="grand-total-title">Grand Totals</div>
+        <div class="grand-total-values">
+            <span class="grand-total-label">Grand Total (₦):</span> <span class="font-mono grand-total-amount">₦{{ grand_total_naira|comma2 }}</span>
+            <span class="grand-total-sep">·</span>
+            <span class="grand-total-label">Grand Total ($):</span> <span class="font-mono grand-total-amount">${{ grand_total_dollar|comma2 }}</span>
         </div>
     </div>
 </div>
@@ -236,6 +244,49 @@
 </div>
 
 <style>
+    .assets-summary .stat-info h3 {
+        font-size: 0.75rem;
+    }
+    .assets-summary .stat-value {
+        font-size: 1.15rem;
+    }
+    .grand-total-alert {
+        margin-top: 1rem;
+        background: #EEF2FF;
+        color: var(--text-primary);
+        border-left: 4px solid var(--accent-blue);
+        align-items: flex-start;
+    }
+    .grand-total-icon {
+        color: var(--accent-blue);
+        margin-top: 2px;
+    }
+    .grand-total-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    .grand-total-title {
+        font-weight: 800;
+        font-size: 1rem;
+    }
+    .grand-total-values {
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+    }
+    .grand-total-label {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+    .grand-total-amount {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--text-primary);
+    }
+    .grand-total-sep {
+        margin: 0 0.5rem;
+        color: var(--text-muted);
+    }
     .radio-group {
         display: flex;
         gap: 1rem;
