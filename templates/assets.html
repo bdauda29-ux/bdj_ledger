@@ -86,15 +86,15 @@
 </div>
 
 <div class="tabs" style="margin-top: 2rem; margin-bottom: 1.5rem; display: flex; width: fit-content;">
-    <button class="tab active" onclick="switchTab(event, 'assets-tab')">
+    <button class="tab" onclick="switchTab(event, 'assets-tab')">
         <i class="fas fa-money-bill-wave" style="margin-right: 8px;"></i> Assets
     </button>
-    <button class="tab" onclick="switchTab(event, 'debts-tab')">
+    <button class="tab active" onclick="switchTab(event, 'debts-tab')">
         <i class="fas fa-hand-holding-usd" style="margin-right: 8px;"></i> Debts
     </button>
 </div>
 
-<div id="assets-tab" class="tab-pane active">
+<div id="assets-tab" class="tab-pane" style="display: none;">
     <h3 style="margin-bottom: 1rem; color: var(--text-primary);">Assets</h3>
     <div class="table-container" style="margin-bottom: 2rem;">
         <table class="data-table">
@@ -147,7 +147,7 @@
     </div>
 </div>
 
-<div id="debts-tab" class="tab-pane" style="display: none;">
+<div id="debts-tab" class="tab-pane active">
     <h3 style="margin-bottom: 1rem; color: var(--text-primary);">Debts</h3>
     <div class="table-container">
         <table class="data-table">
