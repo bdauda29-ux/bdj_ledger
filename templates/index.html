@@ -25,6 +25,45 @@
         const topCountries = getTopN(countryData, 10);
         const topClients = getTopN(clientData, 10);
 
+        // Calculate Percentages for Top 3
+        function calculateTop3Percentages(data, elementId) {
+            const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
+            const total = Object.values(data).reduce((acc, v) => acc + v, 0);
+            const container = document.getElementById(elementId);
+            
+            if (total === 0) {
+                container.innerHTML = '<p style="color: #888; font-size: 0.85rem; margin: 0;">No data available</p>';
+                return;
+            }
+
+            let html = '<div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #eee;">';
+            html += '<p style="margin: 0 0 10px 0; font-weight: 600; font-size: 0.85rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">Top 3 Share</p>';
+            html += '<div style="display: flex; flex-direction: column; gap: 8px;">';
+
+            for (let i = 0; i < Math.min(3, sorted.length); i++) {
+                const [name, value] = sorted[i];
+                const percentage = ((value / total) * 100).toFixed(1);
+                
+                html += `
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 0.9rem; color: #444; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px;">${name}</span>
+                        <div style="display: flex; align-items: center; gap: 10px; flex: 1; justify-content: flex-end; margin-left: 15px;">
+                            <div style="flex: 1; max-width: 100px; height: 6px; background: #f0f0f0; border-radius: 3px; overflow: hidden;">
+                                <div style="width: ${percentage}%; height: 100%; background: ${elementId.includes('Country') ? '#3b82f6' : '#10b981'}; border-radius: 3px;"></div>
+                            </div>
+                            <span style="font-size: 0.85rem; font-weight: 700; color: #333; min-width: 45px; text-align: right;">${percentage}%</span>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            html += '</div></div>';
+            container.innerHTML = html;
+        }
+
+        calculateTop3Percentages(countryData, 'countryPercentages');
+        calculateTop3Percentages(clientData, 'clientPercentages');
+
         // Country Chart
         const countryCtx = document.getElementById('countryChart').getContext('2d');
         new Chart(countryCtx, {
@@ -173,6 +212,7 @@
             <div style="height: 300px; position: relative;">
                 <canvas id="countryChart"></canvas>
             </div>
+            <div id="countryPercentages"></div>
         </div>
 
         <div class="chart-card" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
@@ -183,6 +223,7 @@
             <div style="height: 300px; position: relative;">
                 <canvas id="clientChart"></canvas>
             </div>
+            <div id="clientPercentages"></div>
         </div>
     </div>
 
