@@ -6,6 +6,11 @@
 <div class="page-actions-bar">
     <h2 style="margin: 0; font-size: 1.5rem; color: var(--text-primary);">Transactions for {{ client.client_name }}</h2>
     <div class="actions">
+        {% if session.permissions and session.permissions.is_admin %}
+        <button id="bulkPayBtn" class="btn btn-success" style="display: none;" onclick="bulkPay()">
+            <i class="fas fa-check-double"></i> Pay Selected (<span id="selectedCount">0</span>)
+        </button>
+        {% endif %}
         <a href="{{ url_for('clients') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Clients</a>
     </div>
 </div>
@@ -31,6 +36,9 @@
     <table class="data-table">
         <thead>
             <tr>
+                {% if session.permissions and session.permissions.is_admin %}
+                <th style="width: 40px;"><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></th>
+                {% endif %}
                 <th>S.No</th>
                 <th>Applicant Name</th>
                 <th>App ID</th>
@@ -48,6 +56,13 @@
         <tbody>
             {% for transaction in transactions %}
             <tr class="transaction-row {% if transaction.is_paid %}row-paid{% endif %}">
+                {% if session.permissions and session.permissions.is_admin %}
+                <td>
+                    {% if not transaction.is_paid %}
+                    <input type="checkbox" class="transaction-checkbox" value="{{ transaction.id }}" data-amount="{{ transaction.amount_n or 0 }}" onchange="updateSelectedCount()">
+                    {% endif %}
+                </td>
+                {% endif %}
                 <td class="s-no">{{ loop.index }}</td>
                 <td>
                     {% if transaction.applicant_name %}
@@ -106,7 +121,12 @@
     {% for transaction in transactions %}
     <div class="mobile-card {% if transaction.is_paid %}card-paid{% endif %}">
         <div class="mobile-card-header">
-            <span class="card-s-no">#{{ loop.index }}</span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                {% if session.permissions and session.permissions.is_admin and not transaction.is_paid %}
+                <input type="checkbox" class="transaction-checkbox" value="{{ transaction.id }}" data-amount="{{ transaction.amount_n or 0 }}" onchange="updateSelectedCount()">
+                {% endif %}
+                <span class="card-s-no">#{{ loop.index }}</span>
+            </div>
             <span style="font-size: 0.85em; color: var(--text-secondary);">{{ transaction.transaction_date|date_format }}</span>
         </div>
         <div class="mobile-card-row">
@@ -260,6 +280,81 @@ function handleAddFundNo() {
 function closeAddFundModal() {
     document.getElementById('addFundModal').classList.remove('show');
     currentAddFundParams = null;
+}
+
+function toggleAll(source) {
+    const checkboxes = document.querySelectorAll('.transaction-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = source.checked;
+    });
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const checked = document.querySelectorAll('.transaction-checkbox:checked');
+    const count = checked.length;
+    const btn = document.getElementById('bulkPayBtn');
+    const countSpan = document.getElementById('selectedCount');
+    
+    if (count > 0) {
+        btn.style.display = 'inline-flex';
+        countSpan.textContent = count;
+    } else {
+        btn.style.display = 'none';
+    }
+    
+    // Update select all checkbox state
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        const total = document.querySelectorAll('.transaction-checkbox').length;
+        selectAll.checked = (count === total && total > 0);
+    }
+}
+
+function bulkPay() {
+    const checked = document.querySelectorAll('.transaction-checkbox:checked');
+    const ids = Array.from(checked).map(cb => parseInt(cb.value));
+    const totalAmount = Array.from(checked).reduce((sum, cb) => sum + parseFloat(cb.dataset.amount), 0);
+    const clientBalance = {{ client.balance or 0 }};
+    
+    if (totalAmount > clientBalance) {
+        const needed = totalAmount - clientBalance;
+        // Re-use confirmPayment modal logic for bulk if needed, 
+        // but for now simpler alert + prompt like single pay
+        if (confirm(`Total amount ₦${totalAmount.toLocaleString()} exceeds balance ₦${clientBalance.toLocaleString()}. Need ₦${needed.toLocaleString()}. Add funds first?`)) {
+            const addAmount = prompt("Amount to add:", needed);
+            if (addAmount) {
+                const currentUrl = window.location.href;
+                window.location.href = `/clients/{{ client.id }}/update_balance?amount=${addAmount}&type=credit&next=${encodeURIComponent(currentUrl)}`;
+            }
+        }
+        return;
+    }
+    
+    if (!confirm(`Pay ₦${totalAmount.toLocaleString()} for ${ids.length} transactions?`)) {
+        return;
+    }
+    
+    fetch('/transactions/bulk_pay', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ transaction_ids: ids })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            alert(data.message);
+            window.location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred during bulk payment');
+    });
 }
 </script>
 {% endblock %}

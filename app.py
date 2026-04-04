@@ -2655,6 +2655,70 @@ def undo_pay_transaction(transaction_id):
         except Exception:
             pass
         return redirect(url_for('transactions', error='Failed to undo payment'))
+
+@app.route('/transactions/bulk_pay', methods=['POST'])
+def bulk_pay_transactions():
+    """Pay multiple transactions at once"""
+    if not can('can_edit_transaction'):
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.get_json()
+    transaction_ids = data.get('transaction_ids', [])
+    if not transaction_ids:
+        return jsonify({'error': 'No transactions selected'}), 400
+        
+    conn = get_db_connection()
+    try:
+        # Get all selected transactions that are not paid
+        ids_placeholder = ','.join(['?'] * len(transaction_ids))
+        transactions = conn.execute(f'SELECT * FROM transactions WHERE id IN ({ids_placeholder}) AND model_id = ? AND is_paid = 0', transaction_ids + [current_model_id()]).fetchall()
+        
+        if not transactions:
+            return jsonify({'error': 'No unpaid transactions found among selected'}), 404
+            
+        # Group by client to check balances
+        client_totals = {}
+        for trans in transactions:
+            client_name = trans['client_name']
+            amount = trans['amount_n'] or 0
+            client_totals[client_name] = client_totals.get(client_name, 0) + amount
+            
+        # Check balances for each client
+        for client_name, total_needed in client_totals.items():
+            client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (client_name, current_model_id())).fetchone()
+            if not client or client['balance'] < total_needed:
+                return jsonify({'error': f'Insufficient balance for client {client_name}'}), 400
+                
+        # Perform payments
+        for trans in transactions:
+            transaction_id = trans['id']
+            client_name = trans['client_name']
+            amount_to_deduct = trans['amount_n'] or 0
+            
+            client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (client_name, current_model_id())).fetchone()
+            balance_before = client['balance']
+            balance_after = balance_before - amount_to_deduct
+            
+            conn.execute('UPDATE clients SET balance = ? WHERE id = ? AND model_id = ?', (balance_after, client['id'], current_model_id()))
+            conn.execute('UPDATE transactions SET is_paid = 1 WHERE id = ?', (transaction_id,))
+            conn.execute('''
+                INSERT INTO balance_history (client_id, transaction_id, amount, type, balance_before, balance_after, description, model_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                client['id'], transaction_id, amount_to_deduct, 'debit', balance_before, balance_after,
+                f'Payment for transaction #{transaction_id}', current_model_id()
+            ))
+            
+        conn.commit()
+        return jsonify({'message': f'Successfully paid {len(transactions)} transactions'})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return jsonify({'error': str(e)}), 500
 @app.route('/transactions/<int:transaction_id>/delete', methods=['POST'])
 def delete_transaction(transaction_id):
     """Delete a transaction"""
