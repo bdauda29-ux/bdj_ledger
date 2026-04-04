@@ -298,7 +298,10 @@ function closeAddFundModal() {
 }
 
 function toggleAll(source) {
-    const checkboxes = document.querySelectorAll('.transaction-checkbox');
+    const container = document.querySelector('.table-container').offsetParent ? 
+                      document.querySelector('.table-container') : 
+                      document.querySelector('.mobile-card-view');
+    const checkboxes = container.querySelectorAll('.transaction-checkbox');
     checkboxes.forEach(cb => {
         cb.checked = source.checked;
     });
@@ -306,7 +309,10 @@ function toggleAll(source) {
 }
 
 function updateSelectedCount() {
-    const checked = document.querySelectorAll('.transaction-checkbox:checked');
+    const container = document.querySelector('.table-container').offsetParent ? 
+                      document.querySelector('.table-container') : 
+                      document.querySelector('.mobile-card-view');
+    const checked = container.querySelectorAll('.transaction-checkbox:checked');
     const count = checked.length;
     const btn = document.getElementById('bulkPayBtn');
     const countSpan = document.getElementById('selectedCount');
@@ -324,7 +330,7 @@ function updateSelectedCount() {
     // Update select all checkbox states
     const selectAll = document.getElementById('selectAll');
     const selectAllTop = document.getElementById('selectAllTop');
-    const total = document.querySelectorAll('.transaction-checkbox').length;
+    const total = container.querySelectorAll('.transaction-checkbox').length;
     
     const isAllChecked = (count === total && total > 0);
     if (selectAll) selectAll.checked = isAllChecked;
@@ -332,7 +338,10 @@ function updateSelectedCount() {
 }
 
 function bulkPay() {
-    const checked = document.querySelectorAll('.transaction-checkbox:checked');
+    const container = document.querySelector('.table-container').offsetParent ? 
+                      document.querySelector('.table-container') : 
+                      document.querySelector('.mobile-card-view');
+    const checked = container.querySelectorAll('.transaction-checkbox:checked');
     const ids = Array.from(checked).map(cb => parseInt(cb.value));
     const totalAmount = Array.from(checked).reduce((sum, cb) => sum + parseFloat(cb.dataset.amount), 0);
     const clientBalance = {{ client.balance or 0 }};
