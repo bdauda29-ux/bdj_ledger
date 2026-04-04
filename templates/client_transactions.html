@@ -7,9 +7,24 @@
     <h2 style="margin: 0; font-size: 1.5rem; color: var(--text-primary);">Transactions for {{ client.client_name }}</h2>
     <div class="actions">
         {% if session.permissions and session.permissions.is_admin %}
-        <button id="bulkPayBtn" class="btn btn-success" style="display: none;" onclick="bulkPay()">
-            <i class="fas fa-check-double"></i> Pay Selected (<span id="selectedCount">0</span>)
-        </button>
+        <div id="selectionTools" style="display: none; align-items: center; gap: 15px; background: #f0fdf4; padding: 5px 15px; border-radius: 8px; border: 1px solid #bbf7d0;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; color: #166534; font-weight: 600;">
+                <input type="checkbox" id="selectAllTop" onclick="toggleAll(this)"> Select All Unpaid
+            </label>
+            <div style="width: 1px; height: 20px; background: #bbf7d0;"></div>
+            <button id="bulkPayBtn" class="btn btn-success" onclick="bulkPay()" style="padding: 6px 12px; font-size: 0.9rem; opacity: 0.5;" disabled>
+                 <i class="fas fa-check-double"></i> Pay Selected (<span id="selectedCount">0</span>)
+             </button>
+        </div>
+        <script>
+            // Check if there are any unpaid transactions to show selection tools
+            document.addEventListener('DOMContentLoaded', function() {
+                const unpaidCount = document.querySelectorAll('.transaction-checkbox').length;
+                if (unpaidCount > 0) {
+                    document.getElementById('selectionTools').style.display = 'flex';
+                }
+            });
+        </script>
         {% endif %}
         <a href="{{ url_for('clients') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Clients</a>
     </div>
@@ -297,18 +312,23 @@ function updateSelectedCount() {
     const countSpan = document.getElementById('selectedCount');
     
     if (count > 0) {
-        btn.style.display = 'inline-flex';
+        btn.disabled = false;
+        btn.style.opacity = '1';
         countSpan.textContent = count;
     } else {
-        btn.style.display = 'none';
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        countSpan.textContent = '0';
     }
     
-    // Update select all checkbox state
+    // Update select all checkbox states
     const selectAll = document.getElementById('selectAll');
-    if (selectAll) {
-        const total = document.querySelectorAll('.transaction-checkbox').length;
-        selectAll.checked = (count === total && total > 0);
-    }
+    const selectAllTop = document.getElementById('selectAllTop');
+    const total = document.querySelectorAll('.transaction-checkbox').length;
+    
+    const isAllChecked = (count === total && total > 0);
+    if (selectAll) selectAll.checked = isAllChecked;
+    if (selectAllTop) selectAllTop.checked = isAllChecked;
 }
 
 function bulkPay() {
