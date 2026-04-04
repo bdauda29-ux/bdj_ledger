@@ -1,15 +1,18 @@
 import os
 import sys
 
-# Add the project root to sys.path so we can import wsgi
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+# Add the project root to sys.path
+root_dir = os.path.join(os.path.dirname(__file__), '..')
+sys.path.append(root_dir)
 
 # Vercel serverless functions have ephemeral storage; write to /tmp
 os.environ.setdefault('DATABASE', '/tmp/ledger.db')
 os.environ.setdefault('DISABLE_AUTH', '1')
 
+# Import the application directly from app.py
+# Vercel's @vercel/python runtime looks for 'app', 'application', or 'handler'
 try:
-    from wsgi import application as app
+    from app import app
     
     # Auto-initialize SQLite DB if it doesn't exist (for serverless cold starts)
     if not os.environ.get('POSTGRES_URL'):
@@ -21,7 +24,7 @@ try:
                 init_db()
                 
 except Exception as e:
-    # Fallback app to show import errors
+    # If import fails, create a fallback app to show the error
     from flask import Flask
     app = Flask(__name__)
     @app.route('/', defaults={'path': ''})
@@ -29,3 +32,7 @@ except Exception as e:
     def catch_all(path):
         import traceback
         return f"<h1>Startup Error</h1><pre>{traceback.format_exc()}</pre>", 500
+
+# Explicitly expose common handler names for Vercel
+application = app
+handler = app
