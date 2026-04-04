@@ -167,6 +167,7 @@
         const tableBody = document.getElementById('historyTableBody');
         const title = document.getElementById('historyModalTitle');
 
+        modal.classList.add('show');
         modal.style.display = 'flex';
         loading.style.display = 'block';
         content.style.display = 'none';
@@ -212,7 +213,11 @@
     }
 
     function closeHistoryModal() {
-        document.getElementById('historyModal').style.display = 'none';
+        const modal = document.getElementById('historyModal');
+        modal.classList.remove('show');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
     }
 
     // Close on click outside
