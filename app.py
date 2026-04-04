@@ -2052,11 +2052,31 @@ def client_transactions(client_id):
 
 @app.route('/clients/<int:client_id>/history')
 def balance_history(client_id):
-    """View balance history for a client"""
+    """View balance history for a client as JSON for popup"""
     conn = get_db_connection()
     client = conn.execute('SELECT * FROM clients WHERE id = ? AND model_id = ?', (client_id, current_model_id())).fetchone()
-    history = conn.execute('SELECT * FROM balance_history WHERE client_id = ? AND model_id = ? ORDER BY timestamp DESC', (client_id, current_model_id())).fetchall()
-    return render_template('balance_history.html', client=client, history=history)
+    if not client:
+        return jsonify({'error': 'Client not found'}), 404
+        
+    history_rows = conn.execute('SELECT * FROM balance_history WHERE client_id = ? AND model_id = ? ORDER BY timestamp DESC', (client_id, current_model_id())).fetchall()
+    
+    history_data = []
+    for item in history_rows:
+        history_data.append({
+            'id': item['id'],
+            'transaction_id': item['transaction_id'],
+            'amount': comma2(item['amount']),
+            'type': item['type'].capitalize(),
+            'balance_before': comma2(item['balance_before']),
+            'balance_after': comma2(item['balance_after']),
+            'description': item['description'] or '',
+            'timestamp': item['timestamp'].strftime('%Y-%m-%d %H:%M:%S') if isinstance(item['timestamp'], datetime) else str(item['timestamp'])
+        })
+        
+    return jsonify({
+        'client_name': client['client_name'],
+        'history': history_data
+    })
 
 # ==================== COUNTRY ROUTES ====================
 

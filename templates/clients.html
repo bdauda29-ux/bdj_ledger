@@ -55,7 +55,7 @@
                     <a href="{{ url_for('edit_client', client_id=client.id) }}" class="btn btn-secondary btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
                     <button class="btn btn-success btn-sm" onclick="updateBalance('{{ client.id }}', 'credit')" title="Credit"><i class="fas fa-plus-circle"></i></button>
                     <button class="btn btn-warning btn-sm" onclick="updateBalance('{{ client.id }}', 'debit')" title="Debit"><i class="fas fa-minus-circle"></i></button>
-                    <a href="{{ url_for('balance_history', client_id=client.id) }}" class="btn btn-info btn-sm" title="History"><i class="fas fa-history"></i></a>
+                    <button class="btn btn-info btn-sm" onclick="showHistory('{{ client.id }}')" title="History"><i class="fas fa-history"></i></button>
                     <a href="{{ url_for('client_transactions', client_id=client.id) }}" class="btn btn-primary btn-sm" title="Transactions"><i class="fas fa-list"></i></a>
                     <form action="{{ url_for('delete_client', client_id=client.id) }}" 
                           method="POST" 
@@ -103,7 +103,7 @@
             <a href="{{ url_for('edit_client', client_id=client.id) }}" class="btn btn-secondary btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
             <button class="btn btn-success btn-sm" onclick="updateBalance('{{ client.id }}', 'credit')" title="Credit"><i class="fas fa-plus"></i></button>
             <button class="btn btn-warning btn-sm" onclick="updateBalance('{{ client.id }}', 'debit')" title="Debit"><i class="fas fa-minus-circle"></i></button>
-            <a href="{{ url_for('balance_history', client_id=client.id) }}" class="btn btn-info btn-sm" title="History"><i class="fas fa-history"></i></a>
+            <button class="btn btn-info btn-sm" onclick="showHistory('{{ client.id }}')" title="History"><i class="fas fa-history"></i></button>
             <a href="{{ url_for('client_transactions', client_id=client.id) }}" class="btn btn-primary btn-sm" title="Transactions"><i class="fas fa-list"></i></a>
             <form action="{{ url_for('delete_client', client_id=client.id) }}" 
                   method="POST" 
@@ -119,6 +119,39 @@
 <p class="empty-state">No clients found.</p>
 {% endif %}
 
+<!-- History Modal -->
+<div id="historyModal" class="modal-overlay">
+    <div class="custom-modal" style="max-width: 900px; width: 95%;">
+        <div class="modal-header">
+            <h3 id="historyModalTitle">Balance History</h3>
+            <button onclick="closeHistoryModal()" class="close-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div id="historyLoading" style="text-align: center; padding: 2rem;">
+                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                <p>Loading history...</p>
+            </div>
+            <div id="historyContent" style="display: none;">
+                <div class="table-container" style="max-height: 60vh; overflow-y: auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Before</th>
+                                <th>After</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     function updateBalance(clientId, type) {
         const amount = prompt(`Enter amount to ${type}:`);
@@ -126,6 +159,69 @@
             window.location.href = `/clients/${clientId}/update_balance?amount=${amount}&type=${type}`;
         }
     }
+
+    function showHistory(clientId) {
+        const modal = document.getElementById('historyModal');
+        const loading = document.getElementById('historyLoading');
+        const content = document.getElementById('historyContent');
+        const tableBody = document.getElementById('historyTableBody');
+        const title = document.getElementById('historyModalTitle');
+
+        modal.style.display = 'flex';
+        loading.style.display = 'block';
+        content.style.display = 'none';
+        tableBody.innerHTML = '';
+
+        fetch(`/clients/${clientId}/history`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    closeHistoryModal();
+                    return;
+                }
+
+                title.textContent = `Balance History for ${data.client_name}`;
+                
+                if (data.history.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">No history found.</td></tr>';
+                } else {
+                    data.history.forEach(item => {
+                        const row = document.createElement('tr');
+                        const typeClass = item.type.toLowerCase() === 'credit' ? 'status-paid' : 'status-pending';
+                        row.innerHTML = `
+                            <td>${item.timestamp}</td>
+                            <td><span class="status-badge ${typeClass}">${item.type}</span></td>
+                            <td><strong>${item.amount}</strong></td>
+                            <td>${item.balance_before}</td>
+                            <td>${item.balance_after}</td>
+                            <td><small>${item.description}</small></td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                }
+
+                loading.style.display = 'none';
+                content.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error fetching history:', error);
+                alert('Failed to load history');
+                closeHistoryModal();
+            });
+    }
+
+    function closeHistoryModal() {
+        document.getElementById('historyModal').style.display = 'none';
+    }
+
+    // Close on click outside
+    document.getElementById('historyModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeHistoryModal();
+        }
+    });
+
     function filterClients() {
         var input = document.getElementById('client_search');
         var q = (input && input.value ? input.value : '').toLowerCase();
