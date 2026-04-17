@@ -187,6 +187,20 @@ def init_schema(pg_conn):
         )
     ''')
 
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS asset_history (
+            id SERIAL PRIMARY KEY,
+            asset_id INTEGER NOT NULL,
+            amount REAL NOT NULL,
+            type TEXT NOT NULL,
+            balance_before REAL NOT NULL,
+            balance_after REAL NOT NULL,
+            description TEXT,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            model_id INTEGER
+        )
+    ''')
+
     print("Schema initialized.")
 
 def migrate_data():

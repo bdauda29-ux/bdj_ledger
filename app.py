@@ -388,6 +388,20 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS asset_history (
+                id SERIAL PRIMARY KEY,
+                asset_id INTEGER NOT NULL,
+                amount REAL NOT NULL,
+                type TEXT NOT NULL,
+                balance_before REAL NOT NULL,
+                balance_after REAL NOT NULL,
+                description TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                model_id INTEGER
+            )
+        ''')
         
         # --- Postgres Migrations (Robust) ---
         print("Checking Postgres schema migrations...", file=sys.stderr)
@@ -1715,6 +1729,108 @@ def delete_asset(asset_id):
     conn.commit()
     flash('Asset deleted successfully', 'success')
     return redirect(url_for('assets'))
+
+@app.route('/assets/<int:asset_id>/update_amount', methods=['GET'])
+def update_asset_amount(asset_id):
+    if not can('is_admin'):
+        return redirect(url_for('index'))
+
+    amount = request.args.get('amount', type=float)
+    change_type = request.args.get('type')
+
+    if amount is None or amount <= 0 or change_type not in ['credit', 'debit']:
+        return redirect(url_for('assets'))
+
+    conn = get_db_connection()
+    try:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS asset_history (
+                id SERIAL PRIMARY KEY,
+                asset_id INTEGER NOT NULL,
+                amount REAL NOT NULL,
+                type TEXT NOT NULL,
+                balance_before REAL NOT NULL,
+                balance_after REAL NOT NULL,
+                description TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                model_id INTEGER
+            )
+        ''')
+
+        asset = conn.execute('SELECT id, name, amount FROM assets WHERE id = ? AND model_id = ?', (asset_id, current_model_id())).fetchone()
+        if not asset:
+            return redirect(url_for('assets'))
+
+        balance_before = asset['amount'] or 0
+        if change_type == 'credit':
+            balance_after = balance_before + amount
+        else:
+            balance_after = balance_before - amount
+
+        conn.execute('UPDATE assets SET amount = ? WHERE id = ? AND model_id = ?', (balance_after, asset_id, current_model_id()))
+
+        description = f"{change_type.capitalize()} of {amount} on {asset['name']}"
+        conn.execute('''
+            INSERT INTO asset_history (asset_id, amount, type, balance_before, balance_after, description, model_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (asset_id, amount, change_type, balance_before, balance_after, description, current_model_id()))
+
+        conn.commit()
+
+        next_url = request.args.get('next') or request.referrer
+        if next_url and 'update_amount' not in next_url:
+            return redirect(next_url)
+        return redirect(url_for('assets'))
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return redirect(url_for('assets'))
+
+@app.route('/assets/<int:asset_id>/history')
+def asset_history(asset_id):
+    if not can('is_admin'):
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    conn = get_db_connection()
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS asset_history (
+            id SERIAL PRIMARY KEY,
+            asset_id INTEGER NOT NULL,
+            amount REAL NOT NULL,
+            type TEXT NOT NULL,
+            balance_before REAL NOT NULL,
+            balance_after REAL NOT NULL,
+            description TEXT,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            model_id INTEGER
+        )
+    ''')
+
+    asset = conn.execute('SELECT id, name FROM assets WHERE id = ? AND model_id = ?', (asset_id, current_model_id())).fetchone()
+    if not asset:
+        return jsonify({'error': 'Asset not found'}), 404
+
+    rows = conn.execute('SELECT * FROM asset_history WHERE asset_id = ? AND model_id = ? ORDER BY timestamp DESC', (asset_id, current_model_id())).fetchall()
+    history_data = []
+    for item in rows:
+        history_data.append({
+            'id': item['id'],
+            'amount': comma2(item['amount']),
+            'type': item['type'].capitalize(),
+            'balance_before': comma2(item['balance_before']),
+            'balance_after': comma2(item['balance_after']),
+            'description': item['description'] or '',
+            'timestamp': item['timestamp'].strftime('%Y-%m-%d %H:%M:%S') if isinstance(item['timestamp'], datetime) else str(item['timestamp'])
+        })
+
+    return jsonify({
+        'asset_name': asset['name'],
+        'history': history_data
+    })
 
 @app.route('/')
 def index():
@@ -3777,4 +3893,3 @@ try:
         init_db()
 except Exception as e:
     print(f"Warning: Database initialization failed: {e}", file=sys.stderr)
-
