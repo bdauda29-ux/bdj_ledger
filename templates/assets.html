@@ -25,54 +25,6 @@
   {% endif %}
 {% endwith %}
 
-<!-- Summary Cards -->
-<div class="dashboard-stats assets-summary">
-    {% if (total_assets_naira or 0) != 0 %}
-    <div class="stat-card success">
-        <div class="stat-icon">
-            <i class="fas fa-money-bill-wave"></i>
-        </div>
-        <div class="stat-info">
-            <h3>Total Assets (₦)</h3>
-            <p class="stat-value">₦{{ total_assets_naira|comma2 }}</p>
-        </div>
-    </div>
-    {% endif %}
-    {% if (total_assets_dollar or 0) != 0 %}
-    <div class="stat-card success">
-        <div class="stat-icon">
-            <i class="fas fa-dollar-sign"></i>
-        </div>
-        <div class="stat-info">
-            <h3>Total Assets ($)</h3>
-            <p class="stat-value">${{ total_assets_dollar|comma2 }}</p>
-        </div>
-    </div>
-    {% endif %}
-    {% if (total_debts_naira or 0) != 0 %}
-    <div class="stat-card danger">
-        <div class="stat-icon">
-            <i class="fas fa-hand-holding-usd"></i>
-        </div>
-        <div class="stat-info">
-            <h3>Total Debts (₦)</h3>
-            <p class="stat-value">₦{{ total_debts_naira|comma2 }}</p>
-        </div>
-    </div>
-    {% endif %}
-    {% if (total_debts_dollar or 0) != 0 %}
-    <div class="stat-card danger">
-        <div class="stat-icon">
-            <i class="fas fa-dollar-sign"></i>
-        </div>
-        <div class="stat-info">
-            <h3>Total Debts ($)</h3>
-            <p class="stat-value">${{ total_debts_dollar|comma2 }}</p>
-        </div>
-    </div>
-    {% endif %}
-</div>
-
 <div class="alert grand-total-alert">
     <i class="fas fa-coins grand-total-icon"></i>
     <div class="grand-total-content">
@@ -96,6 +48,31 @@
 
 <div id="assets-tab" class="tab-pane" style="display: none;">
     <h3 style="margin-bottom: 1rem; color: var(--text-primary);">Assets</h3>
+
+    <div class="dashboard-stats assets-summary" style="margin-bottom: 1.5rem;">
+        {% if (total_assets_naira or 0) != 0 %}
+        <div class="stat-card success">
+            <div class="stat-icon">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Total Assets (₦)</h3>
+                <p class="stat-value">₦{{ total_assets_naira|comma2 }}</p>
+            </div>
+        </div>
+        {% endif %}
+        {% if (total_assets_dollar or 0) != 0 %}
+        <div class="stat-card success">
+            <div class="stat-icon">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Total Assets ($)</h3>
+                <p class="stat-value">${{ total_assets_dollar|comma2 }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
     
     <!-- Mobile Card View for Assets -->
     <div class="mobile-card-view">
@@ -208,6 +185,31 @@
 
 <div id="debts-tab" class="tab-pane active">
     <h3 style="margin-bottom: 1rem; color: var(--text-primary);">Debts</h3>
+
+    <div class="dashboard-stats assets-summary" style="margin-bottom: 1.5rem;">
+        {% if (total_debts_naira or 0) != 0 %}
+        <div class="stat-card danger">
+            <div class="stat-icon">
+                <i class="fas fa-hand-holding-usd"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Total Debts (₦)</h3>
+                <p class="stat-value">₦{{ total_debts_naira|comma2 }}</p>
+            </div>
+        </div>
+        {% endif %}
+        {% if (total_debts_dollar or 0) != 0 %}
+        <div class="stat-card danger">
+            <div class="stat-icon">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Total Debts ($)</h3>
+                <p class="stat-value">${{ total_debts_dollar|comma2 }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
 
     <!-- Mobile Card View for Debts -->
     <div class="mobile-card-view">
