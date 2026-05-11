@@ -250,8 +250,8 @@
 
     {% if session.permissions and session.permissions.is_admin %}
     {% if wallet %}
-    <div class="wallet-preview" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #2196f3;">
-        <h3 style="margin-top: 0; color: #1976d2; font-size: 1.1em;">Wallet Overview</h3>
+    <div class="wallet-preview">
+        <h3 style="margin-top: 0; font-size: 1.1em;">Wallet Overview</h3>
         <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: center;">
             {% if (wallet.dollars or 0) != 0 %}<div><strong>GTB $:</strong> ${{ (wallet.dollars or 0)|comma2 }}</div>{% endif %}
             {% if (wallet.providus_dollars or 0) != 0 %}<div><strong>Providus $:</strong> ${{ (wallet.providus_dollars or 0)|comma2 }}</div>{% endif %}
@@ -266,22 +266,61 @@
         {% if (wallet.rate or 0) != 0 %}<div style="margin-top: 10px;"><strong>Rate:</strong> {{ wallet.rate or 0 }}</div>{% endif %}
     </div>
     {% else %}
-    <div class="wallet-preview" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #2196f3;">
-        <h3 style="margin-top: 0; color: #1976d2; font-size: 1.1em;">Wallet Overview</h3>
+    <div class="wallet-preview">
+        <h3 style="margin-top: 0; font-size: 1.1em;">Wallet Overview</h3>
         <p style="margin-bottom: 10px;">No wallet data configured.</p>
-        <a href="{{ url_for('wallet_view') }}" class="btn" style="background-color: #1976d2; color: white; padding: 5px 10px; text-decoration: none; border-radius: 4px; font-size: 0.9em;">Setup Wallet</a>
+        <a href="{{ url_for('wallet_view') }}" class="btn btn-primary btn-sm">Setup Wallet</a>
     </div>
     {% endif %}
     {% endif %}
 
-    <div class="today-summary" style="margin-top: 20px; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
+    {% if unpaid_clients %}
+    <div class="reminder-pane">
+        <div class="reminder-pane-header">
+            <h3 style="margin: 0; font-size: 1.05rem;">Unpaid Reminders</h3>
+            <div class="reminder-pane-actions">
+                <a href="{{ url_for('export_transactions', format='pdf', paid='0') }}" class="btn btn-secondary btn-sm">Export Unpaid PDF</a>
+            </div>
+        </div>
+        <div class="table-container" style="margin-top: 14px;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Client</th>
+                        <th class="text-right">Unpaid</th>
+                        <th class="text-right">Amount (₦)</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in unpaid_clients %}
+                    <tr>
+                        <td>
+                            <strong>{{ row.client_name }}</strong>
+                        </td>
+                        <td class="text-right">{{ row.unpaid_count }}</td>
+                        <td class="text-right"><strong>{{ (row.unpaid_amount_n or 0)|comma2 }}</strong></td>
+                        <td>
+                            {% if row.client_id %}
+                            <a href="{{ url_for('client_transactions', client_id=row.client_id) }}" class="btn btn-secondary btn-sm">Open</a>
+                            {% else %}
+                            <a href="{{ url_for('transactions', client_name=row.client_name) }}" class="btn btn-secondary btn-sm">Open</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="today-summary">
         <h3>Totals for {{ selected_date|date_format }}</h3>
-        <div style="padding: 10px; background-color: white; border-radius: 3px; border-left: 4px solid #28a745;">
-            <strong style="font-size: 16px;">Transactions:</strong> <span style="font-size: 16px;">{{ transactions|length }}</span>
-            <br>
-            <strong style="font-size: 16px;">Sum Amount:</strong> <span style="font-size: 16px; color: #28a745;">{{ (today_sums['sum_amount'] or 0)|comma2 }}</span>
-            <br>
-            <strong style="font-size: 16px;">Sum Amount N:</strong> <span style="font-size: 16px; color: #28a745;">{{ (today_sums['sum_amount_n'] or 0)|comma2 }}</span>
+        <div class="today-summary-box">
+            <div><strong>Transactions:</strong> <span>{{ transactions|length }}</span></div>
+            <div><strong>Sum Amount:</strong> <span class="today-amount">{{ (today_sums['sum_amount'] or 0)|comma2 }}</span></div>
+            <div><strong>Sum Amount N:</strong> <span class="today-amount">{{ (today_sums['sum_amount_n'] or 0)|comma2 }}</span></div>
         </div>
     </div>
 

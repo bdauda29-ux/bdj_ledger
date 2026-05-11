@@ -1986,6 +1986,40 @@ def index():
             else:
                 client_data[row['client_name']] = row['count']
 
+        unpaid_rows = conn.execute('''
+            SELECT 
+                c.id AS client_id,
+                t.client_name AS client_name,
+                COUNT(*) AS unpaid_count,
+                COALESCE(SUM(t.amount_n), 0) AS unpaid_amount_n
+            FROM transactions t
+            LEFT JOIN clients c
+              ON c.client_name = t.client_name
+             AND c.model_id = t.model_id
+            WHERE t.model_id = ?
+              AND t.deleted = 0
+              AND t.is_paid = 0
+            GROUP BY t.client_name, c.id
+            ORDER BY unpaid_amount_n DESC
+            LIMIT 12
+        ''', (mid,)).fetchall()
+        unpaid_clients = []
+        for row in unpaid_rows:
+            if isinstance(row, (tuple, list)):
+                unpaid_clients.append({
+                    'client_id': row[0],
+                    'client_name': row[1],
+                    'unpaid_count': row[2],
+                    'unpaid_amount_n': row[3]
+                })
+            else:
+                unpaid_clients.append({
+                    'client_id': row.get('client_id'),
+                    'client_name': row.get('client_name'),
+                    'unpaid_count': row.get('unpaid_count'),
+                    'unpaid_amount_n': row.get('unpaid_amount_n')
+                })
+
         return render_template('index.html', 
                                total_clients=total_clients,
                                total_transactions=total_transactions,
@@ -1997,6 +2031,7 @@ def index():
                                wallet=wallet,
                                country_data=country_data,
                                client_data=client_data,
+                               unpaid_clients=unpaid_clients,
                                error=request.args.get('error'),
                                message=request.args.get('message'))
     except Exception as e:

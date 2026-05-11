@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     {% block head %}{% endblock %}
 </head>
-<body>
+<body class="page-{{ request.endpoint or 'unknown' }}">
     <div class="app-container">
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
@@ -289,4 +289,3 @@
     </script>
 </body>
 </html>
-
