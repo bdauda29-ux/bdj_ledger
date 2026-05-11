@@ -1432,6 +1432,14 @@ body.theme-dark .btn.btn-primary:hover {
     box-shadow: 0 14px 40px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(139, 92, 246, 0.14) !important;
 }
 
+.dashboard .analysis-card.card-cash-usd {
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(34, 211, 238, 0.16) !important;
+}
+
+.dashboard .analysis-card.card-cash-naira {
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(16, 185, 129, 0.16) !important;
+}
+
 .dashboard .charts-section {
     gap: 24px !important;
     margin-bottom: 32px !important;
