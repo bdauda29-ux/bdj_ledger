@@ -1737,6 +1737,7 @@ def update_asset_amount(asset_id):
 
     amount = request.args.get('amount', type=float)
     change_type = request.args.get('type')
+    user_description = (request.args.get('description') or '').strip()
 
     if amount is None or amount <= 0 or change_type not in ['credit', 'debit']:
         return redirect(url_for('assets'))
@@ -1769,7 +1770,7 @@ def update_asset_amount(asset_id):
 
         conn.execute('UPDATE assets SET amount = ? WHERE id = ? AND model_id = ?', (balance_after, asset_id, current_model_id()))
 
-        description = f"{change_type.capitalize()} of {amount} on {asset['name']}"
+        description = user_description or f"{change_type.capitalize()} of {amount} on {asset['name']}"
         conn.execute('''
             INSERT INTO asset_history (asset_id, amount, type, balance_before, balance_after, description, model_id)
             VALUES (?, ?, ?, ?, ?, ?, ?)

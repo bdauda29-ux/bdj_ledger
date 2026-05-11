@@ -523,8 +523,9 @@
     function updateAssetAmount(assetId, type) {
         const amount = prompt(`Enter amount to ${type}:`);
         if (amount) {
+            const description = prompt('Description (optional):') || '';
             const currentUrl = window.location.href;
-            window.location.href = `/assets/${assetId}/update_amount?amount=${amount}&type=${type}&next=${encodeURIComponent(currentUrl)}&_t=${new Date().getTime()}`;
+            window.location.href = `/assets/${assetId}/update_amount?amount=${amount}&type=${type}&description=${encodeURIComponent(description)}&next=${encodeURIComponent(currentUrl)}&_t=${new Date().getTime()}`;
         }
     }
 
