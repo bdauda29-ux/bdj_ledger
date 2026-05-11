@@ -1353,32 +1353,70 @@ body.theme-dark .btn.btn-primary:hover {
 /* Tom Select Integration overrides */
 .ts-control {
     border-radius: var(--radius-md) !important;
-    border: 1px solid #E5E7EB !important;
+    border: 1px solid var(--border-color) !important;
     padding: 0.85rem 1rem !important;
     box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
     font-family: var(--font-family) !important;
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
 }
 
 .ts-control.focus {
-    border-color: var(--accent-black) !important;
-    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.05) !important;
+    border-color: rgba(34, 211, 238, 0.55) !important;
+    box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.18) !important;
 }
 
 .ts-dropdown {
     border-radius: var(--radius-md) !important;
     box-shadow: var(--hover-shadow) !important;
-    border: 1px solid #E5E7EB !important;
+    border: 1px solid var(--border-color) !important;
     padding: 0.5rem !important;
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
 }
 
 .ts-dropdown .option {
     border-radius: var(--radius-sm) !important;
     padding: 0.5rem 1rem !important;
+    color: var(--text-primary) !important;
 }
 
 .ts-dropdown .active {
-    background-color: var(--bg-body) !important;
+    background-color: rgba(255, 255, 255, 0.10) !important;
     color: var(--text-primary) !important;
+}
+
+body.theme-dark .ts-dropdown {
+    background: rgba(11, 18, 32, 0.92) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    box-shadow: 0 26px 80px rgba(0, 0, 0, 0.55) !important;
+}
+
+body.theme-dark .ts-control {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+body.theme-dark .ts-dropdown .option {
+    color: rgba(255, 255, 255, 0.90) !important;
+}
+
+body.theme-dark .ts-dropdown .active {
+    background-color: rgba(255, 255, 255, 0.10) !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+}
+
+body.theme-light .ts-dropdown {
+    background: rgba(255, 255, 255, 0.92) !important;
+    border: 1px solid rgba(15, 23, 42, 0.10) !important;
+    box-shadow: 0 22px 60px rgba(2, 6, 23, 0.12) !important;
+}
+
+body.theme-light .ts-control {
+    background: rgba(255, 255, 255, 0.88) !important;
+    border: 1px solid rgba(15, 23, 42, 0.12) !important;
 }
 
 /* --- Dashboard Stats (New) --- */
