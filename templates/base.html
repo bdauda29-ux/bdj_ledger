@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     {% block head %}{% endblock %}
 </head>
-<body class="theme-fintech page-{{ request.endpoint or 'unknown' }}">
+<body class="theme-light page-{{ request.endpoint or 'unknown' }}">
     <div class="app-container">
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
@@ -127,6 +127,10 @@
                         <button onclick="changeFontSize(1)" title="Increase Font" class="icon-btn"><i class="fas fa-plus"></i></button>
                         <button onclick="changeFontSize(-1)" title="Decrease Font" class="icon-btn"><i class="fas fa-minus"></i></button>
                     </div>
+                    
+                    <button id="themeToggle" title="Toggle Theme" class="icon-btn" type="button">
+                        <i class="fas fa-moon"></i>
+                    </button>
 
                     {% if session.username %}
                     <div class="user-profile">
@@ -207,6 +211,37 @@
                 });
             });
         });
+    </script>
+    <script>
+        (function() {
+            function applyTheme(theme) {
+                document.body.classList.remove('theme-light', 'theme-dark');
+                document.body.classList.add(theme);
+                const btn = document.getElementById('themeToggle');
+                if (btn) {
+                    const icon = btn.querySelector('i');
+                    if (icon) {
+                        icon.className = theme === 'theme-dark' ? 'fas fa-sun' : 'fas fa-moon';
+                    }
+                }
+            }
+
+            const savedTheme = localStorage.getItem('theme');
+            applyTheme(savedTheme === 'theme-dark' ? 'theme-dark' : 'theme-light');
+
+            document.addEventListener('DOMContentLoaded', function() {
+                const btn = document.getElementById('themeToggle');
+                if (!btn) return;
+                btn.addEventListener('click', function() {
+                    const nextTheme = document.body.classList.contains('theme-dark') ? 'theme-light' : 'theme-dark';
+                    localStorage.setItem('theme', nextTheme);
+                    applyTheme(nextTheme);
+                    if (typeof window.Chart !== 'undefined') {
+                        window.location.reload();
+                    }
+                });
+            });
+        })();
     </script>
     <script>
         // Mobile menu toggle

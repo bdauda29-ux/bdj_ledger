@@ -49,7 +49,7 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-body.theme-fintech {
+body.theme-dark {
     --bg-body: #070B13;
     --bg-card: rgba(255, 255, 255, 0.07);
     --text-primary: rgba(255, 255, 255, 0.92);
@@ -62,14 +62,14 @@ body.theme-fintech {
     color: var(--text-primary);
 }
 
-body.theme-fintech .app-container {
+body.theme-dark .app-container {
     background-color: #070B13;
     background-image: radial-gradient(circle at 20% 10%, rgba(16, 185, 129, 0.10) 0%, transparent 45%),
                       radial-gradient(circle at 80% 10%, rgba(79, 70, 229, 0.12) 0%, transparent 45%),
                       radial-gradient(circle at 85% 75%, rgba(34, 211, 238, 0.10) 0%, transparent 45%);
 }
 
-body.theme-fintech .sidebar {
+body.theme-dark .sidebar {
     background: rgba(11, 18, 32, 0.72);
     border-right: 1px solid rgba(255, 255, 255, 0.10);
     backdrop-filter: blur(14px);
@@ -77,48 +77,48 @@ body.theme-fintech .sidebar {
     box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
 }
 
-body.theme-fintech .sidebar-header {
+body.theme-dark .sidebar-header {
     margin-bottom: 2.25rem;
 }
 
-body.theme-fintech .logo-text {
+body.theme-dark .logo-text {
     color: rgba(255, 255, 255, 0.92);
 }
 
-body.theme-fintech .sidebar-toggle {
+body.theme-dark .sidebar-toggle {
     color: rgba(255, 255, 255, 0.70);
 }
 
-body.theme-fintech .sidebar-toggle:hover {
+body.theme-dark .sidebar-toggle:hover {
     background: rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.92);
 }
 
-body.theme-fintech .nav-divider {
+body.theme-dark .nav-divider {
     background: rgba(255, 255, 255, 0.10);
 }
 
-body.theme-fintech .nav-item {
+body.theme-dark .nav-item {
     color: rgba(255, 255, 255, 0.72);
     border: 1px solid transparent;
 }
 
-body.theme-fintech .nav-item:hover {
+body.theme-dark .nav-item:hover {
     background: rgba(255, 255, 255, 0.06);
     color: rgba(255, 255, 255, 0.92);
 }
 
-body.theme-fintech .nav-item.active {
+body.theme-dark .nav-item.active {
     background: rgba(255, 255, 255, 0.10);
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: rgba(255, 255, 255, 0.95);
 }
 
-body.theme-fintech .main-content {
+body.theme-dark .main-content {
     background: transparent;
 }
 
-body.theme-fintech .top-header {
+body.theme-dark .top-header {
     background: rgba(11, 18, 32, 0.55);
     border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 20px;
@@ -129,37 +129,37 @@ body.theme-fintech .top-header {
     box-shadow: 0 16px 46px rgba(0, 0, 0, 0.32);
 }
 
-body.theme-fintech .page-title {
+body.theme-dark .page-title {
     color: rgba(255, 255, 255, 0.95);
 }
 
-body.theme-fintech .current-date {
+body.theme-dark .current-date {
     color: rgba(255, 255, 255, 0.70);
 }
 
-body.theme-fintech .model-badge {
+body.theme-dark .model-badge {
     background: rgba(255, 255, 255, 0.10);
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: rgba(255, 255, 255, 0.88);
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
 }
 
-body.theme-fintech .icon-btn {
+body.theme-dark .icon-btn {
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: rgba(255, 255, 255, 0.88);
 }
 
-body.theme-fintech .icon-btn:hover {
+body.theme-dark .icon-btn:hover {
     background: rgba(255, 255, 255, 0.12);
 }
 
-body.theme-fintech .user-avatar {
+body.theme-dark .user-avatar {
     background: rgba(255, 255, 255, 0.10);
     color: rgba(255, 255, 255, 0.92);
 }
 
-body.theme-fintech .user-name {
+body.theme-dark .user-name {
     color: rgba(255, 255, 255, 0.92);
 }
 
@@ -212,13 +212,13 @@ body.theme-fintech .user-name {
     background: rgba(255, 255, 255, 0.14);
 }
 
-body.theme-fintech .btn.btn-primary {
+body.theme-dark .btn.btn-primary {
     background: linear-gradient(135deg, rgba(34, 211, 238, 0.92), rgba(79, 70, 229, 0.92)) !important;
     border: 1px solid rgba(255, 255, 255, 0.14) !important;
     box-shadow: 0 14px 40px rgba(0, 0, 0, 0.28);
 }
 
-body.theme-fintech .btn.btn-primary:hover {
+body.theme-dark .btn.btn-primary:hover {
     filter: brightness(1.05);
 }
 /* Layout Structure */
@@ -1141,6 +1141,13 @@ body.theme-fintech .btn.btn-primary:hover {
     .mobile-card-view { display: block; }
 }
 
+@media (max-width: 768px) {
+    body.theme-dark .sidebar {
+        background: rgba(11, 18, 32, 0.72);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+    }
+}
+
 /* ------------------------
    Form Styling Updates 
    ------------------------ */
@@ -1644,16 +1651,16 @@ body.theme-fintech .btn.btn-primary:hover {
     margin: 1.5rem 0.5rem;
 }
 
-body.theme-fintech .card,
-body.theme-fintech .summary-box,
-body.theme-fintech .chart-card,
-body.theme-fintech .table-container,
-body.theme-fintech .mobile-card,
-body.theme-fintech .form-container,
-body.theme-fintech .custom-modal,
-body.theme-fintech .wallet-preview,
-body.theme-fintech .today-summary,
-body.theme-fintech .summary-card {
+body.theme-dark .card,
+body.theme-dark .summary-box,
+body.theme-dark .chart-card,
+body.theme-dark .table-container,
+body.theme-dark .mobile-card,
+body.theme-dark .form-container,
+body.theme-dark .custom-modal,
+body.theme-dark .wallet-preview,
+body.theme-dark .today-summary,
+body.theme-dark .summary-card {
     background: var(--bg-card) !important;
     border: 1px solid var(--border-color) !important;
     box-shadow: var(--card-shadow) !important;
@@ -1661,55 +1668,55 @@ body.theme-fintech .summary-card {
     -webkit-backdrop-filter: blur(14px);
 }
 
-body.theme-fintech .data-table th {
+body.theme-dark .data-table th {
     background: rgba(255, 255, 255, 0.06) !important;
     color: rgba(255, 255, 255, 0.62) !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
 }
 
-body.theme-fintech .data-table td {
+body.theme-dark .data-table td {
     color: rgba(255, 255, 255, 0.88) !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
-body.theme-fintech .data-table tr:hover td {
+body.theme-dark .data-table tr:hover td {
     background: rgba(255, 255, 255, 0.05) !important;
 }
 
-body.theme-fintech .filter-toggle-btn,
-body.theme-fintech .search-input-wrapper input,
-body.theme-fintech .filter-group-vertical select,
-body.theme-fintech .filter-group-vertical input,
-body.theme-fintech .form-group input,
-body.theme-fintech .form-group select,
-body.theme-fintech .form-group textarea,
-body.theme-fintech .form-control {
+body.theme-dark .filter-toggle-btn,
+body.theme-dark .search-input-wrapper input,
+body.theme-dark .filter-group-vertical select,
+body.theme-dark .filter-group-vertical input,
+body.theme-dark .form-group input,
+body.theme-dark .form-group select,
+body.theme-dark .form-group textarea,
+body.theme-dark .form-control {
     background: rgba(255, 255, 255, 0.06) !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
     color: rgba(255, 255, 255, 0.92) !important;
 }
 
-body.theme-fintech .search-input-wrapper .search-icon {
+body.theme-dark .search-input-wrapper .search-icon {
     color: rgba(255, 255, 255, 0.55) !important;
 }
 
-body.theme-fintech .filter-toggle-btn:hover {
+body.theme-dark .filter-toggle-btn:hover {
     background: rgba(255, 255, 255, 0.10) !important;
     border-color: rgba(255, 255, 255, 0.16) !important;
     color: rgba(255, 255, 255, 0.92) !important;
 }
 
-body.theme-fintech .search-input-wrapper input:focus,
-body.theme-fintech .form-control:focus,
-body.theme-fintech .form-group input:focus,
-body.theme-fintech .form-group select:focus,
-body.theme-fintech .form-group textarea:focus {
+body.theme-dark .search-input-wrapper input:focus,
+body.theme-dark .form-control:focus,
+body.theme-dark .form-group input:focus,
+body.theme-dark .form-group select:focus,
+body.theme-dark .form-group textarea:focus {
     outline: none;
     border-color: rgba(34, 211, 238, 0.55) !important;
     box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.18) !important;
 }
 
-body.theme-fintech .filter-dropdown {
+body.theme-dark .filter-dropdown {
     background: rgba(11, 18, 32, 0.72) !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
     box-shadow: 0 18px 55px rgba(0, 0, 0, 0.45) !important;
@@ -1717,85 +1724,85 @@ body.theme-fintech .filter-dropdown {
     -webkit-backdrop-filter: blur(16px);
 }
 
-body.theme-fintech .filter-dropdown-header h3,
-body.theme-fintech .filter-group-vertical label {
+body.theme-dark .filter-dropdown-header h3,
+body.theme-dark .filter-group-vertical label {
     color: rgba(255, 255, 255, 0.78) !important;
 }
 
-body.theme-fintech .tabs {
+body.theme-dark .tabs {
     background: rgba(255, 255, 255, 0.06) !important;
     border: 1px solid rgba(255, 255, 255, 0.10) !important;
 }
 
-body.theme-fintech .tab {
+body.theme-dark .tab {
     color: rgba(255, 255, 255, 0.68) !important;
 }
 
-body.theme-fintech .tab.active {
+body.theme-dark .tab.active {
     background: rgba(255, 255, 255, 0.12) !important;
     color: rgba(255, 255, 255, 0.92) !important;
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22) !important;
 }
 
-body.theme-fintech .btn-secondary {
+body.theme-dark .btn-secondary {
     background: rgba(255, 255, 255, 0.08) !important;
     border: 1px solid rgba(255, 255, 255, 0.14) !important;
     color: rgba(255, 255, 255, 0.90) !important;
 }
 
-body.theme-fintech .btn-secondary:hover {
+body.theme-dark .btn-secondary:hover {
     background: rgba(255, 255, 255, 0.12) !important;
     border-color: rgba(255, 255, 255, 0.18) !important;
 }
 
-body.theme-fintech .btn-success {
+body.theme-dark .btn-success {
     background: rgba(16, 185, 129, 0.18) !important;
     color: rgba(255, 255, 255, 0.92) !important;
     border: 1px solid rgba(16, 185, 129, 0.26) !important;
 }
 
-body.theme-fintech .btn-danger {
+body.theme-dark .btn-danger {
     background: rgba(239, 68, 68, 0.16) !important;
     color: rgba(255, 255, 255, 0.92) !important;
     border: 1px solid rgba(239, 68, 68, 0.26) !important;
 }
 
-body.theme-fintech .alert {
+body.theme-dark .alert {
     background: rgba(255, 255, 255, 0.06) !important;
     border: 1px solid rgba(255, 255, 255, 0.10) !important;
     color: rgba(255, 255, 255, 0.88) !important;
 }
 
-body.theme-fintech .alert-error {
+body.theme-dark .alert-error {
     border-left: 4px solid rgba(239, 68, 68, 0.85) !important;
 }
 
-body.theme-fintech .alert-success {
+body.theme-dark .alert-success {
     border-left: 4px solid rgba(16, 185, 129, 0.85) !important;
 }
 
-body.theme-fintech .modal-overlay {
+body.theme-dark .modal-overlay {
     background: rgba(0, 0, 0, 0.62) !important;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
 }
 
-body.theme-fintech .custom-modal {
+body.theme-dark .custom-modal {
     background: rgba(11, 18, 32, 0.78) !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
     box-shadow: 0 28px 80px rgba(0, 0, 0, 0.55) !important;
 }
 
-body.theme-fintech .modal-header h3,
-body.theme-fintech .modal-body strong {
+body.theme-dark .modal-header h3,
+body.theme-dark .modal-body strong {
     color: rgba(255, 255, 255, 0.92) !important;
 }
 
-body.theme-fintech .modal-body p {
+body.theme-dark .modal-body p {
     color: rgba(255, 255, 255, 0.75) !important;
 }
 
-body.theme-fintech .btn-modal-secondary {
+body.theme-dark .btn-modal-secondary {
     background: rgba(255, 255, 255, 0.10) !important;
     color: rgba(255, 255, 255, 0.90) !important;
 }
