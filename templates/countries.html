@@ -9,7 +9,7 @@
             <form method="GET" style="flex: 1; display: flex; gap: 10px; align-items: center; width: 100%;">
                 <div class="search-input-wrapper" style="flex: 1;">
                      <i class="fas fa-search search-icon"></i>
-                     <input type="text" name="q" value="{{ q or '' }}" placeholder="Search countries..." style="width: 100%;">
+                     <input id="countrySearchInput" type="text" name="q" value="{{ q or '' }}" placeholder="Search countries..." style="width: 100%;">
                 </div>
                 <button type="submit" class="btn btn-primary">Search</button>
                 <a href="{{ url_for('countries') }}" class="btn btn-outline">Clear</a>
@@ -37,7 +37,7 @@
         </thead>
         <tbody>
             {% for country in countries %}
-            <tr>
+            <tr class="country-row" data-search="{{ (country.id|string) ~ ' ' ~ (country.name or '') ~ ' ' ~ (country.continent or '') }}">
                 <td class="s-no">{{ loop.index }}</td>
                 <td>{{ country.id }}</td>
                 <td>
@@ -84,7 +84,7 @@
 <!-- Mobile Card View -->
 <div class="mobile-card-view">
     {% for country in countries %}
-    <div class="mobile-card">
+    <div class="mobile-card country-card" data-search="{{ (country.id|string) ~ ' ' ~ (country.name or '') ~ ' ' ~ (country.continent or '') }}">
         <div class="mobile-card-header">
             <div><span class="card-s-no">#{{ loop.index }}</span> - {{ country.name }}</div>
         </div>
@@ -154,6 +154,50 @@
 {% else %}
 <p class="empty-state">No countries found.</p>
 {% endif %}
+
+<p id="countryNoResults" class="empty-state" style="display: none;">No matching countries.</p>
+
+<script>
+    (function() {
+        function normalize(s) {
+            return (s || '').toString().toLowerCase().trim();
+        }
+
+        function applyCountryFilter() {
+            const input = document.getElementById('countrySearchInput');
+            if (!input) return;
+            const query = normalize(input.value);
+            const rows = Array.from(document.querySelectorAll('.country-row'));
+            const cards = Array.from(document.querySelectorAll('.country-card'));
+            let visibleCount = 0;
+
+            for (const el of rows) {
+                const hay = normalize(el.getAttribute('data-search'));
+                const match = query === '' || hay.includes(query);
+                el.style.display = match ? '' : 'none';
+                if (match) visibleCount++;
+            }
+
+            for (const el of cards) {
+                const hay = normalize(el.getAttribute('data-search'));
+                const match = query === '' || hay.includes(query);
+                el.style.display = match ? '' : 'none';
+            }
+
+            const noResults = document.getElementById('countryNoResults');
+            if (noResults) {
+                noResults.style.display = visibleCount === 0 && query !== '' ? 'block' : 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = document.getElementById('countrySearchInput');
+            if (!input) return;
+            input.addEventListener('input', applyCountryFilter);
+            applyCountryFilter();
+        });
+    })();
+</script>
 <script>
     function filterCountries() {
         var input = document.getElementById('country_search');

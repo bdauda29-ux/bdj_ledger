@@ -9,7 +9,7 @@
             <form method="GET" style="flex: 1; display: flex; gap: 10px; align-items: center; width: 100%;">
                 <div class="search-input-wrapper" style="flex: 1;">
                      <i class="fas fa-search search-icon"></i>
-                     <input type="text" name="q" value="{{ q or '' }}" placeholder="Search clients..." style="width: 100%;">
+                     <input id="clientSearchInput" type="text" name="q" value="{{ q or '' }}" placeholder="Search clients..." style="width: 100%;">
                 </div>
                 <button type="submit" class="btn btn-primary">Search</button>
                 <a href="{{ url_for('clients') }}" class="btn btn-outline">Clear</a>
@@ -36,7 +36,7 @@
         </thead>
         <tbody>
             {% for client in clients %}
-            <tr>
+            <tr class="client-row" data-search="{{ (client.client_name or '') ~ ' ' ~ (client.phone_number or '') }}">
                 <td class="s-no">{{ loop.index }}</td>
                 <td>{{ client.client_name }}</td>
                 <td>
@@ -73,7 +73,7 @@
 <!-- Mobile Card View -->
 <div class="mobile-card-view">
     {% for client in clients %}
-    <div class="mobile-card">
+    <div class="mobile-card client-card" data-search="{{ (client.client_name or '') ~ ' ' ~ (client.phone_number or '') }}">
         <div class="mobile-card-header">
             <div><span class="card-s-no">#{{ loop.index }}</span> - {{ client.client_name }}</div>
         </div>
@@ -118,6 +118,50 @@
 {% else %}
 <p class="empty-state">No clients found.</p>
 {% endif %}
+
+<p id="clientNoResults" class="empty-state" style="display: none;">No matching clients.</p>
+
+<script>
+    (function() {
+        function normalize(s) {
+            return (s || '').toString().toLowerCase().trim();
+        }
+
+        function applyClientFilter() {
+            const input = document.getElementById('clientSearchInput');
+            if (!input) return;
+            const query = normalize(input.value);
+            const rows = Array.from(document.querySelectorAll('.client-row'));
+            const cards = Array.from(document.querySelectorAll('.client-card'));
+            let visibleCount = 0;
+
+            for (const el of rows) {
+                const hay = normalize(el.getAttribute('data-search'));
+                const match = query === '' || hay.includes(query);
+                el.style.display = match ? '' : 'none';
+                if (match) visibleCount++;
+            }
+
+            for (const el of cards) {
+                const hay = normalize(el.getAttribute('data-search'));
+                const match = query === '' || hay.includes(query);
+                el.style.display = match ? '' : 'none';
+            }
+
+            const noResults = document.getElementById('clientNoResults');
+            if (noResults) {
+                noResults.style.display = visibleCount === 0 && query !== '' ? 'block' : 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = document.getElementById('clientSearchInput');
+            if (!input) return;
+            input.addEventListener('input', applyClientFilter);
+            applyClientFilter();
+        });
+    })();
+</script>
 
 <!-- History Modal -->
 <div id="historyModal" class="modal-overlay">
@@ -277,4 +321,3 @@
     });
 </script>
 {% endblock %}
-
