@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     {% block head %}{% endblock %}
 </head>
-<body class="theme-light page-{{ request.endpoint or 'unknown' }}">
+<body class="theme-dark page-{{ request.endpoint or 'unknown' }}">
     <div class="app-container">
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
@@ -128,8 +128,9 @@
                         <button onclick="changeFontSize(-1)" title="Decrease Font" class="icon-btn"><i class="fas fa-minus"></i></button>
                     </div>
                     
-                    <button id="themeToggle" title="Toggle Theme" class="icon-btn" type="button">
-                        <i class="fas fa-moon"></i>
+                    <button id="themeToggle" title="Toggle Theme" class="icon-btn" type="button" style="gap: 10px; padding: 0.6rem 0.85rem;">
+                        <i class="fas fa-sun"></i>
+                        <span class="theme-toggle-text" style="font-weight: 650; font-size: 0.9rem;">Theme</span>
                     </button>
 
                     {% if session.username %}
@@ -227,7 +228,7 @@
             }
 
             const savedTheme = localStorage.getItem('theme');
-            applyTheme(savedTheme === 'theme-dark' ? 'theme-dark' : 'theme-light');
+            applyTheme(savedTheme === 'theme-light' ? 'theme-light' : 'theme-dark');
 
             document.addEventListener('DOMContentLoaded', function() {
                 const btn = document.getElementById('themeToggle');
