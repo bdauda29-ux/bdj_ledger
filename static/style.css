@@ -222,6 +222,48 @@ body.theme-dark .user-name {
     color: rgba(255, 255, 255, 0.92);
 }
 
+body.theme-dark [style*="color: #000"],
+body.theme-dark [style*="color:#000"],
+body.theme-dark [style*="color: #111"],
+body.theme-dark [style*="color:#111"],
+body.theme-dark [style*="color: #222"],
+body.theme-dark [style*="color:#222"],
+body.theme-dark [style*="color: #333"],
+body.theme-dark [style*="color:#333"],
+body.theme-dark [style*="color: #444"],
+body.theme-dark [style*="color:#444"],
+body.theme-dark [style*="color: #555"],
+body.theme-dark [style*="color:#555"] {
+    color: var(--text-primary) !important;
+}
+
+body.theme-dark [style*="color: #666"],
+body.theme-dark [style*="color:#666"],
+body.theme-dark [style*="color: #777"],
+body.theme-dark [style*="color:#777"],
+body.theme-dark [style*="color: #888"],
+body.theme-dark [style*="color:#888"],
+body.theme-dark [style*="color: #999"],
+body.theme-dark [style*="color:#999"] {
+    color: var(--text-secondary) !important;
+}
+
+body.theme-light [style*="color: #fff"],
+body.theme-light [style*="color:#fff"],
+body.theme-light [style*="color: #ffffff"],
+body.theme-light [style*="color:#ffffff"],
+body.theme-light [style*="color: white"],
+body.theme-light [style*="color:white"],
+body.theme-light [style*="color: rgba(255, 255, 255"],
+body.theme-light [style*="color:rgba(255,255,255"] {
+    color: var(--text-primary) !important;
+}
+
+body.theme-light [style*="color: rgba(255,255,255"],
+body.theme-light [style*="color: rgba(255, 255, 255"] {
+    color: var(--text-primary) !important;
+}
+
 .dashboard .today-summary h3 {
     margin-bottom: 10px;
 }
