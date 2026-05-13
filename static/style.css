@@ -268,7 +268,7 @@ body.theme-light [style*="color: rgba(255, 255, 255"] {
     margin-bottom: 10px;
 }
 
-.dashboard .today-summary-box {
+body.theme-dark .dashboard .today-summary-box {
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 18px;
@@ -279,16 +279,16 @@ body.theme-light [style*="color: rgba(255, 255, 255"] {
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
-.dashboard .today-summary-box strong {
+body.theme-dark .dashboard .today-summary-box strong {
     color: rgba(255, 255, 255, 0.78) !important;
 }
 
-.dashboard .today-summary-box span {
+body.theme-dark .dashboard .today-summary-box span {
     color: rgba(255, 255, 255, 0.92) !important;
     font-weight: 700;
 }
 
-.dashboard .today-summary-box .today-amount {
+body.theme-dark .dashboard .today-summary-box .today-amount {
     color: rgba(34, 211, 238, 0.95) !important;
 }
 
@@ -303,14 +303,38 @@ body.theme-light [style*="color: rgba(255, 255, 255"] {
     gap: 16px;
 }
 
-.dashboard .reminder-pane-actions .btn {
+body.theme-dark .dashboard .reminder-pane-actions .btn {
     border: 1px solid rgba(255, 255, 255, 0.14);
     background: rgba(255, 255, 255, 0.10);
     color: rgba(255, 255, 255, 0.92);
 }
 
-.dashboard .reminder-pane-actions .btn:hover {
+body.theme-dark .dashboard .reminder-pane-actions .btn:hover {
     background: rgba(255, 255, 255, 0.14);
+}
+
+body.theme-light .dashboard .today-summary-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+body.theme-light .dashboard .today-summary-box strong {
+    color: var(--text-secondary) !important;
+}
+
+body.theme-light .dashboard .today-summary-box span {
+    color: var(--text-primary) !important;
+    font-weight: 700;
+}
+
+body.theme-light .dashboard .today-summary-box .today-amount {
+    color: var(--primary-color) !important;
 }
 
 body.theme-dark .btn.btn-primary {
