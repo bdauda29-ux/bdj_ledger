@@ -332,11 +332,14 @@
                         <td class="text-right">{{ row.unpaid_count }}</td>
                         <td class="text-right"><strong>{{ (row.unpaid_amount_n or 0)|comma2 }}</strong></td>
                         <td>
-                            {% if row.client_id %}
-                            <a href="{{ url_for('client_transactions', client_id=row.client_id) }}" class="btn btn-secondary btn-sm">Open</a>
-                            {% else %}
-                            <a href="{{ url_for('transactions', client_name=row.client_name) }}" class="btn btn-secondary btn-sm">Open</a>
-                            {% endif %}
+                            <div class="reminder-row-actions">
+                                {% if row.client_id %}
+                                <a href="{{ url_for('client_transactions', client_id=row.client_id) }}" class="btn btn-secondary btn-sm">Open</a>
+                                {% else %}
+                                <a href="{{ url_for('transactions', client_name=row.client_name) }}" class="btn btn-secondary btn-sm">Open</a>
+                                {% endif %}
+                                <a href="{{ url_for('export_transactions', format='pdf', paid='0', client_name=row.client_name) }}" class="btn btn-secondary btn-sm">Export</a>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}

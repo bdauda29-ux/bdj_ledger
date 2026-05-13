@@ -303,6 +303,12 @@ body.theme-dark .dashboard .today-summary-box .today-amount {
     gap: 16px;
 }
 
+.dashboard .reminder-row-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
 body.theme-dark .dashboard .reminder-pane-actions .btn {
     border: 1px solid rgba(255, 255, 255, 0.14);
     background: rgba(255, 255, 255, 0.10);
