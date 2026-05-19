@@ -225,6 +225,7 @@
         {% if session.permissions and session.permissions.is_admin and wallet %}
         {% set cash_usd = (wallet.dollars or 0) + (wallet.providus_dollars or 0) + (wallet.bybit_dollars or 0) %}
         {% set cash_naira = (wallet.naira or 0) + (wallet.taj_naira or 0) + (wallet.naira_1 or 0) %}
+        {% set unpaid_bal = (wallet.unpaid_n or 0) %}
         <div class="analysis-card card-cash-usd">
             <div class="card-content">
                 <div class="card-info">
@@ -244,6 +245,17 @@
                 </div>
                 <div class="card-icon">
                     <i class="fas fa-coins"></i>
+                </div>
+            </div>
+        </div>
+        <div class="analysis-card card-unpaid">
+            <div class="card-content">
+                <div class="card-info">
+                    <span class="card-title">UNPAID BALANCE</span>
+                    <h3 class="card-number">₦ {{ (unpaid_bal or 0)|comma2 }}</h3>
+                </div>
+                <div class="card-icon">
+                    <i class="fas fa-hourglass-half"></i>
                 </div>
             </div>
         </div>
