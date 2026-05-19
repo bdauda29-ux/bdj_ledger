@@ -1620,6 +1620,62 @@ body.theme-dark .dashboard .analysis-card.card-unpaid {
     box-shadow: 0 14px 40px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(239, 68, 68, 0.16) !important;
 }
 
+body.theme-dark .dashboard .analysis-card.card-cash-stack {
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(34, 211, 238, 0.12) !important;
+}
+
+body.theme-light .dashboard .analysis-card.card-cash-stack {
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--border-color);
+}
+
+.cash-stack-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.cash-stack-info .card-number {
+    margin-top: 0.25rem;
+}
+
+.cash-stack-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+body.theme-light .cash-stack-icon {
+    background: rgba(17, 24, 39, 0.06);
+    color: rgba(17, 24, 39, 0.92);
+}
+
+body.theme-dark .cash-stack-icon {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.cash-stack-divider {
+    height: 1px;
+    width: 100%;
+    margin: 16px 0;
+}
+
+body.theme-light .cash-stack-divider {
+    background: rgba(17, 24, 39, 0.08);
+}
+
+body.theme-dark .cash-stack-divider {
+    background: rgba(255, 255, 255, 0.10);
+}
+
 body.theme-dark .dashboard .charts-section {
     gap: 24px !important;
     margin-bottom: 32px !important;
