@@ -32,12 +32,13 @@
                 <th>Country Name</th>
                 <th>Continent</th>
                 <th>Price</th>
+                <th>Fee</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for country in countries %}
-            <tr class="country-row" data-search="{{ (country.id|string) ~ ' ' ~ (country.name or '') ~ ' ' ~ (country.continent or '') }}">
+            <tr class="country-row" data-country-id="{{ country.id }}" data-search="{{ (country.id|string) ~ ' ' ~ (country.name or '') ~ ' ' ~ (country.continent or '') }}">
                 <td class="s-no">{{ loop.index }}</td>
                 <td>{{ country.id }}</td>
                 <td>
@@ -64,6 +65,7 @@
                 </td>
                 <td>{{ country.continent or 'Unknown' }}</td>
                 <td>{{ country.price|comma2 }}</td>
+                <td class="country-fee-cell" data-fee="0">-</td>
                 <td class="action-cell">
                     {% if edit_id != country.id %}
                     <a href="{{ url_for('countries', edit_id=country.id) }}" class="btn btn-secondary btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
@@ -84,7 +86,7 @@
 <!-- Mobile Card View -->
 <div class="mobile-card-view">
     {% for country in countries %}
-    <div class="mobile-card country-card" data-search="{{ (country.id|string) ~ ' ' ~ (country.name or '') ~ ' ' ~ (country.continent or '') }}">
+    <div class="mobile-card country-card" data-country-id="{{ country.id }}" data-search="{{ (country.id|string) ~ ' ' ~ (country.name or '') ~ ' ' ~ (country.continent or '') }}">
         <div class="mobile-card-header">
             <div><span class="card-s-no">#{{ loop.index }}</span> - {{ country.name }}</div>
         </div>
@@ -98,6 +100,11 @@
                 <span class="mobile-card-label-sm">Price</span>
                 <span class="mobile-card-value-sm"><strong>{{ country.price|comma2 }}</strong></span>
             </div>
+        </div>
+
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Fee:</span>
+            <span class="mobile-card-value mobile-country-fee" data-fee="0">-</span>
         </div>
 
         <div class="mobile-card-row">
@@ -159,6 +166,45 @@
 
 <script>
     (function() {
+        function fmt(n) {
+            const num = typeof n === 'number' ? n : parseFloat(n);
+            const safe = Number.isFinite(num) ? num : 0;
+            return safe.toLocaleString(undefined, { maximumFractionDigits: 2 });
+        }
+
+        async function loadFees() {
+            try {
+                const res = await fetch('{{ url_for("api_countries") }}', { credentials: 'same-origin' });
+                if (!res.ok) return;
+                const data = await res.json();
+                const feeById = new Map();
+                for (const item of data) {
+                    feeById.set(String(item.id), item.fee);
+                }
+
+                document.querySelectorAll('.country-row').forEach(function(row) {
+                    const id = row.getAttribute('data-country-id');
+                    const fee = feeById.has(String(id)) ? feeById.get(String(id)) : null;
+                    const cell = row.querySelector('.country-fee-cell');
+                    if (cell) {
+                        cell.textContent = fee === null ? '-' : fmt(fee);
+                        cell.setAttribute('data-fee', fee === null ? '0' : String(fee));
+                    }
+                });
+
+                document.querySelectorAll('.country-card').forEach(function(card) {
+                    const id = card.getAttribute('data-country-id');
+                    const fee = feeById.has(String(id)) ? feeById.get(String(id)) : null;
+                    const el = card.querySelector('.mobile-country-fee');
+                    if (el) {
+                        el.textContent = fee === null ? '-' : fmt(fee);
+                        el.setAttribute('data-fee', fee === null ? '0' : String(fee));
+                    }
+                });
+            } catch (e) {
+            }
+        }
+
         function normalize(s) {
             return (s || '').toString().toLowerCase().trim();
         }
@@ -195,58 +241,9 @@
             if (!input) return;
             input.addEventListener('input', applyCountryFilter);
             applyCountryFilter();
+            loadFees();
         });
     })();
-</script>
-<script>
-    function filterCountries() {
-        var input = document.getElementById('country_search');
-        var q = (input && input.value ? input.value : '').toLowerCase();
-        var idx = 1;
-        var rows = document.querySelectorAll('.table-container tbody tr');
-        rows.forEach(function(row) {
-            var idCell = row.querySelector('td:nth-child(2)');
-            var nameCell = row.querySelector('td:nth-child(3)');
-            var continentCell = row.querySelector('td:nth-child(4)');
-            var idText = idCell ? idCell.textContent.toLowerCase() : '';
-            var nameText = nameCell ? nameCell.textContent.toLowerCase() : '';
-            var continentText = continentCell ? continentCell.textContent.toLowerCase() : '';
-            var show = !q || idText.indexOf(q) !== -1 || nameText.indexOf(q) !== -1 || continentText.indexOf(q) !== -1;
-            row.style.display = show ? '' : 'none';
-            if (show) {
-                var sNoCell = row.querySelector('.s-no');
-                if (sNoCell) sNoCell.textContent = idx++;
-            }
-        });
-        var cardIdx = 1;
-        var cards = document.querySelectorAll('.mobile-card-view .mobile-card');
-        cards.forEach(function(card) {
-            var header = card.querySelector('.mobile-card-header');
-            var text = header ? header.textContent.toLowerCase() : '';
-            var show = !q || text.indexOf(q) !== -1;
-            card.style.display = show ? '' : 'none';
-            if (show) {
-                var sNoSpan = card.querySelector('.card-s-no');
-                if (sNoSpan) sNoSpan.textContent = '#' + (cardIdx++);
-            }
-        });
-    }
-    document.addEventListener('DOMContentLoaded', function() {
-        var input = document.getElementById('country_search');
-        if (input) {
-            function setParam(name, value) {
-                var url = new URL(window.location.href);
-                if (value && value.length > 0) url.searchParams.set(name, value);
-                else url.searchParams.delete(name);
-                history.replaceState(null, '', url.toString());
-            }
-            input.addEventListener('input', function() {
-                setParam('q', input.value.trim());
-                filterCountries();
-            });
-            filterCountries();
-        }
-    });
 </script>
 {% endblock %}
 

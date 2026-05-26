@@ -115,6 +115,34 @@
     // But since we are in edit mode, we want to make sure the current country is preserved even if it doesn't match the service type (though it should).
     // The server renders all countries in the loop, so we have them all.
     const allCountryOptions = Array.from(countrySelect.options).slice(1); // Skip "Select a country"
+    const countriesData = allCountryOptions.map(opt => ({
+        name: (opt.value || opt.text || '').toString(),
+        label: (opt.text || opt.value || '').toString(),
+        price: parseFloat(opt.dataset.price) || 0
+    }));
+
+    function normalize(s) {
+        return (s || '').toString().toLowerCase().trim();
+    }
+
+    function computeFee(countryName, price) {
+        const n = normalize(countryName);
+        const p = Number.isFinite(price) ? price : (parseFloat(price) || 0);
+        if (n === 'twp' || n === 'cerpac' || n === 'ecerpac') return p;
+        const passport = new Set(['32pgs', '32pgs cod', '64pgs', '64pgs cod']);
+        if (passport.has(n)) {
+            const base = Math.max(p - 12, 0);
+            return base + (base * 0.06);
+        }
+        const base = Math.max(p - 20, 0);
+        return base + (base * 0.06);
+    }
+
+    function fmt(n) {
+        const num = typeof n === 'number' ? n : parseFloat(n);
+        const safe = Number.isFinite(num) ? num : 0;
+        return safe.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    }
 
     function filterCountries() {
         const serviceType = serviceTypeSelect.value;
@@ -125,26 +153,30 @@
             countrySelect.remove(1);
         }
         
-        const excludedForEVisa = ['32pgs', '32pgs COD', '64pgs', '64pgs COD', 'TWP'];
-        const allowedForTWP = ['TWP'];
-        const allowedForPassport = ['32pgs', '32pgs COD', '64pgs', '64pgs COD'];
-        
-        allCountryOptions.forEach(option => {
+        const passportChildren = new Set(['32pgs', '32pgs cod', '64pgs', '64pgs cod']);
+        const twpChildren = new Set(['twp']);
+        const cerpacChildren = new Set(['cerpac', 'ecerpac']);
+
+        countriesData.forEach(item => {
+            const nameNorm = normalize(item.name);
             let shouldShow = true;
-            const name = option.text.trim(); // Trim whitespace
-            
-            if (serviceType === 'eVisa') {
-                if (excludedForEVisa.includes(name)) shouldShow = false;
+
+            if (serviceType === 'Passport') {
+                shouldShow = passportChildren.has(nameNorm);
             } else if (serviceType === 'TWP') {
-                if (!allowedForTWP.includes(name)) shouldShow = false;
-            } else if (serviceType === 'Passport') {
-                if (!allowedForPassport.includes(name)) shouldShow = false;
+                shouldShow = twpChildren.has(nameNorm);
+            } else if (serviceType === 'eCerpac') {
+                shouldShow = cerpacChildren.has(nameNorm);
+            } else {
+                shouldShow = !(passportChildren.has(nameNorm) || twpChildren.has(nameNorm) || cerpacChildren.has(nameNorm));
             }
-            // eCerpac shows all
-            
-            if (shouldShow) {
-                countrySelect.add(option.cloneNode(true));
-            }
+
+            if (!shouldShow) return;
+            const opt = document.createElement('option');
+            opt.value = item.name;
+            opt.textContent = item.label;
+            opt.dataset.price = String(item.price || 0);
+            countrySelect.add(opt);
         });
         
         // Restore selection if valid, otherwise reset
@@ -190,9 +222,10 @@
 
     function calculateAmounts() {
         const selectedOption = countrySelect.options[countrySelect.selectedIndex];
-        const countryPrice = parseFloat(selectedOption.dataset.price) || 0;
+        const countryPrice = selectedOption ? (parseFloat(selectedOption.dataset.price) || 0) : 0;
         const addition = parseFloat(additionInput.value) || 0;
         const rate = parseFloat(rateInput.value) || 1;
+        const fee = computeFee(countrySelect.value, countryPrice);
         
         const amount = countryPrice + addition;
         const amountN = amount * rate;
@@ -200,8 +233,9 @@
         amountDisplay.value = Math.round(amount).toLocaleString();
         amountNDisplay.value = Math.round(amountN).toLocaleString();
         
-        if (countryPrice > 0) {
-            countryPriceDisplay.textContent = `Country Price: ${Math.round(countryPrice).toLocaleString()}`;
+        if (countrySelect.value) {
+            const total = countryPrice + fee;
+            countryPriceDisplay.textContent = `Price: ${fmt(countryPrice)} | Fee: ${fmt(fee)} | Price + Fee: ${fmt(total)}`;
         } else {
             countryPriceDisplay.textContent = '';
         }

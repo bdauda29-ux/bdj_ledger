@@ -2232,17 +2232,59 @@ def balance_history(client_id):
 
 # ==================== COUNTRY ROUTES ====================
 
+def compute_country_fee(country_name, price):
+    try:
+        price_val = float(price or 0)
+    except Exception:
+        price_val = 0.0
+    name = (country_name or "").strip().lower()
+    if name in {"twp", "cerpac", "ecerpac"}:
+        return price_val
+    passport = {"32pgs", "32pgs cod", "64pgs", "64pgs cod"}
+    if name in passport:
+        base = max(price_val - 12.0, 0.0)
+        return base + (base * 0.06)
+    base = max(price_val - 20.0, 0.0)
+    return base + (base * 0.06)
+
+
+@app.route('/api/countries')
+def api_countries():
+    conn = get_db_connection()
+    mid = current_model_id()
+    rows = conn.execute(
+        "SELECT id, name, COALESCE(price, 0.0) AS price, continent, model_id FROM countries WHERE model_id = ? OR model_id IS NULL ORDER BY name",
+        (mid,),
+    ).fetchall()
+    data = []
+    for r in rows:
+        name = r["name"]
+        price = r["price"] or 0.0
+        fee = compute_country_fee(name, price)
+        data.append(
+            {
+                "id": r["id"],
+                "name": name,
+                "price": float(price),
+                "fee": float(fee),
+                "continent": r["continent"],
+            }
+        )
+    return jsonify(data)
+
+
 @app.route('/countries')
 def countries():
     """View all countries"""
     try:
         conn = get_db_connection()
+        mid = current_model_id()
         q = (request.args.get('q') or '').strip()
-        where_sql = ''
-        params = []
+        where_sql = "WHERE (model_id = ? OR model_id IS NULL)"
+        params = [mid]
         if q:
-            where_sql = "WHERE (LOWER(name) LIKE LOWER(?) OR LOWER(COALESCE(continent, '')) LIKE LOWER(?) OR CAST(id AS TEXT) LIKE ?)"
-            params = [f'%{q}%', f'%{q}%', f'%{q}%']
+            where_sql += " AND (LOWER(name) LIKE LOWER(?) OR LOWER(COALESCE(continent, '')) LIKE LOWER(?) OR CAST(id AS TEXT) LIKE ?)"
+            params.extend([f'%{q}%', f'%{q}%', f'%{q}%'])
         countries_list = conn.execute(f'''
             SELECT id, name, COALESCE(price, 0.0) AS price, continent 
             FROM countries
@@ -2285,8 +2327,8 @@ def add_country():
         
         conn = get_db_connection()
         try:
-            conn.execute('INSERT INTO countries (name, price, continent) VALUES (?, ?, ?)',
-                        (name, price, continent))
+            conn.execute('INSERT INTO countries (name, price, continent, model_id) VALUES (?, ?, ?, ?)',
+                        (name, price, continent, current_model_id()))
             conn.commit()
             return redirect(url_for('countries'))
         except sqlite3.IntegrityError:
@@ -2305,8 +2347,8 @@ def edit_country(country_id):
         continent = request.form.get('continent') or None
         
         try:
-            conn.execute('UPDATE countries SET name = ?, price = ?, continent = ? WHERE id = ?',
-                        (name, price, continent, country_id))
+            conn.execute('UPDATE countries SET name = ?, price = ?, continent = ?, model_id = ? WHERE id = ? AND (model_id = ? OR model_id IS NULL)',
+                        (name, price, continent, current_model_id(), country_id, current_model_id()))
             conn.commit()
             return redirect(url_for('countries', message='Country updated'))
         except sqlite3.IntegrityError:
@@ -2317,7 +2359,7 @@ def edit_country(country_id):
 def delete_country(country_id):
     """Delete a country"""
     conn = get_db_connection()
-    conn.execute('DELETE FROM countries WHERE id = ?', (country_id,))
+    conn.execute('DELETE FROM countries WHERE id = ? AND (model_id = ? OR model_id IS NULL)', (country_id, current_model_id()))
     conn.commit()
     return redirect(url_for('countries'))
 
@@ -2444,8 +2486,8 @@ def add_transaction():
                     app_id = int(request.form['app_id'])
                 except (ValueError, TypeError):
                      return render_template('add_transaction.html', 
-                                         clients=conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall(), 
-                                         countries=conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall(),
+                                         clients=conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall(), 
+                                         countries=conn.execute('SELECT name, price FROM countries WHERE model_id = ? OR model_id IS NULL ORDER BY name', (current_model_id(),)).fetchall(),
                                          error='Invalid App ID')
 
                 country_name = request.form['country_name']
@@ -2471,10 +2513,10 @@ def add_transaction():
                         transaction_date = None
                 
                 # Get country price
-                country = conn.execute('SELECT price FROM countries WHERE name = ?', (country_name,)).fetchone()
+                country = conn.execute('SELECT price FROM countries WHERE (model_id = ? OR model_id IS NULL) AND name = ?', (current_model_id(), country_name)).fetchone()
                 if not country:
-                    clients_list = conn.execute('SELECT client_name FROM clients').fetchall()
-                    countries_list = conn.execute('SELECT name FROM countries').fetchall()
+                    clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
+                    countries_list = conn.execute('SELECT name FROM countries WHERE model_id = ? OR model_id IS NULL ORDER BY name', (current_model_id(),)).fetchall()
                     return render_template('add_transaction.html', 
                                          clients=clients_list, 
                                          countries=countries_list,
@@ -2487,8 +2529,8 @@ def add_transaction():
                 
                 exists = conn.execute('SELECT id FROM transactions WHERE app_id = ? AND model_id = ?', (app_id, current_model_id())).fetchone()
                 if exists:
-                    clients_list = conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall()
-                    countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
+                    clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
+                    countries_list = conn.execute('SELECT name, price FROM countries WHERE model_id = ? OR model_id IS NULL ORDER BY name', (current_model_id(),)).fetchall()
                     return render_template('add_transaction.html', clients=clients_list, countries=countries_list, error='App ID already exists')
                 
                 if transaction_date:
@@ -2524,8 +2566,8 @@ def add_transaction():
                 # Removed file logging for Vercel compatibility
                 return render_template('base.html', error=f'Error processing transaction: {str(e)}'), 500
         
-        clients_list = conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall()
-        countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
+        clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
+        countries_list = conn.execute('SELECT name, price FROM countries WHERE model_id = ? OR model_id IS NULL ORDER BY name', (current_model_id(),)).fetchall()
         return render_template('add_transaction.html', clients=clients_list, countries=countries_list)
     except Exception as e:
         import traceback
@@ -2596,11 +2638,11 @@ def edit_transaction(transaction_id):
                     transaction_date = None
         
             # Get country price
-            country = conn.execute('SELECT price FROM countries WHERE name = ?', (country_name,)).fetchone()
+            country = conn.execute('SELECT price FROM countries WHERE (model_id = ? OR model_id IS NULL) AND name = ?', (current_model_id(), country_name)).fetchone()
             if not country:
                 transaction = conn.execute('SELECT * FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
-                clients_list = conn.execute('SELECT client_name FROM clients ORDER BY client_name').fetchall()
-                countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
+                clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
+                countries_list = conn.execute('SELECT name, price FROM countries WHERE model_id = ? OR model_id IS NULL ORDER BY name', (current_model_id(),)).fetchall()
                 return render_template('edit_transaction.html', 
                                      transaction=transaction,
                                      clients=clients_list, 
@@ -2614,7 +2656,7 @@ def edit_transaction(transaction_id):
             if dup:
                 transaction = conn.execute('SELECT * FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
                 clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
-                countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
+                countries_list = conn.execute('SELECT name, price FROM countries WHERE model_id = ? OR model_id IS NULL ORDER BY name', (current_model_id(),)).fetchall()
                 return render_template('edit_transaction.html', 
                                      transaction=transaction,
                                      clients=clients_list, 
@@ -2657,7 +2699,7 @@ def edit_transaction(transaction_id):
             else:
                 transaction = conn.execute('SELECT * FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
                 clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
-                countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
+                countries_list = conn.execute('SELECT name, price FROM countries WHERE model_id = ? OR model_id IS NULL ORDER BY name', (current_model_id(),)).fetchall()
                 conn.rollback()
                 return render_template('edit_transaction.html', 
                                      transaction=transaction,
@@ -2681,7 +2723,7 @@ def edit_transaction(transaction_id):
             try:
                 transaction = conn.execute('SELECT * FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
                 clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
-                countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
+                countries_list = conn.execute('SELECT name, price FROM countries WHERE model_id = ? OR model_id IS NULL ORDER BY name', (current_model_id(),)).fetchall()
                 
                 return render_template('edit_transaction.html', 
                                      transaction=transaction,
@@ -2695,7 +2737,7 @@ def edit_transaction(transaction_id):
     
     transaction = conn.execute('SELECT * FROM transactions WHERE id = ? AND model_id = ?', (transaction_id, current_model_id())).fetchone()
     clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
-    countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
+    countries_list = conn.execute('SELECT name, price FROM countries WHERE model_id = ? OR model_id IS NULL ORDER BY name', (current_model_id(),)).fetchall()
     
     if not transaction:
         return redirect(url_for('transactions'))
@@ -3291,7 +3333,7 @@ def export_jpeg(transactions, sums):
 def get_country_price(country_name):
     """API endpoint to get country price"""
     conn = get_db_connection()
-    country = conn.execute('SELECT price FROM countries WHERE name = ?', (country_name,)).fetchone()
+    country = conn.execute('SELECT price FROM countries WHERE (model_id = ? OR model_id IS NULL) AND name = ?', (current_model_id(), country_name)).fetchone()
     
     if country:
         return jsonify({'price': country['price']})
