@@ -90,12 +90,14 @@
                            class="transaction-checkbox fee-checkbox"
                            value="{{ transaction.id }}"
                            data-amount="{{ transaction.amount_n or 0 }}"
+                           data-fee-executed="0"
                            onchange="updateSelectedCount()">
                     {% elif not transaction.is_paid and (transaction.fee_executed or 0) %}
                     <input type="checkbox"
                            class="transaction-checkbox pay-checkbox"
                            value="{{ transaction.id }}"
                            data-amount="{{ transaction.amount_n or 0 }}"
+                           data-fee-executed="1"
                            onchange="updateSelectedCount()">
                     {% endif %}
                 </td>
@@ -193,9 +195,9 @@
         <div class="mobile-card-header">
             <div style="display: flex; align-items: center; gap: 10px;">
                 {% if session.permissions and session.permissions.is_admin and not transaction.is_paid and not (transaction.fee_executed or 0) %}
-                <input type="checkbox" class="transaction-checkbox fee-checkbox" value="{{ transaction.id }}" data-amount="{{ transaction.amount_n or 0 }}" onchange="updateSelectedCount()">
+                <input type="checkbox" class="transaction-checkbox fee-checkbox" value="{{ transaction.id }}" data-amount="{{ transaction.amount_n or 0 }}" data-fee-executed="0" onchange="updateSelectedCount()">
                 {% elif session.permissions and session.permissions.is_admin and not transaction.is_paid and (transaction.fee_executed or 0) %}
-                <input type="checkbox" class="transaction-checkbox pay-checkbox" value="{{ transaction.id }}" data-amount="{{ transaction.amount_n or 0 }}" onchange="updateSelectedCount()">
+                <input type="checkbox" class="transaction-checkbox pay-checkbox" value="{{ transaction.id }}" data-amount="{{ transaction.amount_n or 0 }}" data-fee-executed="1" onchange="updateSelectedCount()">
                 {% endif %}
                 <span class="card-s-no">#{{ loop.index }}</span>
             </div>
@@ -456,11 +458,14 @@ function bulkPay() {
         ? document.querySelector('.table-container')
         : document.querySelector('.mobile-card-view');
 
+    // Defensive: only pay transactions with fee_executed=1
     const checked = container.querySelectorAll('.transaction-checkbox.pay-checkbox:checked');
-    const ids = Array.from(checked).map(cb => parseInt(cb.value, 10));
+    const eligible = Array.from(checked).filter(cb => (cb.dataset.feeExecuted || '0') === '1');
+
+    const ids = eligible.map(cb => parseInt(cb.value, 10)).filter(Boolean);
     if (!ids.length) return;
 
-    const totalAmount = Array.from(checked).reduce((sum, cb) => sum + parseFloat(cb.dataset.amount || 0), 0);
+    const totalAmount = eligible.reduce((sum, cb) => sum + parseFloat(cb.dataset.amount || 0), 0);
     const holder = document.getElementById('clientBalanceHolder');
     const clientBalance = holder ? parseFloat(holder.dataset.clientBalance || '0') : 0;
 

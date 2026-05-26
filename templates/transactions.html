@@ -89,6 +89,38 @@
     <a id="export-jpeg" href="{{ url_for('export_transactions', format='jpeg', client_name=filters.client, country_name=filters.country, created_by=filters.created_by, date_from=filters.date_from, date_to=filters.date_to, paid='0') }}" class="btn btn-info" style="flex: 1; text-align: center;">Export JPEG</a>
 </div>
 
+{% if session.permissions and session.permissions.is_admin %}
+<div class="bulk-fee-toolbar" style="display:flex; gap: 12px; align-items:center; flex-wrap:wrap; margin-bottom: 1.5rem; background:#f0fdf4; padding: 10px 14px; border: 1px solid #bbf7d0; border-radius: 10px;">
+    <div style="display:flex; flex-direction:column; gap: 6px;">
+        <span style="font-weight:700; color:#166534;">Bulk Fee</span>
+        <span style="font-size:0.9rem; color: var(--text-secondary);">Select pending-fee transactions and execute fee together</span>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap: 6px; min-width: 200px;">
+        <label style="font-size:0.85rem; color: var(--text-muted); font-weight:600;">Debit Account</label>
+        <select id="bulkFeeAccount" class="form-control" style="padding: 8px 10px;">
+            <option value="gtb$">gtb$</option>
+            <option value="providus$">providus$</option>
+            <option value="bybit$">bybit$</option>
+        </select>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap: 6px; min-width: 220px;">
+        <span style="font-size:0.85rem; color: var(--text-muted); font-weight:600;">Selected</span>
+        <button type="button" id="bulkFeeBtn" class="btn btn-warning" style="opacity:0.6;" disabled onclick="bulkExecuteFee()">
+            <i class="fas fa-check-double"></i> Bulk Execute Fee (<span id="bulkFeeSelectedCount">0</span>)
+        </button>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap: 6px; margin-left:auto;">
+        <span style="font-size:0.85rem; color: var(--text-muted); font-weight:600;">Total fee (selected)</span>
+        <span style="font-weight:800; color:#166534; font-size:1.1rem;">
+            ₦ <span id="bulkFeeTotal">0</span>
+        </span>
+    </div>
+</div>
+{% endif %}
+
 {% if error %}
 <div class="alert alert-error">{{ error }}</div>
 {% endif %}
@@ -670,5 +702,7 @@
                 }
             }
         });
-});
+    });
+
+</script>
 {% endblock %}
