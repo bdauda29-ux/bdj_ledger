@@ -2240,9 +2240,12 @@ def update_balance(client_id):
 def client_transactions(client_id):
     """View all transactions for a specific client"""
     conn = get_db_connection()
+    ensure_transaction_columns(conn)
+    ensure_wallet_columns(conn)
     client = conn.execute('SELECT * FROM clients WHERE id = ? AND model_id = ?', (client_id, current_model_id())).fetchone()
     transactions = conn.execute('SELECT * FROM transactions WHERE client_name = ? AND model_id = ? AND deleted = 0 ORDER BY transaction_date DESC', (client['client_name'], current_model_id())).fetchall()
-    return render_template('client_transactions.html', client=client, transactions=transactions)
+    wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (current_model_id(),)).fetchone()
+    return render_template('client_transactions.html', client=client, transactions=transactions, wallet=wallet)
 
 @app.route('/clients/<int:client_id>/history')
 def balance_history(client_id):
@@ -2411,9 +2414,12 @@ def delete_country(country_id):
 def transactions():
     """View all transactions with optional filters and sums"""
     conn = get_db_connection()
+    ensure_transaction_columns(conn)
+    ensure_wallet_columns(conn)
     # available filter options
     clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
-    countries_list = conn.execute('SELECT name, price FROM countries ORDER BY name').fetchall()
+    countries_list = conn.execute('SELECT name, price FROM countries WHERE model_id = ? OR model_id IS NULL ORDER BY name', (current_model_id(),)).fetchall()
+    wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (current_model_id(),)).fetchone()
 
     # collect filters from query params
     client = request.args.get('client_name')
@@ -2445,10 +2451,10 @@ def transactions():
             conn.execute('''
                 UPDATE transactions
                 SET country_price = (
-                    SELECT price FROM countries WHERE name = transactions.country_name
+                    SELECT price FROM countries WHERE (model_id = ? OR model_id IS NULL) AND name = transactions.country_name
                 )
                 WHERE country_price IS NULL AND model_id = ?
-            ''', (current_model_id(),))
+            ''', (current_model_id(), current_model_id(),))
         conn.commit()
     except Exception:
         pass
@@ -2501,7 +2507,7 @@ def transactions():
         {where_sql}
     ''', params).fetchone()
 
-    return render_template('transactions.html', transactions=transactions_list, clients=clients_list, countries=countries_list, creators=creators_list, filters={'client': client, 'country': country, 'created_by': created_by, 'date_from': date_from, 'date_to': date_to, 'paid': paid, 'applicant': applicant}, sums=sums, error=error)
+    return render_template('transactions.html', transactions=transactions_list, clients=clients_list, countries=countries_list, creators=creators_list, filters={'client': client, 'country': country, 'created_by': created_by, 'date_from': date_from, 'date_to': date_to, 'paid': paid, 'applicant': applicant}, sums=sums, error=error, wallet=wallet)
 
 @app.route('/transactions/add', methods=['GET', 'POST'])
 def add_transaction():

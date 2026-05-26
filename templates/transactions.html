@@ -166,6 +166,7 @@
                             class="btn btn-fee btn-sm"
                             title="Execute Fee"
                             data-transaction-id="{{ transaction.id }}"
+                            data-client="{{ transaction.client_name }}"
                             data-country="{{ transaction.country_name }}"
                             data-country-price="{{ transaction.country_price or 0 }}"
                             onclick="openFeePrompt(this)">
@@ -297,6 +298,7 @@
                     class="btn btn-fee btn-sm"
                     style="flex: 1;"
                     data-transaction-id="{{ transaction.id }}"
+                    data-client="{{ transaction.client_name }}"
                     data-country="{{ transaction.country_name }}"
                     data-country-price="{{ transaction.country_price or 0 }}"
                     onclick="openFeePrompt(this)">
@@ -759,67 +761,11 @@
         }
         return confirm(`Pay ₦${amount.toLocaleString()} from client balance?`);
     }
-
-    function normalize(s) {
-        return (s || '').toString().toLowerCase().trim();
-    }
-
-    function computeFee(countryName, price) {
-        const n = normalize(countryName);
-        const p = Number.isFinite(price) ? price : (parseFloat(price) || 0);
-        if (n === 'twp' || n === 'cerpac' || n === 'ecerpac') return p;
-        const passport = new Set(['32pgs', '32pgs cod', '64pgs', '64pgs cod']);
-        if (passport.has(n)) {
-            const base = Math.max(p - 12, 0);
-            return base + (base * 0.06);
-        }
-        const base = Math.max(p - 20, 0);
-        return base + (base * 0.06);
-    }
-
-    function openFeePrompt(btn) {
-        const transactionId = btn.getAttribute('data-transaction-id');
-        const country = btn.getAttribute('data-country') || '';
-        const price = parseFloat(btn.getAttribute('data-country-price')) || 0;
-        const defaultFee = computeFee(country, price);
-        const accountRaw = window.prompt('Debit account (gtb$, providus$, bybit$):', 'gtb$');
-        if (!accountRaw) return;
-        const account = normalize(accountRaw).replace('$', '');
-        if (!['gtb', 'providus', 'bybit'].includes(account)) {
-            alert('Invalid account. Use: gtb$, providus$, bybit$');
-            return;
-        }
-        const feeRaw = window.prompt('Fee amount ($):', String(defaultFee.toFixed(2)));
-        if (!feeRaw) return;
-        const feeAmount = parseFloat(feeRaw);
-        if (!Number.isFinite(feeAmount) || feeAmount <= 0) {
-            alert('Invalid fee amount');
-            return;
-        }
-        const ok = window.confirm(`Debit ${account.toUpperCase()} $${feeAmount.toFixed(2)} for ${country}?`);
-        if (!ok) return;
-
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `/transactions/${transactionId}/fee`;
-        const nextInput = document.createElement('input');
-        nextInput.type = 'hidden';
-        nextInput.name = 'next';
-        nextInput.value = window.location.pathname + window.location.search;
-        const accountInput = document.createElement('input');
-        accountInput.type = 'hidden';
-        accountInput.name = 'account';
-        accountInput.value = account;
-        const feeInput = document.createElement('input');
-        feeInput.type = 'hidden';
-        feeInput.name = 'fee_amount';
-        feeInput.value = String(feeAmount);
-        form.appendChild(nextInput);
-        form.appendChild(accountInput);
-        form.appendChild(feeInput);
-        document.body.appendChild(form);
-        form.submit();
-    }
+    window.walletUsdBalances = {
+        bybit: {{ (wallet.bybit_dollars if wallet else 0) or 0 }},
+        gtb: {{ (wallet.dollars if wallet else 0) or 0 }},
+        providus: {{ (wallet.providus_dollars if wallet else 0) or 0 }}
+    };
 
     function handleAddFundYes() {
         if (!currentAddFundParams) return;
