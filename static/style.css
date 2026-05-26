@@ -1123,7 +1123,10 @@ body.theme-dark .btn-fee {
     max-width: 500px;
     width: 90%;
     animation: modalSlideUp 0.3s ease;
+    /* Ensure modal content is centered within the viewport */
+    margin: 0 auto;
 }
+
 
 @keyframes modalSlideUp {
     from { transform: translateY(20px); opacity: 0; }
