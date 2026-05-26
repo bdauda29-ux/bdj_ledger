@@ -70,10 +70,10 @@
         </thead>
         <tbody>
             {% for transaction in transactions %}
-            <tr class="transaction-row {% if transaction.is_paid %}row-paid{% endif %}">
+            <tr class="transaction-row {% if transaction.is_paid %}row-paid{% elif not (transaction.fee_executed or 0) %}row-fee-pending{% endif %}">
                 {% if session.permissions and session.permissions.is_admin %}
                 <td>
-                    {% if not transaction.is_paid %}
+                    {% if not transaction.is_paid and (transaction.fee_executed or 0) %}
                     <input type="checkbox" class="transaction-checkbox" value="{{ transaction.id }}" data-amount="{{ transaction.amount_n or 0 }}" onchange="updateSelectedCount()">
                     {% endif %}
                 </td>
@@ -103,17 +103,38 @@
                     <a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" class="btn btn-secondary btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
                     {% if session.permissions and session.permissions.is_admin %}
                     {% if not transaction.is_paid %}
+                    {% if not (transaction.fee_executed or 0) %}
+                    <button type="button"
+                            class="btn btn-fee btn-sm"
+                            title="Execute Fee"
+                            data-transaction-id="{{ transaction.id }}"
+                            data-country="{{ transaction.country_name }}"
+                            data-country-price="{{ transaction.country_price or 0 }}"
+                            onclick="openFeePrompt(this)">
+                        <i class="fas fa-receipt"></i>
+                    </button>
+                    {% else %}
+                    <form action="{{ url_for('undo_fee', transaction_id=transaction.id) }}"
+                          method="POST"
+                          style="display: inline;"
+                          onsubmit="return confirm('Undo fee and restore wallet?');">
+                        <input type="hidden" name="next" value="{{ request.full_path }}">
+                        <button type="submit" class="btn btn-fee-undo btn-sm" title="Undo Fee"><i class="fas fa-undo"></i></button>
+                    </form>
+                    {% endif %}
                     <form action="{{ url_for('pay_transaction', transaction_id=transaction.id) }}" 
                           method="POST" 
                           style="display: inline;"
                           onsubmit="return confirmPayment({{ transaction.amount_n or 0 }}, {{ client.balance or 0 }}, '{{ client.client_name|replace("'", "\\'") }}', {{ client.id }});">
-                        <button type="submit" class="btn btn-success btn-sm" title="Pay"><i class="fas fa-check"></i></button>
+                        <input type="hidden" name="next" value="{{ request.full_path }}">
+                        <button type="submit" class="btn btn-success btn-sm" title="Pay" {% if not (transaction.fee_executed or 0) %}disabled{% endif %}><i class="fas fa-check"></i></button>
                     </form>
                     {% else %}
                     <form action="{{ url_for('undo_pay_transaction', transaction_id=transaction.id) }}" 
                           method="POST" 
                           style="display: inline;"
                           onsubmit="return confirm('Undo payment and restore client balance?');">
+                        <input type="hidden" name="next" value="{{ request.full_path }}">
                         <button type="submit" class="btn btn-secondary btn-sm" title="Undo Pay"><i class="fas fa-undo"></i></button>
                     </form>
                     {% endif %}
@@ -134,10 +155,10 @@
 <!-- Mobile Card View -->
 <div class="mobile-card-view">
     {% for transaction in transactions %}
-    <div class="mobile-card {% if transaction.is_paid %}card-paid{% endif %}">
+    <div class="mobile-card {% if transaction.is_paid %}card-paid{% elif not (transaction.fee_executed or 0) %}card-fee-pending{% endif %}">
         <div class="mobile-card-header">
             <div style="display: flex; align-items: center; gap: 10px;">
-                {% if session.permissions and session.permissions.is_admin and not transaction.is_paid %}
+                {% if session.permissions and session.permissions.is_admin and not transaction.is_paid and (transaction.fee_executed or 0) %}
                 <input type="checkbox" class="transaction-checkbox" value="{{ transaction.id }}" data-amount="{{ transaction.amount_n or 0 }}" onchange="updateSelectedCount()">
                 {% endif %}
                 <span class="card-s-no">#{{ loop.index }}</span>
@@ -191,17 +212,38 @@
             
             {% if session.permissions and session.permissions.is_admin %}
             {% if not transaction.is_paid %}
+            {% if not (transaction.fee_executed or 0) %}
+            <button type="button"
+                    class="btn btn-fee btn-sm"
+                    style="flex: 1;"
+                    data-transaction-id="{{ transaction.id }}"
+                    data-country="{{ transaction.country_name }}"
+                    data-country-price="{{ transaction.country_price or 0 }}"
+                    onclick="openFeePrompt(this)">
+                <i class="fas fa-receipt"></i> Fee
+            </button>
+            {% else %}
+            <form action="{{ url_for('undo_fee', transaction_id=transaction.id) }}"
+                  method="POST"
+                  style="flex: 1;"
+                  onsubmit="return confirm('Undo fee and restore wallet?');">
+                <input type="hidden" name="next" value="{{ request.full_path }}">
+                <button type="submit" class="btn btn-fee-undo btn-sm" style="width: 100%;"><i class="fas fa-undo"></i> Undo Fee</button>
+            </form>
+            {% endif %}
             <form action="{{ url_for('pay_transaction', transaction_id=transaction.id) }}" 
                   method="POST" 
                   style="flex: 1;"
                   onsubmit="return confirmPayment({{ transaction.amount_n or 0 }}, {{ client.balance or 0 }}, '{{ client.client_name|replace("'", "\\'") }}', {{ client.id }});">
-                <button type="submit" class="btn btn-success btn-sm" style="width: 100%;"><i class="fas fa-check"></i> Pay</button>
+                <input type="hidden" name="next" value="{{ request.full_path }}">
+                <button type="submit" class="btn btn-success btn-sm" style="width: 100%;" {% if not (transaction.fee_executed or 0) %}disabled{% endif %}><i class="fas fa-check"></i> Pay</button>
             </form>
             {% else %}
             <form action="{{ url_for('undo_pay_transaction', transaction_id=transaction.id) }}" 
                   method="POST" 
                   style="flex: 1;"
                   onsubmit="return confirm('Undo payment and restore client balance?');">
+                <input type="hidden" name="next" value="{{ request.full_path }}">
                 <button type="submit" class="btn btn-secondary btn-sm" style="width: 100%;"><i class="fas fa-undo"></i> Undo</button>
             </form>
             {% endif %}
@@ -274,6 +316,67 @@ function confirmPayment(amount, balance, clientName, clientId) {
         return false;
     }
     return confirm(`Pay ₦${amount.toLocaleString()} from client balance?`);
+}
+
+function normalize(s) {
+    return (s || '').toString().toLowerCase().trim();
+}
+
+function computeFee(countryName, price) {
+    const n = normalize(countryName);
+    const p = Number.isFinite(price) ? price : (parseFloat(price) || 0);
+    if (n === 'twp' || n === 'cerpac' || n === 'ecerpac') return p;
+    const passport = new Set(['32pgs', '32pgs cod', '64pgs', '64pgs cod']);
+    if (passport.has(n)) {
+        const base = Math.max(p - 12, 0);
+        return base + (base * 0.06);
+    }
+    const base = Math.max(p - 20, 0);
+    return base + (base * 0.06);
+}
+
+function openFeePrompt(btn) {
+    const transactionId = btn.getAttribute('data-transaction-id');
+    const country = btn.getAttribute('data-country') || '';
+    const price = parseFloat(btn.getAttribute('data-country-price')) || 0;
+    const defaultFee = computeFee(country, price);
+    const accountRaw = window.prompt('Debit account (gtb$, providus$, bybit$):', 'gtb$');
+    if (!accountRaw) return;
+    const account = normalize(accountRaw).replace('$', '');
+    if (!['gtb', 'providus', 'bybit'].includes(account)) {
+        alert('Invalid account. Use: gtb$, providus$, bybit$');
+        return;
+    }
+    const feeRaw = window.prompt('Fee amount ($):', String(defaultFee.toFixed(2)));
+    if (!feeRaw) return;
+    const feeAmount = parseFloat(feeRaw);
+    if (!Number.isFinite(feeAmount) || feeAmount <= 0) {
+        alert('Invalid fee amount');
+        return;
+    }
+    const ok = window.confirm(`Debit ${account.toUpperCase()} $${feeAmount.toFixed(2)} for ${country}?`);
+    if (!ok) return;
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/transactions/${transactionId}/fee`;
+    const nextInput = document.createElement('input');
+    nextInput.type = 'hidden';
+    nextInput.name = 'next';
+    nextInput.value = window.location.pathname + window.location.search;
+    const accountInput = document.createElement('input');
+    accountInput.type = 'hidden';
+    accountInput.name = 'account';
+    accountInput.value = account;
+    const feeInput = document.createElement('input');
+    feeInput.type = 'hidden';
+    feeInput.name = 'fee_amount';
+    feeInput.value = String(feeAmount);
+    form.appendChild(nextInput);
+    form.appendChild(accountInput);
+    form.appendChild(feeInput);
+    document.body.appendChild(form);
+    form.submit();
 }
 
 function handleAddFundYes() {

@@ -301,8 +301,13 @@ def init_db():
                 transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 deleted INTEGER DEFAULT 0,
                 is_paid INTEGER DEFAULT 0,
+                fee_executed INTEGER DEFAULT 0,
+                fee_amount REAL DEFAULT 0,
+                fee_account TEXT,
+                fee_executed_at TIMESTAMP,
                 model_id INTEGER,
-                email_link TEXT
+                email_link TEXT,
+                created_by TEXT
             )
         ''')
         cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_app_unique ON transactions(app_id, model_id)')
@@ -434,6 +439,10 @@ def init_db():
             ('transactions', 'deleted', 'INTEGER DEFAULT 0'),
             ('transactions', 'is_paid', 'INTEGER DEFAULT 0'),
             ('transactions', 'created_by', 'TEXT'),
+            ('transactions', 'fee_executed', 'INTEGER DEFAULT 0'),
+            ('transactions', 'fee_amount', 'REAL DEFAULT 0'),
+            ('transactions', 'fee_account', 'TEXT'),
+            ('transactions', 'fee_executed_at', 'TIMESTAMP'),
             ('transactions', 'model_id', 'INTEGER'),
             ('wallet', 'providus_dollars', 'REAL DEFAULT 0'),
             ('wallet', 'bybit_dollars', 'REAL DEFAULT 0'),
@@ -608,6 +617,10 @@ def init_db():
                 transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 deleted TINYINT(1) DEFAULT 0,
                 is_paid TINYINT(1) DEFAULT 0,
+                fee_executed TINYINT(1) DEFAULT 0,
+                fee_amount DOUBLE DEFAULT 0,
+                fee_account VARCHAR(64),
+                fee_executed_at TIMESTAMP NULL,
                 model_id INT,
                 email_link TEXT,
                 created_by VARCHAR(255),
@@ -731,6 +744,10 @@ def init_db():
             ('transactions', 'deleted', 'TINYINT(1) DEFAULT 0'),
             ('transactions', 'is_paid', 'TINYINT(1) DEFAULT 0'),
             ('transactions', 'created_by', 'VARCHAR(255)'),
+            ('transactions', 'fee_executed', 'TINYINT(1) DEFAULT 0'),
+            ('transactions', 'fee_amount', 'DOUBLE DEFAULT 0'),
+            ('transactions', 'fee_account', 'VARCHAR(64)'),
+            ('transactions', 'fee_executed_at', 'TIMESTAMP NULL'),
             ('transactions', 'model_id', 'INT'),
             ('wallet', 'providus_dollars', 'DOUBLE DEFAULT 0'),
             ('wallet', 'bybit_dollars', 'DOUBLE DEFAULT 0'),
@@ -993,6 +1010,22 @@ def init_db():
         pass
     try:
         cursor.execute('ALTER TABLE transactions ADD COLUMN is_paid INTEGER DEFAULT 0')
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute('ALTER TABLE transactions ADD COLUMN fee_executed INTEGER DEFAULT 0')
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute('ALTER TABLE transactions ADD COLUMN fee_amount REAL DEFAULT 0')
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute('ALTER TABLE transactions ADD COLUMN fee_account TEXT')
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute('ALTER TABLE transactions ADD COLUMN fee_executed_at TIMESTAMP')
     except sqlite3.OperationalError:
         pass
     try:
@@ -1562,8 +1595,14 @@ def ensure_wallet_columns(conn):
 
 def ensure_transaction_columns(conn):
     """Ensure transactions table has new columns (runtime migration fix)"""
-    new_cols = ['created_by']
-    for col in new_cols:
+    new_cols = [
+        ('created_by', 'TEXT'),
+        ('fee_executed', 'INTEGER DEFAULT 0'),
+        ('fee_amount', 'REAL DEFAULT 0'),
+        ('fee_account', 'TEXT'),
+        ('fee_executed_at', 'TIMESTAMP')
+    ]
+    for col, col_type in new_cols:
         try:
             conn.execute(f'SELECT {col} FROM transactions LIMIT 1')
         except Exception:
@@ -1574,7 +1613,7 @@ def ensure_transaction_columns(conn):
                      conn.conn.rollback()
                 
                 print(f"Adding missing column {col} to transactions...", file=sys.stderr)
-                conn.execute(f'ALTER TABLE transactions ADD COLUMN {col} TEXT')
+                conn.execute(f'ALTER TABLE transactions ADD COLUMN {col} {col_type}')
                 if hasattr(conn, 'commit'): 
                     conn.commit()
             except Exception as e:
@@ -1838,6 +1877,8 @@ def index():
     """Home page - shows dashboard"""
     try:
         conn = get_db_connection()
+        ensure_transaction_columns(conn)
+        ensure_wallet_columns(conn)
         mid = current_model_id()
         print(f"DEBUG: Index page - Model ID: {mid}, Postgres: {bool(POSTGRES_URL)}", file=sys.stderr)
         
@@ -1853,7 +1894,7 @@ def index():
                 # Convert to dict to allow modification
                 wallet = dict(wallet)
                 # Calculate unpaid amount_n
-                unpaid_n = conn.execute('SELECT COALESCE(SUM(amount_n), 0) FROM transactions WHERE model_id = ? AND is_paid = 0 AND deleted = 0', (mid,)).fetchone()
+                unpaid_n = conn.execute('SELECT COALESCE(SUM(amount_n), 0) FROM transactions WHERE model_id = ? AND is_paid = 0 AND deleted = 0 AND COALESCE(fee_executed, 0) = 1', (mid,)).fetchone()
                 # Handle different cursor return types (dict vs tuple)
                 if isinstance(unpaid_n, (tuple, list)):
                     unpaid_val = unpaid_n[0]
@@ -1861,7 +1902,7 @@ def index():
                     # If it's a dict, we need to know the key name or use values
                     # Usually COALESCE(...) without alias might be 'coalesce' or similar
                     # Safest is to use alias in query
-                    unpaid_n = conn.execute('SELECT COALESCE(SUM(amount_n), 0) as val FROM transactions WHERE model_id = ? AND is_paid = 0 AND deleted = 0', (mid,)).fetchone()
+                    unpaid_n = conn.execute('SELECT COALESCE(SUM(amount_n), 0) as val FROM transactions WHERE model_id = ? AND is_paid = 0 AND deleted = 0 AND COALESCE(fee_executed, 0) = 1', (mid,)).fetchone()
                     unpaid_val = unpaid_n['val']
                 else:
                     unpaid_val = 0
@@ -1999,6 +2040,7 @@ def index():
             WHERE t.model_id = ?
               AND t.deleted = 0
               AND t.is_paid = 0
+              AND COALESCE(t.fee_executed, 0) = 1
             GROUP BY t.client_name, c.id
             ORDER BY unpaid_amount_n DESC
             LIMIT 12
@@ -2781,16 +2823,20 @@ def pay_transaction(transaction_id):
     if not can('can_edit_transaction'):
         return redirect(url_for('transactions'))
     conn = get_db_connection()
+    ensure_transaction_columns(conn)
+    next_url = request.form.get('next') or request.referrer or url_for('transactions')
     
     try:
         transaction = conn.execute('SELECT * FROM transactions WHERE id = ? AND model_id = ?', (transaction_id, current_model_id())).fetchone()
         if not transaction:
-            return redirect(url_for('transactions'))
+            return redirect(next_url)
         if transaction['is_paid']:
-            return redirect(url_for('transactions'))
+            return redirect(next_url)
+        if int(transaction.get('fee_executed') or 0) != 1:
+            return redirect(url_for('transactions', error='Execute fee before paying this transaction'))
         client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (transaction['client_name'], current_model_id())).fetchone()
         if not client:
-            return redirect(url_for('transactions'))
+            return redirect(next_url)
         balance_before = client['balance']
         amount_to_deduct = transaction['amount_n']
         if amount_to_deduct > balance_before:
@@ -2806,7 +2852,7 @@ def pay_transaction(transaction_id):
             f'Payment for transaction #{transaction_id}', current_model_id()
         ))
         conn.commit()
-        return redirect(url_for('transactions'))
+        return redirect(next_url)
     except Exception:
         import traceback
         import sys
@@ -2817,21 +2863,155 @@ def pay_transaction(transaction_id):
             pass
         return redirect(url_for('transactions', error='Failed to mark transaction as paid'))
 
+
+@app.route('/transactions/<int:transaction_id>/fee', methods=['POST'])
+def execute_fee(transaction_id):
+    if not can('can_edit_transaction'):
+        return redirect(url_for('transactions'))
+    conn = get_db_connection()
+    ensure_transaction_columns(conn)
+    ensure_wallet_columns(conn)
+
+    next_url = request.form.get('next') or request.referrer
+    if not next_url:
+        next_url = url_for('transactions')
+
+    try:
+        transaction = conn.execute(
+            'SELECT * FROM transactions WHERE id = ? AND model_id = ?',
+            (transaction_id, current_model_id()),
+        ).fetchone()
+        if not transaction:
+            return redirect(next_url)
+        if int(transaction.get('deleted') or 0) == 1:
+            return redirect(next_url)
+        if int(transaction.get('is_paid') or 0) == 1:
+            return redirect(next_url)
+        if int(transaction.get('fee_executed') or 0) == 1:
+            return redirect(next_url)
+
+        account = (request.form.get('account') or '').strip().lower()
+        account_map = {
+            'gtb': 'dollars',
+            'gtb$': 'dollars',
+            'dollars': 'dollars',
+            'providus': 'providus_dollars',
+            'providus$': 'providus_dollars',
+            'bybit': 'bybit_dollars',
+            'bybit$': 'bybit_dollars',
+        }
+        wallet_col = account_map.get(account)
+        if not wallet_col:
+            return redirect(url_for('transactions', error='Select account to debit (gtb$, providus$, bybit$)'))
+
+        try:
+            fee_amount = float(request.form.get('fee_amount') or 0)
+        except Exception:
+            fee_amount = 0.0
+        if fee_amount <= 0:
+            fee_amount = float(compute_country_fee(transaction.get('country_name'), transaction.get('country_price') or 0))
+
+        if fee_amount <= 0:
+            return redirect(url_for('transactions', error='Invalid fee amount'))
+
+        mid = current_model_id()
+        wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+        if not wallet:
+            conn.execute('INSERT INTO wallet (model_id) VALUES (?)', (mid,))
+            wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+        wallet_val = float(wallet.get(wallet_col) or 0)
+        if wallet_val < fee_amount:
+            return redirect(url_for('transactions', error='Insufficient wallet balance for selected account'))
+
+        new_val = wallet_val - fee_amount
+        conn.execute(f'UPDATE wallet SET {wallet_col} = ? WHERE model_id = ?', (new_val, mid))
+        conn.execute(
+            'UPDATE transactions SET fee_executed = 1, fee_amount = ?, fee_account = ?, fee_executed_at = CURRENT_TIMESTAMP WHERE id = ? AND model_id = ?',
+            (fee_amount, wallet_col, transaction_id, mid),
+        )
+        conn.commit()
+        return redirect(next_url)
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return redirect(url_for('transactions', error='Failed to execute fee'))
+
+
+@app.route('/transactions/<int:transaction_id>/undo_fee', methods=['POST'])
+def undo_fee(transaction_id):
+    if not can('can_edit_transaction'):
+        return redirect(url_for('transactions'))
+    conn = get_db_connection()
+    ensure_transaction_columns(conn)
+    ensure_wallet_columns(conn)
+
+    next_url = request.form.get('next') or request.referrer
+    if not next_url:
+        next_url = url_for('transactions')
+
+    try:
+        transaction = conn.execute(
+            'SELECT * FROM transactions WHERE id = ? AND model_id = ?',
+            (transaction_id, current_model_id()),
+        ).fetchone()
+        if not transaction:
+            return redirect(next_url)
+        if int(transaction.get('deleted') or 0) == 1:
+            return redirect(next_url)
+        if int(transaction.get('is_paid') or 0) == 1:
+            return redirect(url_for('transactions', error='Undo pay before undoing fee'))
+        if int(transaction.get('fee_executed') or 0) != 1:
+            return redirect(next_url)
+
+        fee_amount = float(transaction.get('fee_amount') or 0)
+        wallet_col = (transaction.get('fee_account') or '').strip()
+        if not wallet_col or fee_amount <= 0:
+            return redirect(url_for('transactions', error='Invalid fee state'))
+
+        mid = current_model_id()
+        wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+        if not wallet:
+            conn.execute('INSERT INTO wallet (model_id) VALUES (?)', (mid,))
+            wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+
+        wallet_val = float(wallet.get(wallet_col) or 0)
+        new_val = wallet_val + fee_amount
+        conn.execute(f'UPDATE wallet SET {wallet_col} = ? WHERE model_id = ?', (new_val, mid))
+        conn.execute(
+            'UPDATE transactions SET fee_executed = 0, fee_amount = 0, fee_account = NULL, fee_executed_at = NULL WHERE id = ? AND model_id = ?',
+            (transaction_id, mid),
+        )
+        conn.commit()
+        return redirect(next_url)
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return redirect(url_for('transactions', error='Failed to undo fee'))
+
 @app.route('/transactions/<int:transaction_id>/undo_pay', methods=['POST'])
 def undo_pay_transaction(transaction_id):
     """Undo payment: revert is_paid and restore client balance"""
     if not can('can_edit_transaction'):
         return redirect(url_for('transactions'))
     conn = get_db_connection()
+    next_url = request.form.get('next') or request.referrer or url_for('transactions')
     try:
         transaction = conn.execute('SELECT * FROM transactions WHERE id = ? AND model_id = ?', (transaction_id, current_model_id())).fetchone()
         if not transaction:
-            return redirect(url_for('transactions'))
+            return redirect(next_url)
         if not transaction['is_paid']:
-            return redirect(url_for('transactions'))
+            return redirect(next_url)
         client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (transaction['client_name'], current_model_id())).fetchone()
         if not client:
-            return redirect(url_for('transactions'))
+            return redirect(next_url)
         balance_before = client['balance']
         amount_to_add = transaction['amount_n']
         balance_after = balance_before + amount_to_add
@@ -2839,7 +3019,7 @@ def undo_pay_transaction(transaction_id):
         conn.execute('UPDATE transactions SET is_paid = 0 WHERE id = ?', (transaction_id,))
         conn.execute('DELETE FROM balance_history WHERE transaction_id = ?', (transaction_id,))
         conn.commit()
-        return redirect(url_for('transactions'))
+        return redirect(next_url)
     except Exception:
         import traceback
         import sys
@@ -2862,6 +3042,7 @@ def bulk_pay_transactions():
         return jsonify({'error': 'No transactions selected'}), 400
         
     conn = get_db_connection()
+    ensure_transaction_columns(conn)
     try:
         # Get all selected transactions that are not paid
         ids_placeholder = ','.join(['?'] * len(transaction_ids))
@@ -2869,6 +3050,10 @@ def bulk_pay_transactions():
         
         if not transactions:
             return jsonify({'error': 'No unpaid transactions found among selected'}), 404
+
+        missing_fee = [t['id'] for t in transactions if int((t.get('fee_executed') or 0)) != 1]
+        if missing_fee:
+            return jsonify({'error': 'Execute fee before paying selected transactions'}), 400
             
         # Group by client to check balances
         client_totals = {}
@@ -3040,6 +3225,7 @@ def export_transactions():
         date_from = request.args.get('date_from', '').strip()
         date_to = request.args.get('date_to', '').strip()
         paid = request.args.get('paid', 'all')
+        include_unfee = request.args.get('include_unfee', '0') == '1'
         
         # Handle 'None' string literal
         if date_from == 'None': date_from = ''
@@ -3064,10 +3250,13 @@ def export_transactions():
         if paid in ('0', '1'):
             where_clauses.append('is_paid = ?')
             params.append(int(paid))
+            if paid == '0' and not include_unfee:
+                where_clauses.append('COALESCE(fee_executed, 0) = 1')
         
         where_sql = ('WHERE ' + ' AND '.join(where_clauses)) if where_clauses else ''
         
         conn = get_db_connection()
+        ensure_transaction_columns(conn)
         transactions_list = conn.execute(f'''
             SELECT * FROM transactions
             {where_sql}

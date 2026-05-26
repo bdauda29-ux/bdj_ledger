@@ -58,6 +58,10 @@ CREATE TABLE IF NOT EXISTS transactions (
   transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   deleted INTEGER DEFAULT 0,
   is_paid INTEGER DEFAULT 0,
+  fee_executed INTEGER DEFAULT 0,
+  fee_amount REAL DEFAULT 0,
+  fee_account TEXT,
+  fee_executed_at TIMESTAMP,
   email_link TEXT,
   created_by TEXT,
   model_id INTEGER
