@@ -1,0 +1,3 @@
+- [ ] Add backend endpoint POST /transactions/bulk_fee to execute fee for multiple selected transactions
+- [ ] Update templates/client_transactions.html with an admin-only “Fee Selected” check button wired to /transactions/bulk_fee
+- [ ] Test: select multiple unpaid transactions, run Fee Selected, verify wallet decreases and fee_executed/fee_amount set, then run Pay Selected
