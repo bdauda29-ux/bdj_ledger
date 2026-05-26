@@ -109,6 +109,7 @@
                 <th>Type</th>
                 <th class="text-right">Total ($)</th>
                 <th class="text-right">Total (₦)</th>
+                <th>Fee</th>
                 <th style="white-space: nowrap;">Date</th>
                 <th>Actions</th>
             </tr>
@@ -157,6 +158,13 @@
                 <td>{{ transaction.service_type }}</td>
                 <td class="text-right">$ {{ "{:,.0f}".format(transaction.amount or 0) }}</td>
                 <td class="text-right"><strong>{{ "{:,.0f}".format(transaction.amount_n or 0) }}</strong></td>
+                <td>
+                    {% if not transaction.fee_executed %}
+                        <span class="text-muted" style="font-size: 0.95em;">Fee Pending</span>
+                    {% else %}
+                        <span style="font-weight: 700;">₦ {{ (transaction.fee_amount or 0)|comma2 }}</span>
+                    {% endif %}
+                </td>
                 <td style="white-space: nowrap;">{{ transaction.transaction_date|date_format }}</td>
                 <td class="action-cell">
                     {% if session.permissions and session.permissions.is_admin %}
@@ -184,7 +192,11 @@
                     <form action="{{ url_for('pay_transaction', transaction_id=transaction.id) }}" 
                           method="POST" 
                           style="display: inline;"
-                          onsubmit="return confirmPayment({{ transaction.amount_n or 0 }}, {{ transaction.client_balance or 0 }}, '{{ transaction.client_name|replace("'", "\\'") }}', {{ transaction.client_id }});">
+                          onsubmit="return confirmPaymentFromForm(this);"
+                          data-amount-n="{{ transaction.amount_n or 0 }}"
+                          data-client-balance="{{ transaction.client_balance or 0 }}"
+                          data-client-name="{{ transaction.client_name|replace(\"'\", \"&#39;\") }}"
+                          data-client-id="{{ transaction.client_id }}">
                         <input type="hidden" name="next" value="{{ request.full_path }}">
                         <button type="submit" class="btn btn-success btn-sm" title="Pay" {% if not (transaction.fee_executed or 0) %}disabled{% endif %}><i class="fas fa-check"></i></button>
                     </form>
@@ -284,6 +296,17 @@
                 <div style="font-size: 1.1em; font-weight: 700; color: var(--text-primary);">₦ {{ "{:,.0f}".format(transaction.amount_n or 0) }}</div>
             </div>
         </div>
+
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Fee:</span>
+            <span class="mobile-card-value">
+                {% if not transaction.fee_executed %}
+                    <span class="text-muted">Fee Pending</span>
+                {% else %}
+                    <span style="font-weight: 700;">₦ {{ (transaction.fee_amount or 0)|comma2 }}</span>
+                {% endif %}
+            </span>
+        </div>
         
         <div class="mobile-card-row">
             <span class="mobile-card-label">Date:</span>
@@ -316,7 +339,11 @@
             <form action="{{ url_for('pay_transaction', transaction_id=transaction.id) }}" 
                   method="POST" 
                   style="flex: 1;"
-                  onsubmit="return confirmPayment({{ transaction.amount_n or 0 }}, {{ transaction.client_balance or 0 }}, '{{ transaction.client_name|replace("'", "\\'") }}', {{ transaction.client_id }});">
+                  onsubmit="return confirmPaymentFromForm(this);"
+                  data-amount-n="{{ transaction.amount_n or 0 }}"
+                  data-client-balance="{{ transaction.client_balance or 0 }}"
+                  data-client-name="{{ transaction.client_name|replace(\"'\", \"&#39;\") }}"
+                  data-client-id="{{ transaction.client_id }}">
                 <input type="hidden" name="next" value="{{ request.full_path }}">
                 <button type="submit" class="btn btn-success btn-sm" style="width: 100%;" {% if not (transaction.fee_executed or 0) %}disabled{% endif %}><i class="fas fa-check"></i> Pay</button>
             </form>
@@ -376,341 +403,6 @@
 </div>
 {% endif %}
 
-<!-- Transaction Modal -->
-<div class="modal-overlay" id="transactionModal">
-    <div class="custom-modal" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
-        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h3 class="modal-title" id="modalTitle">Add Transaction</h3>
-            <button type="button" onclick="closeModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
-        </div>
-        
-        <form method="POST" id="transactionForm" action="{{ url_for('add_transaction') }}">
-            <div class="form-group">
-                <label for="client_name">Client Name *</label>
-                <select name="client_name" id="client_name" required class="form-control" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
-                    <option value="">Select a client</option>
-                    {% for client in clients %}
-                    <option value="{{ client.client_name }}">{{ client.client_name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            
-            <div class="form-group" style="margin-top: 1rem;">
-                <label for="service_type">Service Type</label>
-                <select name="service_type" id="service_type" class="form-control" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
-                    <option value="eVisa">eVisa</option>
-                    <option value="Passport">Passport</option>
-                    <option value="TWP">TWP</option>
-                    <option value="eCerpac">eCerpac</option>
-                </select>
-            </div>
-            
-            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                <div class="form-group" style="flex: 1;">
-                    <label for="applicant_name">Applicant Name</label>
-                    <input type="text" name="applicant_name" id="applicant_name" class="form-control" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
-                </div>
-                
-                <div class="form-group" style="flex: 1;">
-                    <label for="app_id">App ID *</label>
-                    <input type="text" name="app_id" id="app_id" pattern="\d+" title="Numeric ID" required class="form-control" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
-                </div>
-            </div>
-            
-            <div class="form-group" style="margin-top: 1rem;">
-                <label for="country_name">Country *</label>
-                <select name="country_name" id="country_name" required class="form-control" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
-                    <option value="">Select a country</option>
-                    {% for country in countries %}
-                    <option value="{{ country.name }}" data-price="{{ country.price }}">{{ country.name }}</option>
-                    {% endfor %}
-                </select>
-                <small id="countryPriceDisplay" style="color: var(--text-muted); display: block; margin-top: 0.25rem;"></small>
-            </div>
-            
-            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                <div class="form-group" style="flex: 1;">
-                    <label for="rate">Rate</label>
-                    <input type="number" step="0.01" name="rate" id="rate" class="form-control" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
-                </div>
-                
-                <div class="form-group" style="flex: 1;">
-                    <label for="add">Add</label>
-                    <input type="number" step="0.01" name="add" id="add" class="form-control" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
-                </div>
-            </div>
-
-            <div class="form-group" style="margin-top: 1rem;">
-                <label for="transaction_date">Transaction Date</label>
-                <input type="date" name="transaction_date" id="transaction_date" class="form-control" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
-            </div>
-            
-            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                <div class="form-group" style="flex: 1;">
-                    <label>Amount (calculated)</label>
-                    <input type="text" id="amountDisplay" readonly class="readonly-field" style="width: 100%; padding: 0.5rem; background: #f3f4f6; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
-                </div>
-                
-                <div class="form-group" style="flex: 1;">
-                    <label>Amount N (calculated)</label>
-                    <input type="text" id="amountNDisplay" readonly class="readonly-field" style="width: 100%; padding: 0.5rem; background: #f3f4f6; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
-                </div>
-            </div>
-
-            <div class="form-group" style="margin-top: 1rem;">
-                <label for="email_link">Email/Link (Optional)</label>
-                <input type="text" name="email_link" id="email_link" placeholder="Enter email or link" class="form-control" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
-            </div>
-
-            <div class="modal-actions" style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem;">
-                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary" id="submitBtn">Add Transaction</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script>
-    // Modal Logic
-    const transactionModal = document.getElementById('transactionModal');
-    const transactionForm = document.getElementById('transactionForm');
-    const modalTitle = document.getElementById('modalTitle');
-    const submitBtn = document.getElementById('submitBtn');
-    
-    // Form Elements
-    const clientSelect = document.getElementById('client_name');
-    const countrySelect = document.getElementById('country_name');
-    const serviceTypeSelect = document.getElementById('service_type');
-    const rateInput = document.getElementById('rate');
-    const additionInput = document.getElementById('add');
-    const amountDisplay = document.getElementById('amountDisplay');
-    const amountNDisplay = document.getElementById('amountNDisplay');
-    const countryPriceDisplay = document.getElementById('countryPriceDisplay');
-    
-    // Store original options for filtering
-    let allCountryOptions = []; 
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize country options after DOM load
-        if (countrySelect) {
-            allCountryOptions = Array.from(countrySelect.options).slice(1);
-        }
-        
-        // Setup calculation listeners
-        if (countrySelect) countrySelect.addEventListener('change', calculateAmounts);
-        if (serviceTypeSelect) serviceTypeSelect.addEventListener('change', filterCountries);
-        if (rateInput) rateInput.addEventListener('input', calculateAmounts);
-        if (additionInput) additionInput.addEventListener('input', calculateAmounts);
-    });
-
-    function openAddModal() {
-        transactionForm.reset();
-        modalTitle.textContent = "Add Transaction";
-        submitBtn.textContent = "Add Transaction";
-        transactionForm.action = "{{ url_for('add_transaction') }}";
-        
-        // Set default date to today
-        const dateInput = document.getElementById('transaction_date');
-        if (dateInput) {
-            dateInput.value = new Date().toISOString().slice(0, 10);
-        }
-        
-        // Reset filter
-        if (serviceTypeSelect) {
-            serviceTypeSelect.value = "eVisa";
-            filterCountries();
-        }
-        
-        // Reset selects (and Tom Select UI if present)
-        if (clientSelect) {
-            clientSelect.value = "";
-            if (clientSelect.tomselect) {
-                clientSelect.tomselect.clear();
-            }
-        }
-        if (countrySelect) {
-            countrySelect.value = "";
-            if (countrySelect.tomselect) {
-                countrySelect.tomselect.clear();
-            }
-        }
-
-        transactionModal.classList.add('show');
-    }
-
-    function openEditModal(btn) {
-        modalTitle.textContent = "Edit Transaction";
-        submitBtn.textContent = "Update Transaction";
-        
-        const id = btn.dataset.id;
-        transactionForm.action = `/transactions/${id}/edit`;
-        
-        // Helper to safely get value
-        const getVal = (key) => {
-            return (btn.getAttribute('data-' + key) || '').trim();
-        };
-
-        // Populate Client
-        const clientVal = getVal('client');
-        if (clientSelect) {
-            clientSelect.value = clientVal;
-            if (clientSelect.value !== clientVal) {
-                const match = Array.from(clientSelect.options).find(opt => opt.value.toLowerCase() === clientVal.toLowerCase());
-                if (match) {
-                    clientSelect.value = match.value;
-                }
-            }
-            if (clientSelect.tomselect) {
-                const finalClientVal = clientSelect.value || null;
-                clientSelect.tomselect.setValue(finalClientVal, true);
-            }
-        }
-
-        document.getElementById('service_type').value = getVal('service') || 'eVisa';
-        document.getElementById('applicant_name').value = getVal('applicant');
-        document.getElementById('app_id').value = btn.dataset.appId;
-        document.getElementById('email_link').value = getVal('link');
-        
-        // Handle Rate/Add/Date
-        document.getElementById('rate').value = getVal('rate');
-        document.getElementById('add').value = getVal('add');
-        
-        const dateStr = getVal('date');
-        if (dateStr && dateStr !== 'None') {
-             document.getElementById('transaction_date').value = dateStr.slice(0, 10);
-        } else {
-             document.getElementById('transaction_date').value = '';
-        }
-        
-        // Handle Country
-        const countryVal = getVal('country');
-        
-        // Trigger filter first (based on service type)
-        filterCountries();
-        
-        if (countrySelect) {
-            const exists = Array.from(countrySelect.options).some(opt => opt.value === countryVal);
-            if (!exists && countryVal) {
-                const originalOption = allCountryOptions.find(opt => opt.text === countryVal);
-                if (originalOption) {
-                    countrySelect.add(originalOption.cloneNode(true));
-                    countrySelect.value = countryVal;
-                }
-            } else {
-                countrySelect.value = countryVal;
-            }
-
-            if (countrySelect.tomselect) {
-                countrySelect.tomselect.sync();
-                const finalCountryVal = countrySelect.value || null;
-                if (finalCountryVal) {
-                    countrySelect.tomselect.setValue(finalCountryVal, true);
-                } else {
-                    countrySelect.tomselect.clear();
-                }
-            }
-        }
-        
-        calculateAmounts();
-        
-        transactionModal.classList.add('show');
-    }
-
-    function closeModal() {
-        transactionModal.classList.remove('show');
-    }
-
-    function filterCountries() {
-        if (!countrySelect || !serviceTypeSelect) return;
-        
-        const serviceType = serviceTypeSelect.value;
-        const currentSelected = countrySelect.value;
-        
-        // Clear current options (keep first one)
-        while (countrySelect.options.length > 1) {
-            countrySelect.remove(1);
-        }
-        
-        const excludedForEVisa = ['32pgs', '32pgs COD', '64pgs', '64pgs COD', 'TWP'];
-        const allowedForTWP = ['TWP'];
-        const allowedForPassport = ['32pgs', '32pgs COD', '64pgs', '64pgs COD'];
-        
-        allCountryOptions.forEach(option => {
-            let shouldShow = true;
-            const name = option.text.trim();
-            
-            if (serviceType === 'eVisa') {
-                if (excludedForEVisa.includes(name)) shouldShow = false;
-            } else if (serviceType === 'TWP') {
-                if (!allowedForTWP.includes(name)) shouldShow = false;
-            } else if (serviceType === 'Passport') {
-                if (!allowedForPassport.includes(name)) shouldShow = false;
-            }
-            
-            if (shouldShow) {
-                countrySelect.add(option.cloneNode(true));
-            }
-        });
-        
-        // Try to restore selection
-        if (currentSelected) {
-            const exists = Array.from(countrySelect.options).some(opt => opt.value === currentSelected);
-            if (exists) {
-                countrySelect.value = currentSelected;
-            } else {
-                countrySelect.value = "";
-            }
-        }
-
-        // Sync Tom Select UI if present
-        if (countrySelect.tomselect) {
-            countrySelect.tomselect.sync();
-            const val = countrySelect.value || null;
-            if (val) {
-                countrySelect.tomselect.setValue(val, true);
-            } else {
-                countrySelect.tomselect.clear();
-            }
-        }
-
-        calculateAmounts();
-    }
-
-    function calculateAmounts() {
-        if (!countrySelect) return;
-        
-        const selectedOption = countrySelect.options[countrySelect.selectedIndex];
-        let countryPrice = 0;
-        if (selectedOption && selectedOption.dataset.price) {
-            countryPrice = parseFloat(selectedOption.dataset.price);
-        }
-        
-        const addition = parseFloat(additionInput.value) || 0;
-        const rate = parseFloat(rateInput.value) || 1;
-        
-        const amount = countryPrice + addition;
-        const amountN = amount * rate;
-        
-        if (amountDisplay) amountDisplay.value = Math.round(amount).toLocaleString();
-        if (amountNDisplay) amountNDisplay.value = Math.round(amountN).toLocaleString();
-        
-        if (countryPriceDisplay) {
-            if (countryPrice > 0) {
-                countryPriceDisplay.textContent = `Country Price: ${Math.round(countryPrice).toLocaleString()}`;
-            } else {
-                countryPriceDisplay.textContent = '';
-            }
-        }
-    }
-    
-    // Close modal when clicking outside
-    window.onclick = function(event) {
-        if (event.target == transactionModal) {
-            closeModal();
-        }
-    }
-</script>
-
 <!-- Add Fund Modal -->
 <div id="addFundModal" class="modal-overlay">
     <div class="custom-modal">
@@ -761,6 +453,25 @@
         }
         return confirm(`Pay ₦${amount.toLocaleString()} from client balance?`);
     }
+
+    function confirmPaymentFromForm(formEl) {
+        try {
+            const amountN = parseFloat(formEl.getAttribute('data-amount-n') || '0') || 0;
+            const clientBalance = parseFloat(formEl.getAttribute('data-client-balance') || '0') || 0;
+            const clientNameRaw = formEl.getAttribute('data-client-name') || '';
+            const clientId = parseInt(formEl.getAttribute('data-client-id') || '0', 10) || 0;
+
+            // Undo HTML entity encoding for safe confirm usage
+            const clientName = clientNameRaw.replace(/&#39;/g, "'");
+
+            return confirmPayment(amountN, clientBalance, clientName, clientId);
+        } catch (e) {
+            console.error('confirmPaymentFromForm error:', e);
+            // Fail open: allow submit if something goes wrong
+            return true;
+        }
+    }
+
     window.walletUsdBalances = {
         bybit: {{ (wallet.bybit_dollars if wallet else 0) or 0 }},
         gtb: {{ (wallet.dollars if wallet else 0) or 0 }},
@@ -793,8 +504,9 @@
 
     function filterTransactions(status) {
         const searchInput = document.getElementById('transaction_search');
-        const q = (searchInput && searchInput.value ? searchInput.value : '').toLowerCase();
-        // Update tabs
+        const q = ((searchInput && searchInput.value) ? searchInput.value : '').toLowerCase();
+
+        // Tabs
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         if (status === 'all') document.getElementById('tab-all').classList.add('active');
         else if (status === '0') document.getElementById('tab-pending').classList.add('active');
@@ -803,38 +515,23 @@
         let visibleCount = 0;
         let sumAmount = 0;
         let sumAmountN = 0;
-        let rowSerial = 1;
 
-        // Process Table Rows
+        // Desktop rows
+        let rowSerial = 1;
         const rows = document.querySelectorAll('.transaction-row');
         rows.forEach(row => {
-            const isPaid = row.getAttribute('data-paid') === '1' || row.getAttribute('data-paid') === 'True';
+            const isPaid = (row.getAttribute('data-paid') === '1' || row.getAttribute('data-paid') === 'True');
             const amount = parseFloat(row.getAttribute('data-amount')) || 0;
             const amountN = parseFloat(row.getAttribute('data-amount-n')) || 0;
-            const textJoin = [
-                row.querySelector('td:nth-child(2)')?.textContent || '',
-                row.querySelector('td:nth-child(3)')?.textContent || '',
-                row.querySelector('td:nth-child(4)')?.textContent || '',
-                row.querySelector('td:nth-child(6)')?.textContent || '',
-                row.querySelector('td:nth-child(9)')?.textContent || '',
-                row.querySelector('td:nth-child(14)')?.textContent || ''
-            ].join(' ').toLowerCase();
-            
-            let show = false;
-            if (status === 'all') show = true;
-            else if (status === '0' && !isPaid) show = true;
-            else if (status === '1' && isPaid) show = true;
-            if (show && q) {
-                show = textJoin.indexOf(q) !== -1;
-            }
+            const textJoin = (row.innerText || row.textContent || '').toLowerCase();
 
-            if (show) {
+            const showStatus = (status === 'all') || (status === '0' && !isPaid) || (status === '1' && isPaid);
+            const showSearch = (!q) || (textJoin.indexOf(q) !== -1);
+
+            if (showStatus && showSearch) {
                 row.style.display = '';
-                // Update Serial Number
                 const sNoCell = row.querySelector('.s-no');
                 if (sNoCell) sNoCell.textContent = rowSerial++;
-                
-                // Update Sums (only count once per transaction, so we do it here in the rows loop)
                 visibleCount++;
                 sumAmount += amount;
                 sumAmountN += amountN;
@@ -843,26 +540,18 @@
             }
         });
 
-        // Process Mobile Cards (separate loop to keep serials in sync but not double-count sums)
+        // Mobile cards
         let cardSerial = 1;
         const cards = document.querySelectorAll('.mobile-card');
         cards.forEach(card => {
-            const isPaid = card.getAttribute('data-paid') === '1' || card.getAttribute('data-paid') === 'True';
-            const headerText = card.querySelector('.mobile-card-header')?.textContent.toLowerCase() || '';
-            const nameText = card.querySelector('.mobile-card-value')?.textContent.toLowerCase() || '';
-            const combined = (headerText + ' ' + nameText).toLowerCase();
-            
-            let show = false;
-            if (status === 'all') show = true;
-            else if (status === '0' && !isPaid) show = true;
-            else if (status === '1' && isPaid) show = true;
-            if (show && q) {
-                show = combined.indexOf(q) !== -1;
-            }
+            const isPaid = (card.getAttribute('data-paid') === '1' || card.getAttribute('data-paid') === 'True');
+            const textJoin = (card.innerText || card.textContent || '').toLowerCase();
 
-            if (show) {
+            const showStatus = (status === 'all') || (status === '0' && !isPaid) || (status === '1' && isPaid);
+            const showSearch = (!q) || (textJoin.indexOf(q) !== -1);
+
+            if (showStatus && showSearch) {
                 card.style.display = '';
-                // Update Serial Number
                 const sNoSpan = card.querySelector('.card-s-no');
                 if (sNoSpan) sNoSpan.textContent = '#' + (cardSerial++);
             } else {
@@ -870,19 +559,19 @@
             }
         });
 
-        // Update summaries
+        // Summaries
         const totalCountEl = document.getElementById('total-count');
         const sumAmountEl = document.getElementById('sum-amount');
         const sumAmountNEl = document.getElementById('sum-amount-n');
 
         if (totalCountEl) totalCountEl.textContent = visibleCount;
-        if (sumAmountEl) sumAmountEl.textContent = sumAmount.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
-        if (sumAmountNEl) sumAmountNEl.textContent = sumAmountN.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+        if (sumAmountEl) sumAmountEl.textContent = sumAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        if (sumAmountNEl) sumAmountNEl.textContent = sumAmountN.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
-        // Update Export Links
+        // Export links
         const pdfBtn = document.getElementById('export-pdf');
         const jpegBtn = document.getElementById('export-jpeg');
-        
+
         if (pdfBtn && originalExportPdfUrl) {
             const url = new URL(originalExportPdfUrl, window.location.origin);
             if (status === '0') url.searchParams.set('paid', '0');
@@ -933,6 +622,7 @@
         const jpegBtn = document.getElementById('export-jpeg');
         if (pdfBtn) originalExportPdfUrl = pdfBtn.href;
         if (jpegBtn) originalExportJpegUrl = jpegBtn.href;
+
         const searchInput = document.getElementById('transaction_search');
         if (searchInput) {
             function setParam(name, value) {
@@ -980,6 +670,5 @@
                 }
             }
         });
-    });
-</script>
+});
 {% endblock %}
