@@ -90,33 +90,24 @@
 </div>
 
 {% if session.permissions and session.permissions.is_admin %}
-<div class="bulk-fee-toolbar" style="display:flex; gap: 12px; align-items:center; flex-wrap:wrap; margin-bottom: 1.5rem; background:#f0fdf4; padding: 10px 14px; border: 1px solid #bbf7d0; border-radius: 10px;">
-    <div style="display:flex; flex-direction:column; gap: 6px;">
-        <span style="font-weight:700; color:#166534;">Bulk Fee</span>
-        <span style="font-size:0.9rem; color: var(--text-secondary);">Select pending-fee transactions and execute fee together</span>
-    </div>
+<div class="bulk-fee-toolbar" style="margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 12px;">
+    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-primary); font-size: 0.95rem;">
+        <input type="checkbox" id="selectAllTop" onchange="toggleBulkFeeAll(this)"> Select All (Fee Pending)
+    </label>
 
-    <div style="display:flex; flex-direction:column; gap: 6px; min-width: 200px;">
-        <label style="font-size:0.85rem; color: var(--text-muted); font-weight:600;">Debit Account</label>
-        <select id="bulkFeeAccount" class="form-control" style="padding: 8px 10px;">
+    <div style="width: 250px; max-width: 100%;">
+        <select id="bulkFeeAccount" class="form-control" style="background-color: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; font-size: 0.95rem; color: var(--text-primary);">
+            <option value="">Select account</option>
             <option value="gtb$">gtb$</option>
             <option value="providus$">providus$</option>
             <option value="bybit$">bybit$</option>
         </select>
     </div>
 
-    <div style="display:flex; flex-direction:column; gap: 6px; min-width: 220px;">
-        <span style="font-size:0.85rem; color: var(--text-muted); font-weight:600;">Selected</span>
-        <button type="button" id="bulkFeeBtn" class="btn btn-warning" style="opacity:0.6;" disabled onclick="bulkExecuteFee()">
-            <i class="fas fa-check-double"></i> Bulk Execute Fee (<span id="bulkFeeSelectedCount">0</span>)
+    <div>
+        <button type="button" id="bulkFeeBtn" class="btn" style="background: white; border: 1px solid #94a3b8; color: var(--text-secondary); border-radius: 4px; padding: 6px 16px; font-size: 0.95rem; opacity: 0.6;" disabled onclick="bulkExecuteFee()">
+            Bulk Fee
         </button>
-    </div>
-
-    <div style="display:flex; flex-direction:column; gap: 6px; margin-left:auto;">
-        <span style="font-size:0.85rem; color: var(--text-muted); font-weight:600;">Total fee (selected)</span>
-        <span style="font-weight:800; color:#166534; font-size:1.1rem;">
-            ₦ <span id="bulkFeeTotal">0</span>
-        </span>
     </div>
 </div>
 {% endif %}
@@ -152,7 +143,18 @@
                 data-paid="{{ transaction.is_paid or 0 }}" 
                 data-amount="{{ transaction.amount or 0 }}" 
                 data-amount-n="{{ transaction.amount_n or 0 }}">
-                <td class="s-no">{{ loop.index }}</td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        {% if session.permissions and session.permissions.is_admin %}
+                        {% if not transaction.is_paid and not (transaction.fee_executed or 0) %}
+                        <input type="checkbox" class="transaction-checkbox fee-checkbox" value="{{ transaction.id }}" onchange="updateBulkFeeSelection()">
+                        {% else %}
+                        <div style="width: 13px; height: 13px;"></div>
+                        {% endif %}
+                        {% endif %}
+                        <span class="s-no">{{ loop.index }}</span>
+                    </div>
+                </td>
                 <td>
 
                     {% if transaction.client_id %}
@@ -266,7 +268,10 @@
          data-amount="{{ transaction.amount or 0 }}" 
          data-amount-n="{{ transaction.amount_n or 0 }}">
         <div class="mobile-card-header">
-            <div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                {% if session.permissions and session.permissions.is_admin and not transaction.is_paid and not (transaction.fee_executed or 0) %}
+                <input type="checkbox" class="transaction-checkbox fee-checkbox" value="{{ transaction.id }}" onchange="updateBulkFeeSelection()">
+                {% endif %}
                 <span class="card-s-no">#{{ loop.index }}</span>
                 {% if transaction.client_id %}
                 <a href="{{ url_for('client_transactions', client_id=transaction.client_id) }}" style="color: var(--primary-color);">{{ transaction.client_name }}</a>
@@ -530,6 +535,79 @@
         currentAddFundParams = null;
     }
 
+    function toggleBulkFeeAll(source) {
+        const checkboxes = document.querySelectorAll('.transaction-checkbox.fee-checkbox');
+        checkboxes.forEach(cb => {
+            const row = cb.closest('.transaction-row') || cb.closest('.mobile-card');
+            if (row && row.style.display !== 'none') {
+                cb.checked = source.checked;
+            }
+        });
+        updateBulkFeeSelection();
+    }
+
+    function updateBulkFeeSelection() {
+        const checked = document.querySelectorAll('.transaction-checkbox.fee-checkbox:checked');
+        const btn = document.getElementById('bulkFeeBtn');
+        if (!btn) return;
+
+        if (checked.length > 0) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+        } else {
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+        }
+
+        const visibleCheckboxes = Array.from(document.querySelectorAll('.transaction-checkbox.fee-checkbox')).filter(cb => {
+            const row = cb.closest('.transaction-row') || cb.closest('.mobile-card');
+            return row && row.style.display !== 'none';
+        });
+        const selectAllTop = document.getElementById('selectAllTop');
+        if (selectAllTop && visibleCheckboxes.length > 0) {
+            selectAllTop.checked = (checked.length === visibleCheckboxes.length);
+        } else if (selectAllTop) {
+            selectAllTop.checked = false;
+        }
+    }
+
+    function bulkExecuteFee() {
+        const accountSelect = document.getElementById('bulkFeeAccount');
+        const account = accountSelect ? accountSelect.value : '';
+        if (!account) {
+            alert('Please select an account for fee debit.');
+            return;
+        }
+
+        const checked = document.querySelectorAll('.transaction-checkbox.fee-checkbox:checked');
+        const ids = Array.from(checked).map(cb => parseInt(cb.value, 10));
+        
+        if (ids.length === 0) return;
+
+        if (!confirm(`Execute fee for ${ids.length} transactions using account '${account}' ?`)) {
+            return;
+        }
+
+        fetch('/transactions/bulk_fee', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transaction_ids: ids, account: account })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+            } else {
+                alert(data.message);
+                window.location.reload();
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('An error occurred during bulk fee execution');
+        });
+    }
+
     // Store original export URLs
     let originalExportPdfUrl = "";
     let originalExportJpegUrl = "";
@@ -569,6 +647,8 @@
                 sumAmountN += amountN;
             } else {
                 row.style.display = 'none';
+                const cb = row.querySelector('.transaction-checkbox');
+                if (cb) cb.checked = false;
             }
         });
 
@@ -588,8 +668,14 @@
                 if (sNoSpan) sNoSpan.textContent = '#' + (cardSerial++);
             } else {
                 card.style.display = 'none';
+                const cb = card.querySelector('.transaction-checkbox');
+                if (cb) cb.checked = false;
             }
         });
+
+        if (typeof updateBulkFeeSelection === 'function') {
+            updateBulkFeeSelection();
+        }
 
         // Summaries
         const totalCountEl = document.getElementById('total-count');
