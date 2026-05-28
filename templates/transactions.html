@@ -154,6 +154,7 @@
                 data-amount-n="{{ transaction.amount_n or 0 }}">
                 <td class="s-no">{{ loop.index }}</td>
                 <td>
+
                     {% if transaction.client_id %}
                     <a href="{{ url_for('client_transactions', client_id=transaction.client_id) }}" style="color: var(--primary-color); font-weight: 500;">{{ transaction.client_name }}</a>
                     <div style="font-size: 0.8em; color: var(--text-muted);">{{ (transaction.client_balance or 0)|comma2 }}</div>
@@ -504,11 +505,10 @@
         }
     }
 
-    window.walletUsdBalances = {
-        bybit: {{ (wallet.bybit_dollars if wallet else 0) or 0 }},
-        gtb: {{ (wallet.dollars if wallet else 0) or 0 }},
-        providus: {{ (wallet.providus_dollars if wallet else 0) or 0 }}
-    };
+    // wallet balances (in USD) - guard against missing template vars
+    // NOTE: walletUsdBalances intentionally removed to avoid JS parse errors
+    // walletUsdBalances is not required for transactions list filtering/bulk fee UI.
+    window.walletUsdBalances = {};
 
     function handleAddFundYes() {
         if (!currentAddFundParams) return;
