@@ -3104,6 +3104,108 @@ def bulk_pay_transactions():
         except Exception:
             pass
         return jsonify({'error': str(e)}), 500
+
+@app.route('/transactions/bulk_fee', methods=['POST'])
+def bulk_execute_fee():
+    """Execute fee for multiple transactions at once"""
+    if not can('can_edit_transaction'):
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    data = request.get_json() or {}
+    transaction_ids = data.get('transaction_ids', []) or []
+    account = (data.get('account') or '').strip().lower()
+
+    if not transaction_ids:
+        return jsonify({'error': 'No transactions selected'}), 400
+
+    account_map = {
+        'gtb': 'dollars',
+        'gtb$': 'dollars',
+        'dollars': 'dollars',
+        'providus': 'providus_dollars',
+        'providus$': 'providus_dollars',
+        'bybit': 'bybit_dollars',
+        'bybit$': 'bybit_dollars',
+    }
+    wallet_col = account_map.get(account)
+    if not wallet_col:
+        return jsonify({'error': 'Invalid account. Use gtb$, providus$, or bybit$.'}), 400
+
+    conn = get_db_connection()
+    ensure_transaction_columns(conn)
+    ensure_wallet_columns(conn)
+
+    try:
+        mid = current_model_id()
+
+        ids_placeholder = ','.join(['?'] * len(transaction_ids))
+        transactions = conn.execute(
+            f'''SELECT * FROM transactions
+                WHERE id IN ({ids_placeholder})
+                  AND model_id = ?
+            ''',
+            transaction_ids + [mid]
+        ).fetchall()
+
+        if not transactions:
+            return jsonify({'error': 'No matching transactions found'}), 404
+
+        # Validate & compute fees
+        already_paid = [t['id'] for t in transactions if int((t.get('is_paid') or 0)) == 1]
+        if already_paid:
+            return jsonify({'error': f'Cannot execute fee for paid transactions: {already_paid}'}), 400
+
+        already_fed = [t['id'] for t in transactions if int((t.get('fee_executed') or 0)) == 1]
+        if already_fed:
+            return jsonify({'error': f'Fee already executed for transactions: {already_fed}'}), 400
+
+        fee_total = 0.0
+        fee_by_id = {}
+        for t in transactions:
+            tid = t['id']
+            fee_amount = float(t.get('fee_amount') or 0)
+            if fee_amount <= 0:
+                fee_amount = float(compute_country_fee(t.get('country_name'), t.get('country_price') or 0))
+            if fee_amount <= 0:
+                return jsonify({'error': f'Invalid fee amount for transaction #{tid}'}), 400
+            fee_total += fee_amount
+            fee_by_id[tid] = fee_amount
+
+        wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+        if not wallet:
+            conn.execute('INSERT INTO wallet (model_id) VALUES (?)', (mid,))
+            wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,))
+
+        wallet_val = float(wallet.get(wallet_col) or 0)
+        if wallet_val < fee_total:
+            return jsonify({'error': f'Insufficient wallet balance for selected account. Need {fee_total} but have {wallet_val}.'}), 400
+
+        # Debit wallet once for total, then mark each transaction
+        new_val = wallet_val - fee_total
+        conn.execute(f'UPDATE wallet SET {wallet_col} = ? WHERE model_id = ?', (new_val, mid))
+
+        for tid, fee_amount in fee_by_id.items():
+            conn.execute(
+                '''UPDATE transactions
+                   SET fee_executed = 1,
+                       fee_amount = ?,
+                       fee_account = ?,
+                       fee_executed_at = CURRENT_TIMESTAMP
+                   WHERE id = ? AND model_id = ?''',
+                (fee_amount, wallet_col, tid, mid)
+            )
+
+        conn.commit()
+        return jsonify({'message': f'Successfully executed fee for {len(transactions)} transactions', 'total_fee': fee_total})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/transactions/<int:transaction_id>/delete', methods=['POST'])
 def delete_transaction(transaction_id):
     """Delete a transaction"""
