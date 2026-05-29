@@ -139,14 +139,14 @@
         </thead>
         <tbody>
             {% for transaction in transactions %}
-            <tr class="transaction-row {% if transaction.is_paid %}row-paid{% elif not (transaction.fee_executed or 0) %}row-fee-pending{% endif %}" 
-                data-paid="{{ transaction.is_paid or 0 }}" 
+            <tr class="transaction-row {% if (transaction.is_paid|int) == 1 %}row-paid{% elif (transaction.fee_executed|int) == 0 %}row-fee-pending{% endif %}" 
+                data-paid="{{ transaction.is_paid|int }}" 
                 data-amount="{{ transaction.amount or 0 }}" 
                 data-amount-n="{{ transaction.amount_n or 0 }}">
                 <td>
                     <div style="display: flex; align-items: center; gap: 8px;">
                         {% if session.permissions and session.permissions.is_admin %}
-                        {% if not transaction.is_paid and not (transaction.fee_executed or 0) %}
+                        {% if (transaction.is_paid|int) == 0 and (transaction.fee_executed|int) == 0 %}
                         <input type="checkbox" class="transaction-checkbox fee-checkbox" value="{{ transaction.id }}" onchange="updateBulkFeeSelection()">
                         {% else %}
                         <div style="width: 13px; height: 13px;"></div>
@@ -194,7 +194,7 @@
                 <td class="text-right">$ {{ "{:,.0f}".format(transaction.amount or 0) }}</td>
                 <td class="text-right"><strong>{{ "{:,.0f}".format(transaction.amount_n or 0) }}</strong></td>
                 <td>
-                    {% if not transaction.fee_executed %}
+                    {% if (transaction.fee_executed|int) == 0 %}
                         <span class="text-muted" style="font-size: 0.95em;">Fee Pending</span>
                     {% else %}
                         <span style="font-weight: 700;">₦ {{ (transaction.fee_amount or 0)|comma2 }}</span>
@@ -203,8 +203,8 @@
                 <td style="white-space: nowrap;">{{ transaction.transaction_date|date_format }}</td>
                 <td class="action-cell">
                     {% if session.permissions and session.permissions.is_admin %}
-                    {% if not transaction.is_paid %}
-                    {% if not (transaction.fee_executed or 0) %}
+                    {% if (transaction.is_paid|int) == 0 %}
+                    {% if (transaction.fee_executed|int) == 0 %}
                     <button type="button"
                             class="btn btn-fee btn-sm"
                             title="Execute Fee"
@@ -233,7 +233,7 @@
                           data-client-name="{{ transaction.client_name|replace(\"'\", \"&#39;\") }}"
                           data-client-id="{{ transaction.client_id }}">
                         <input type="hidden" name="next" value="{{ request.full_path }}">
-                        <button type="submit" class="btn btn-success btn-sm" title="Pay" {% if not (transaction.fee_executed or 0) %}disabled{% endif %}><i class="fas fa-check"></i></button>
+                        <button type="submit" class="btn btn-success btn-sm" title="Pay" {% if (transaction.fee_executed|int) == 0 %}disabled{% endif %}><i class="fas fa-check"></i></button>
                     </form>
                     {% else %}
                     <form action="{{ url_for('undo_pay_transaction', transaction_id=transaction.id) }}" 
@@ -245,7 +245,7 @@
                     </form>
                     {% endif %}
                     {% endif %}
-                    {% if not transaction.is_paid and (transaction.created_by == session.username or (session.permissions and session.permissions.is_admin)) %}
+                    {% if (transaction.is_paid|int) == 0 and (transaction.created_by == session.username or (session.permissions and session.permissions.is_admin)) %}
                     <form action="{{ url_for('delete_transaction', transaction_id=transaction.id) }}" 
                           method="POST" 
                           style="display: inline;"
@@ -263,13 +263,13 @@
 <!-- Mobile Card View -->
 <div class="mobile-card-view">
     {% for transaction in transactions %}
-    <div class="mobile-card {% if transaction.is_paid %}card-paid{% elif not (transaction.fee_executed or 0) %}card-fee-pending{% endif %}"
-         data-paid="{{ transaction.is_paid or 0 }}" 
+    <div class="mobile-card {% if (transaction.is_paid|int) == 1 %}card-paid{% elif (transaction.fee_executed|int) == 0 %}card-fee-pending{% endif %}"
+         data-paid="{{ transaction.is_paid|int }}" 
          data-amount="{{ transaction.amount or 0 }}" 
          data-amount-n="{{ transaction.amount_n or 0 }}">
         <div class="mobile-card-header">
             <div style="display: flex; align-items: center; gap: 10px;">
-                {% if session.permissions and session.permissions.is_admin and not transaction.is_paid and not (transaction.fee_executed or 0) %}
+                {% if session.permissions and session.permissions.is_admin and (transaction.is_paid|int) == 0 and (transaction.fee_executed|int) == 0 %}
                 <input type="checkbox" class="transaction-checkbox fee-checkbox" value="{{ transaction.id }}" onchange="updateBulkFeeSelection()">
                 {% endif %}
                 <span class="card-s-no">#{{ loop.index }}</span>
@@ -338,7 +338,7 @@
         <div class="mobile-card-row">
             <span class="mobile-card-label">Fee:</span>
             <span class="mobile-card-value">
-                {% if not transaction.fee_executed %}
+                {% if (transaction.fee_executed|int) == 0 %}
                     <span class="text-muted">Fee Pending</span>
                 {% else %}
                     <span style="font-weight: 700;">₦ {{ (transaction.fee_amount or 0)|comma2 }}</span>
@@ -353,8 +353,8 @@
         
         <div class="mobile-card-actions">
             {% if session.permissions and session.permissions.is_admin %}
-            {% if not transaction.is_paid %}
-            {% if not (transaction.fee_executed or 0) %}
+            {% if (transaction.is_paid|int) == 0 %}
+            {% if (transaction.fee_executed|int) == 0 %}
             <button type="button"
                     class="btn btn-fee btn-sm"
                     style="flex: 1;"
@@ -383,7 +383,7 @@
                   data-client-name="{{ transaction.client_name|replace(\"'\", \"&#39;\") }}"
                   data-client-id="{{ transaction.client_id }}">
                 <input type="hidden" name="next" value="{{ request.full_path }}">
-                <button type="submit" class="btn btn-success btn-sm" style="width: 100%;" {% if not (transaction.fee_executed or 0) %}disabled{% endif %}><i class="fas fa-check"></i> Pay</button>
+                <button type="submit" class="btn btn-success btn-sm" style="width: 100%;" {% if (transaction.fee_executed|int) == 0 %}disabled{% endif %}><i class="fas fa-check"></i> Pay</button>
             </form>
             {% else %}
             <form action="{{ url_for('undo_pay_transaction', transaction_id=transaction.id) }}" 
@@ -395,7 +395,7 @@
             </form>
             {% endif %}
             {% endif %}
-            {% if not transaction.is_paid %}
+            {% if (transaction.is_paid|int) == 0 %}
             <form action="{{ url_for('delete_transaction', transaction_id=transaction.id) }}" 
                   method="POST" 
                   style="flex: 1;"

@@ -82,17 +82,17 @@
         </thead>
         <tbody>
             {% for transaction in transactions %}
-            <tr class="transaction-row {% if transaction.is_paid %}row-paid{% elif not (transaction.fee_executed or 0) %}row-fee-pending{% endif %}">
+            <tr class="transaction-row {% if (transaction.is_paid|int) == 1 %}row-paid{% elif (transaction.fee_executed|int) == 0 %}row-fee-pending{% endif %}">
                 {% if session.permissions and session.permissions.is_admin %}
                 <td>
-                    {% if not transaction.is_paid and not (transaction.fee_executed or 0) %}
+                    {% if (transaction.is_paid|int) == 0 and (transaction.fee_executed|int) == 0 %}
                     <input type="checkbox"
                            class="transaction-checkbox fee-checkbox"
                            value="{{ transaction.id }}"
                            data-amount="{{ transaction.amount_n or 0 }}"
                            data-fee-executed="0"
                            onchange="updateSelectedCount()">
-                    {% elif not transaction.is_paid and (transaction.fee_executed or 0) %}
+                    {% elif (transaction.is_paid|int) == 0 and (transaction.fee_executed|int) == 1 %}
                     <input type="checkbox"
                            class="transaction-checkbox pay-checkbox"
                            value="{{ transaction.id }}"
@@ -133,8 +133,8 @@
                     <a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" class="btn btn-secondary btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
 
                     {% if session.permissions and session.permissions.is_admin %}
-                        {% if not transaction.is_paid %}
-                            {% if not (transaction.fee_executed or 0) %}
+                        {% if (transaction.is_paid|int) == 0 %}
+                            {% if (transaction.fee_executed|int) == 0 %}
                                 <button type="button"
                                         class="btn btn-fee btn-sm"
                                         title="Execute Fee"
@@ -160,7 +160,7 @@
                                   style="display: inline;"
                                   onsubmit="return confirmPayment({{ transaction.amount_n or 0 }}, {{ client.balance or 0 }}, '{{ client.client_name|replace(\"'\", \"\\\\'\") }}', {{ client.id }});">
                                 <input type="hidden" name="next" value="{{ request.full_path }}">
-                                <button type="submit" class="btn btn-success btn-sm" title="Pay" {% if not (transaction.fee_executed or 0) %}disabled{% endif %}>
+                                <button type="submit" class="btn btn-success btn-sm" title="Pay" {% if (transaction.fee_executed|int) == 0 %}disabled{% endif %}>
                                     <i class="fas fa-check"></i>
                                 </button>
                             </form>
@@ -191,12 +191,12 @@
 <!-- Mobile Card View -->
 <div class="mobile-card-view">
     {% for transaction in transactions %}
-    <div class="mobile-card {% if transaction.is_paid %}card-paid{% elif not (transaction.fee_executed or 0) %}card-fee-pending{% endif %}">
+    <div class="mobile-card {% if (transaction.is_paid|int) == 1 %}card-paid{% elif (transaction.fee_executed|int) == 0 %}card-fee-pending{% endif %}">
         <div class="mobile-card-header">
             <div style="display: flex; align-items: center; gap: 10px;">
-                {% if session.permissions and session.permissions.is_admin and not transaction.is_paid and not (transaction.fee_executed or 0) %}
+                {% if session.permissions and session.permissions.is_admin and (transaction.is_paid|int) == 0 and (transaction.fee_executed|int) == 0 %}
                 <input type="checkbox" class="transaction-checkbox fee-checkbox" value="{{ transaction.id }}" data-amount="{{ transaction.amount_n or 0 }}" data-fee-executed="0" onchange="updateSelectedCount()">
-                {% elif session.permissions and session.permissions.is_admin and not transaction.is_paid and (transaction.fee_executed or 0) %}
+                {% elif session.permissions and session.permissions.is_admin and (transaction.is_paid|int) == 0 and (transaction.fee_executed|int) == 1 %}
                 <input type="checkbox" class="transaction-checkbox pay-checkbox" value="{{ transaction.id }}" data-amount="{{ transaction.amount_n or 0 }}" data-fee-executed="1" onchange="updateSelectedCount()">
                 {% endif %}
                 <span class="card-s-no">#{{ loop.index }}</span>
@@ -251,8 +251,8 @@
             <a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" class="btn btn-secondary btn-sm" style="flex: 1;"><i class="fas fa-edit"></i> Edit</a>
 
             {% if session.permissions and session.permissions.is_admin %}
-                {% if not transaction.is_paid %}
-                    {% if not (transaction.fee_executed or 0) %}
+                {% if (transaction.is_paid|int) == 0 %}
+                    {% if (transaction.fee_executed|int) == 0 %}
                         <button type="button"
                                 class="btn btn-fee btn-sm"
                                 style="flex: 1;"
@@ -278,7 +278,7 @@
                           style="flex: 1;"
                           onsubmit="return confirmPayment({{ transaction.amount_n or 0 }}, {{ client.balance or 0 }}, '{{ client.client_name|replace(\"'\", \"\\\\'\") }}', {{ client.id }});">
                         <input type="hidden" name="next" value="{{ request.full_path }}">
-                        <button type="submit" class="btn btn-success btn-sm" style="width: 100%;" {% if not (transaction.fee_executed or 0) %}disabled{% endif %}>
+                        <button type="submit" class="btn btn-success btn-sm" style="width: 100%;" {% if (transaction.fee_executed|int) == 0 %}disabled{% endif %}>
                             <i class="fas fa-check"></i> Pay
                         </button>
                     </form>
