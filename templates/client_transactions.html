@@ -158,7 +158,7 @@
                             <form action="{{ url_for('pay_transaction', transaction_id=transaction.id) }}"
                                   method="POST"
                                   style="display: inline;"
-                                  onsubmit="return confirmPayment({{ transaction.amount_n or 0 }}, {{ client.balance or 0 }}, '{{ client.client_name|replace(\"'\", \"\\\\'\") }}', {{ client.id }});">
+                                  onsubmit="return confirmPayment({{ transaction.amount_n or 0 }}, {{ client.balance or 0 }}, '{{ client.client_name|replace("'", "&#39;") }}', {{ client.id }});">
                                 <input type="hidden" name="next" value="{{ request.full_path }}">
                                 <button type="submit" class="btn btn-success btn-sm" title="Pay" {% if (transaction.fee_executed|int) == 0 %}disabled{% endif %}>
                                     <i class="fas fa-check"></i>
