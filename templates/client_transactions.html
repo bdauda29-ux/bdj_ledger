@@ -9,16 +9,19 @@
         {% if session.permissions and session.permissions.is_admin %}
         <div id="selectionTools" style="display: none; align-items: center; gap: 15px; background: #f0fdf4; padding: 5px 15px; border-radius: 8px; border: 1px solid #bbf7d0;">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; color: #166534; font-weight: 600;">
-                <input type="checkbox" id="selectAllTop" onclick="toggleAll(this)"> Select All Unpaid
+                <input type="checkbox" id="selectAllFeeTop" onclick="toggleFeeAll(this)"> Select All (Fee Pending)
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; color: #166534; font-weight: 600;">
+                <input type="checkbox" id="selectAllPayTop" onclick="togglePayAll(this)"> Select All (Payable)
             </label>
             <div style="width: 1px; height: 20px; background: #bbf7d0;"></div>
 
             <button id="bulkFeeBtn" class="btn btn-warning" onclick="bulkFee()" style="padding: 6px 12px; font-size: 0.9rem; opacity: 0.5;" disabled>
-                <i class="fas fa-check-double"></i> Fee Selected (<span id="selectedCount">0</span>)
+                <i class="fas fa-check-double"></i> Fee Selected (<span id="selectedFeeCount">0</span>)
             </button>
 
             <button id="bulkPayBtn" class="btn btn-success" onclick="bulkPay()" style="padding: 6px 12px; font-size: 0.9rem; opacity: 0.5;" disabled>
-                <i class="fas fa-check-double"></i> Pay Selected
+                <i class="fas fa-check-double"></i> Pay Selected (<span id="selectedPayCount">0</span>)
             </button>
         </div>
 
@@ -48,7 +51,13 @@
             {% endif %}
         </div>
         <div>
-            <strong>Total Transactions:</strong> {{ transactions|length }}
+            {% set ns = namespace(payable_tx=0) %}
+            {% for t in transactions %}
+                {% if (t.fee_executed|int) == 1 %}
+                    {% set ns.payable_tx = ns.payable_tx + 1 %}
+                {% endif %}
+            {% endfor %}
+            <strong>Total Transactions:</strong> {{ ns.payable_tx }}
         </div>
     </div>
 
@@ -64,7 +73,7 @@
         <thead>
             <tr>
                 {% if session.permissions and session.permissions.is_admin %}
-                <th style="width: 40px;"><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></th>
+                <th style="width: 40px;"><input type="checkbox" id="selectAllPay" onclick="togglePayAll(this)"></th>
                 {% endif %}
                 <th>S.No</th>
                 <th>Applicant Name</th>
@@ -378,12 +387,22 @@ function closeAddFundModal() {
     currentAddFundParams = null;
 }
 
-function toggleAll(source) {
+function toggleFeeAll(source) {
     const container = document.querySelector('.table-container') && document.querySelector('.table-container').offsetParent
         ? document.querySelector('.table-container')
         : document.querySelector('.mobile-card-view');
 
-    const checkboxes = container.querySelectorAll('.transaction-checkbox');
+    const checkboxes = container.querySelectorAll('.transaction-checkbox.fee-checkbox');
+    checkboxes.forEach(cb => { cb.checked = source.checked; });
+    updateSelectedCount();
+}
+
+function togglePayAll(source) {
+    const container = document.querySelector('.table-container') && document.querySelector('.table-container').offsetParent
+        ? document.querySelector('.table-container')
+        : document.querySelector('.mobile-card-view');
+
+    const checkboxes = container.querySelectorAll('.transaction-checkbox.pay-checkbox');
     checkboxes.forEach(cb => { cb.checked = source.checked; });
     updateSelectedCount();
 }
@@ -398,8 +417,9 @@ function updateSelectedCount() {
 
     const bulkPayBtn = document.getElementById('bulkPayBtn');
     const bulkFeeBtn = document.getElementById('bulkFeeBtn');
-    const countSpan = document.getElementById('selectedCount');
-    if (!bulkPayBtn || !bulkFeeBtn || !countSpan) return;
+    const feeCountSpan = document.getElementById('selectedFeeCount');
+    const payCountSpan = document.getElementById('selectedPayCount');
+    if (!bulkPayBtn || !bulkFeeBtn || !feeCountSpan || !payCountSpan) return;
 
     bulkFeeBtn.disabled = feeCount === 0;
     bulkFeeBtn.style.opacity = feeCount === 0 ? '0.5' : '1';
@@ -407,16 +427,22 @@ function updateSelectedCount() {
     bulkPayBtn.disabled = payCount === 0;
     bulkPayBtn.style.opacity = payCount === 0 ? '0.5' : '1';
 
-    const totalSelected = feeCount + payCount;
-    countSpan.textContent = totalSelected;
+    feeCountSpan.textContent = feeCount;
+    payCountSpan.textContent = payCount;
 
-    const selectAll = document.getElementById('selectAll');
-    const selectAllTop = document.getElementById('selectAllTop');
-    const totalRendered = container.querySelectorAll('.transaction-checkbox').length;
+    const selectAllFeeTop = document.getElementById('selectAllFeeTop');
+    const selectAllPayTop = document.getElementById('selectAllPayTop');
+    const selectAllPay = document.getElementById('selectAllPay');
 
-    const isAllChecked = totalRendered > 0 && totalSelected === totalRendered;
-    if (selectAll) selectAll.checked = isAllChecked;
-    if (selectAllTop) selectAllTop.checked = isAllChecked;
+    const feeBoxes = Array.from(container.querySelectorAll('.transaction-checkbox.fee-checkbox'));
+    const payBoxes = Array.from(container.querySelectorAll('.transaction-checkbox.pay-checkbox'));
+
+    const feeChecked = feeBoxes.filter(cb => cb.checked).length;
+    const payChecked = payBoxes.filter(cb => cb.checked).length;
+
+    if (selectAllFeeTop) selectAllFeeTop.checked = feeBoxes.length > 0 && feeChecked === feeBoxes.length;
+    if (selectAllPayTop) selectAllPayTop.checked = payBoxes.length > 0 && payChecked === payBoxes.length;
+    if (selectAllPay) selectAllPay.checked = payBoxes.length > 0 && payChecked === payBoxes.length;
 }
 
 function bulkFee() {
