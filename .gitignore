@@ -21,9 +21,13 @@ data/
 *.db
 ledger.db
 traceback.log
+*.log
 reproduce_*.py
 test_*.py
 .env
+
+# Build artifacts
+tk_app/build/
 
 # OS
 .DS_Store

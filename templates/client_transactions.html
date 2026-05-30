@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Transactions for {{ client.client_name }} - Ledger System{% endblock %}
 
@@ -226,7 +226,7 @@
         </div>
 
         <div class="mobile-card-row" style="background-color: #f8f9fa; padding: 6px; border-radius: 4px; margin: 8px 0;">
-            <span class="mobile-card-value-sm" style="width: 100%; text-align: center;">{{ transaction.country_name }} • {{ (transaction.country_price or 0)|comma2 }}</span>
+            <span class="mobile-card-value-sm" style="width: 100%; text-align: center;">{{ transaction.country_name }} â€¢ {{ (transaction.country_price or 0)|comma2 }}</span>
         </div>
 
         <div class="mobile-grouped-row">
@@ -243,7 +243,7 @@
         <div class="mobile-card-row" style="background-color: #f8f9fa; padding: 8px; border-radius: 4px; margin: 8px 0; border: 1px solid var(--border-color);">
             <div style="width: 100%; text-align: center;">
                 <div style="font-size: 0.85em; color: var(--text-secondary);">$ {{ (transaction.amount or 0)|comma2 }}</div>
-                <div style="font-size: 1.1em; font-weight: 700; color: var(--text-primary);">₦ {{ (transaction.amount_n or 0)|comma2 }}</div>
+                <div style="font-size: 1.1em; font-weight: 700; color: var(--text-primary);">â‚¦ {{ (transaction.amount_n or 0)|comma2 }}</div>
             </div>
         </div>
 
@@ -276,7 +276,7 @@
                     <form action="{{ url_for('pay_transaction', transaction_id=transaction.id) }}"
                           method="POST"
                           style="flex: 1;"
-                          onsubmit="return confirmPayment({{ transaction.amount_n or 0 }}, {{ client.balance or 0 }}, '{{ client.client_name|replace(\"'\", \"\\\\'\") }}', {{ client.id }});">
+                          onsubmit="return confirmPayment({{ transaction.amount_n or 0 }}, {{ client.balance or 0 }}, '{{ client.client_name|replace("'", "&#39;") }}', {{ client.id }});">
                         <input type="hidden" name="next" value="{{ request.full_path }}">
                         <button type="submit" class="btn btn-success btn-sm" style="width: 100%;" {% if (transaction.fee_executed|int) == 0 %}disabled{% endif %}>
                             <i class="fas fa-check"></i> Pay
@@ -341,16 +341,16 @@ function confirmPayment(amount, balance, clientName, clientId) {
 
         var needed = amount - balance;
         document.getElementById('modalClientName').textContent = clientName;
-        document.getElementById('modalBalance').textContent = '₦' + balance.toLocaleString();
-        document.getElementById('modalTxAmount').textContent = '₦' + amount.toLocaleString();
-        document.getElementById('modalNeeded').textContent = '₦' + needed.toLocaleString();
+        document.getElementById('modalBalance').textContent = 'â‚¦' + balance.toLocaleString();
+        document.getElementById('modalTxAmount').textContent = 'â‚¦' + amount.toLocaleString();
+        document.getElementById('modalNeeded').textContent = 'â‚¦' + needed.toLocaleString();
         document.getElementById('modalAddAmount').value = needed;
 
         currentAddFundParams = { clientId: clientId, needed: needed };
         document.getElementById('addFundModal').classList.add('show');
         return false;
     }
-    return confirm('Pay ₦' + amount.toLocaleString() + ' from client balance?');
+    return confirm('Pay â‚¦' + amount.toLocaleString() + ' from client balance?');
 }
 
 function handleAddFundYes() {
@@ -472,9 +472,9 @@ function bulkPay() {
     if (totalAmount > clientBalance) {
         const needed = totalAmount - clientBalance;
         if (confirm(
-            'Total amount ₦' + totalAmount.toLocaleString() +
-            ' exceeds balance ₦' + clientBalance.toLocaleString() +
-            '. Need ₦' + needed.toLocaleString() +
+            'Total amount â‚¦' + totalAmount.toLocaleString() +
+            ' exceeds balance â‚¦' + clientBalance.toLocaleString() +
+            '. Need â‚¦' + needed.toLocaleString() +
             '. Add funds first?'
         )) {
             const addAmount = prompt('Amount to add:', needed);
@@ -488,7 +488,7 @@ function bulkPay() {
         return;
     }
 
-    if (!confirm('Pay ₦' + totalAmount.toLocaleString() + ' for ' + ids.length + ' transactions?')) return;
+    if (!confirm('Pay â‚¦' + totalAmount.toLocaleString() + ' for ' + ids.length + ' transactions?')) return;
 
     fetch('/transactions/bulk_pay', {
         method: 'POST',
@@ -511,3 +511,4 @@ function bulkPay() {
 }
 </script>
 {% endblock %}
+
