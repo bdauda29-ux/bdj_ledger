@@ -98,9 +98,9 @@
     <div style="width: 250px; max-width: 100%;">
         <select id="bulkFeeAccount" class="form-control" style="background-color: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; font-size: 0.95rem; color: var(--text-primary);">
             <option value="">Select account</option>
-            <option value="gtb$">gtb$</option>
-            <option value="providus$">providus$</option>
-            <option value="bybit$">bybit$</option>
+            <option value="gtb$">GTB $ (Bal: {{ ((wallet.dollars or 0) if wallet else 0)|comma2 }})</option>
+            <option value="providus$">Providus $ (Bal: {{ ((wallet.providus_dollars or 0) if wallet else 0)|comma2 }})</option>
+            <option value="bybit$">Bybit $ (Bal: {{ ((wallet.bybit_dollars or 0) if wallet else 0)|comma2 }})</option>
         </select>
     </div>
 
