@@ -362,6 +362,16 @@
 
     <script>
         (function() {
+            if (window.walletUsdBalances) return;
+            {% set gtb_bal = (wallet.dollars or 0) if (wallet is defined and wallet) else 0 %}
+            {% set providus_bal = (wallet.providus_dollars or 0) if (wallet is defined and wallet) else 0 %}
+            {% set bybit_bal = (wallet.bybit_dollars or 0) if (wallet is defined and wallet) else 0 %}
+            window.walletUsdBalances = {{ {'gtb': gtb_bal|float, 'providus': providus_bal|float, 'bybit': bybit_bal|float} | tojson }};
+        })();
+    </script>
+
+    <script>
+        (function() {
             function normalize(s) {
                 return (s || '').toString().toLowerCase().trim();
             }

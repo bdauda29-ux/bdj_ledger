@@ -511,11 +511,6 @@
         }
     }
 
-    // wallet balances (in USD) - guard against missing template vars
-    // NOTE: walletUsdBalances intentionally removed to avoid JS parse errors
-    // walletUsdBalances is not required for transactions list filtering/bulk fee UI.
-    window.walletUsdBalances = {};
-
     function handleAddFundYes() {
         if (!currentAddFundParams) return;
         
