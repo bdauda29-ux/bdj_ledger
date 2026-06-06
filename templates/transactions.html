@@ -10,7 +10,8 @@
         <a href="javascript:void(0)" class="tab" id="tab-all" onclick="filterTransactions('all')">All</a>
     </div>
     <div class="actions">
-        <button onclick="openAddModal()" class="btn btn-primary"><i class="fas fa-plus"></i> Add Transaction</button>
+        <button type="button" id="openAddModalBtn" class="btn btn-primary"><i class="fas fa-plus"></i> Add Transaction</button>
+
         <a href="{{ url_for('transactions_bin') }}" class="btn btn-secondary"><i class="fas fa-trash"></i> Bin</a>
     </div>
 </div>
@@ -442,8 +443,22 @@
 </div>
 {% endif %}
 
+<!-- Add Transaction Popup Modal -->
+<div id="addTransactionPopupModal" class="modal-overlay" style="display:none; position:fixed; inset:0; z-index:1000;">
+    <div class="custom-modal" style="max-width: 780px; width: 92%; max-height: 90vh; overflow:auto;">
+        <div class="modal-header" style="display:flex; align-items:center; justify-content:space-between;">
+            <h3 style="margin:0;">Add New Transaction</h3>
+            <button type="button" id="addTransactionPopupClose" style="background:none; border:none; font-size:1.6rem; cursor:pointer;">&times;</button>
+        </div>
+        <div class="modal-body" id="addTransactionPopupContent" style="padding-top: 0.75rem;">
+            <div style="padding: 1rem; color: var(--text-secondary);">Loading...</div>
+        </div>
+    </div>
+</div>
+
 <!-- Add Fund Modal -->
 <div id="addFundModal" class="modal-overlay">
+
     <div class="custom-modal">
         <div class="modal-header">
             <h3>Insufficient Balance</h3>
@@ -703,6 +718,104 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+        const openAddBtn = document.getElementById('openAddModalBtn');
+        if (openAddBtn) {
+            openAddBtn.addEventListener('click', function() {
+                // Load the add form inside a popup modal
+                const modal = document.getElementById('addTransactionPopupModal');
+                const content = document.getElementById('addTransactionPopupContent');
+                if (!modal || !content) {
+                    window.location.href = '{{ url_for("add_transaction") }}';
+                    return;
+                }
+
+                content.innerHTML = '<div style="padding: 1rem; color: var(--text-secondary);">Loading...</div>';
+                modal.style.display = 'flex';
+
+                fetch('{{ url_for("add_transaction") }}', { headers: { 'X-Requested-With': 'fetch' } })
+                    .then(r => r.text())
+                    .then(html => {
+                        // Extract the form from the returned HTML if possible
+                        const wrapper = document.createElement('div');
+                        wrapper.innerHTML = html;
+                        const form = wrapper.querySelector('form#transactionForm') || wrapper.querySelector('form');
+                        if (form) {
+                            content.innerHTML = '';
+                            content.appendChild(form);
+                        } else {
+                            content.innerHTML = html;
+                        }
+
+                        // Re-run simple initialization from add_transaction page script (date default + calculations)
+                        const countrySelect = document.getElementById('country_name');
+                        const serviceTypeSelect = document.getElementById('service_type');
+                        const rateInput = document.getElementById('rate');
+                        const additionInput = document.getElementById('add');
+                        const amountDisplay = document.getElementById('amountDisplay');
+                        const amountNDisplay = document.getElementById('amountNDisplay');
+                        const countryPriceDisplay = document.getElementById('countryPriceDisplay');
+
+                        function normalize(s) { return (s || '').toString().toLowerCase().trim(); }
+                        function computeFee(countryName, price) {
+                            const n = normalize(countryName);
+                            const p = Number.isFinite(price) ? price : (parseFloat(price) || 0);
+                            if (n === 'twp' || n === 'cerpac' || n === 'ecerpac') return p;
+                            const passport = new Set(['32pgs', '32pgs cod', '64pgs', '64pgs cod']);
+                            if (passport.has(n)) { const base = Math.max(p - 12, 0); return base + (base * 0.06); }
+                            const base = Math.max(p - 20, 0);
+                            return base + (base * 0.06);
+                        }
+                        function calculateAmounts() {
+                            if (!countrySelect || !amountDisplay || !amountNDisplay) return;
+                            const selectedOption = countrySelect.options[countrySelect.selectedIndex];
+                            const countryPrice = selectedOption ? (parseFloat(selectedOption.dataset.price) || 0) : 0;
+                            const addition = parseFloat(additionInput && additionInput.value) || 0;
+                            const rate = parseFloat(rateInput && rateInput.value) || 1;
+                            const fee = computeFee(countrySelect.value, countryPrice);
+                            const amount = countryPrice + addition;
+                            const amountN = amount * rate;
+                            amountDisplay.value = Math.round(amount).toLocaleString();
+                            amountNDisplay.value = Math.round(amountN).toLocaleString();
+                            if (countryPriceDisplay) {
+                                const total = countryPrice + fee;
+                                countryPriceDisplay.textContent = `Price: ${countryPrice.toLocaleString()} | Fee: ${fee.toLocaleString()} | Price + Fee: ${total.toLocaleString()}`;
+                            }
+                        }
+
+                        if (rateInput) rateInput.addEventListener('input', calculateAmounts);
+                        if (additionInput) additionInput.addEventListener('input', calculateAmounts);
+                        if (countrySelect) countrySelect.addEventListener('change', calculateAmounts);
+
+                        const dateInput = document.getElementById('transaction_date');
+                        if (dateInput && !dateInput.value) {
+                            const today = new Date().toISOString().slice(0, 10);
+                            dateInput.value = today;
+                        }
+
+                        calculateAmounts();
+                    })
+                    .catch(err => {
+                        console.error('Popup load failed', err);
+                        window.location.href = '{{ url_for("add_transaction") }}';
+                    });
+            });
+        }
+
+        const addModalCloseBtn = document.getElementById('addTransactionPopupClose');
+        if (addModalCloseBtn) {
+            addModalCloseBtn.addEventListener('click', function() {
+                const modal = document.getElementById('addTransactionPopupModal');
+                if (modal) modal.style.display = 'none';
+            });
+        }
+
+        const addModalOverlay = document.getElementById('addTransactionPopupModal');
+        if (addModalOverlay) {
+            addModalOverlay.addEventListener('click', function(e) {
+                if (e.target === addModalOverlay) addModalOverlay.style.display = 'none';
+            });
+        }
+
         // Filter Toggle Logic
         const filterToggleBtn = document.getElementById('filterToggleBtn');
         const filterDropdown = document.getElementById('filterDropdown');
