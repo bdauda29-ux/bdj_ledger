@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿{% extends "base.html" %}
+﻿﻿﻿﻿﻿﻿{% extends "base.html" %}
 
 {% block title %}Transactions for {{ client.client_name }} - Ledger System{% endblock %}
 
@@ -369,6 +369,7 @@ function openAddTransactionPopup() {
     const baseUrl = '{{ url_for("add_transaction") }}';
     const url = new URL(baseUrl, window.location.origin);
     url.searchParams.set('next', window.location.href);
+    url.searchParams.set('popup', '1');
     const clientName = {{ client.client_name|tojson }};
     if (clientName) url.searchParams.set('client_name', clientName);
 

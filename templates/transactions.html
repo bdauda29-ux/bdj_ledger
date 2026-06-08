@@ -745,6 +745,7 @@
                 const baseUrl = '{{ url_for("add_transaction") }}';
                 const url = new URL(baseUrl, window.location.origin);
                 url.searchParams.set('next', window.location.href);
+                url.searchParams.set('popup', '1');
 
                 iframe.src = url.toString();
 
@@ -911,6 +912,7 @@
 
         const url = new URL('/transactions/' + txId + '/edit', window.location.origin);
         url.searchParams.set('next', window.location.href);
+        url.searchParams.set('popup', '1');
         iframe.src = url.toString();
         modal.classList.add('show');
     }

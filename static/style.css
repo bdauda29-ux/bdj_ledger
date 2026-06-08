@@ -2113,3 +2113,21 @@ body.theme-dark .btn-modal-secondary {
     color: rgba(255, 255, 255, 0.90) !important;
 }
 
+body.popup-embed .sidebar {
+    display: none !important;
+}
+
+body.popup-embed .top-header {
+    display: none !important;
+}
+
+body.popup-embed .main-content {
+    margin-left: 0 !important;
+    padding: 1rem !important;
+    min-height: auto;
+}
+
+body.popup-embed .app-container {
+    background-image: none;
+}
+

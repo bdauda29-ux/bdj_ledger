@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     {% block head %}{% endblock %}
 </head>
-<body class="theme-light page-{{ request.endpoint or 'unknown' }}">
+<body class="theme-light page-{{ request.endpoint or 'unknown' }}{% if request.args.get('popup') == '1' %} popup-embed{% endif %}">
     <div class="app-container">
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
