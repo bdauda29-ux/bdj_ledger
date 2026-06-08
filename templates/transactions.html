@@ -148,7 +148,7 @@
                     <div style="display: flex; align-items: center; gap: 8px;">
                         {% if session.permissions and session.permissions.is_admin %}
                         {% if (transaction.is_paid|int) == 0 and (transaction.fee_executed|int) == 0 %}
-                        <input type="checkbox" class="transaction-checkbox fee-checkbox" value="{{ transaction.id }}" onchange="updateBulkFeeSelection()">
+                        <input type="checkbox" class="transaction-checkbox fee-checkbox" value="{{ transaction.id }}" data-country="{{ transaction.country_name }}" data-country-price="{{ transaction.country_price or 0 }}" onchange="updateBulkFeeSelection()">
                         {% else %}
                         <div style="width: 13px; height: 13px;"></div>
                         {% endif %}
@@ -610,6 +610,19 @@
         }
     }
 
+    function computeBulkFeeAmount(countryName, price) {
+        const name = (countryName || '').toString().toLowerCase().trim();
+        const priceValue = parseFloat(price) || 0;
+        if (name === 'twp' || name === 'cerpac' || name === 'ecerpac') return priceValue;
+        const passport = new Set(['32pgs', '32pgs cod', '64pgs', '64pgs cod']);
+        if (passport.has(name)) {
+            const base = Math.max(priceValue - 12, 0);
+            return base + (base * 0.06);
+        }
+        const base = Math.max(priceValue - 20, 0);
+        return base + (base * 0.06);
+    }
+
     function bulkExecuteFee() {
         const accountSelect = document.getElementById('bulkFeeAccount');
         const account = accountSelect ? accountSelect.value : '';
@@ -623,7 +636,11 @@
         
         if (ids.length === 0) return;
 
-        if (!confirm(`Execute fee for ${ids.length} transactions using account '${account}' ?`)) {
+        const totalFee = Array.from(checked).reduce((sum, cb) => {
+            return sum + computeBulkFeeAmount(cb.dataset.country, cb.dataset.countryPrice);
+        }, 0);
+
+        if (!confirm(`Execute fee for ${ids.length} transactions using account '${account}' ? Total fee: ${totalFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)) {
             return;
         }
 
