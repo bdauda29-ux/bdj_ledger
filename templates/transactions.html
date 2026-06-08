@@ -795,7 +795,7 @@
                     const currentPath = addIframe.contentWindow.location.pathname;
                     if (currentPath && currentPath !== addPath) {
                         closeAddTransactionPopup();
-                        window.location.reload();
+                        window.location.replace(window.location.href);
                     }
                 } catch (e) {
                 }
@@ -807,7 +807,7 @@
             const data = event.data || {};
             if (data.type === 'transaction-popup-success' && data.mode === 'add') {
                 closeAddTransactionPopup();
-                window.location.reload();
+                window.location.replace(window.location.href);
             }
         });
 
@@ -834,7 +834,7 @@
                     if (currentPath && !/\/transactions\/\d+\/edit$/.test(currentPath)) {
                         const modal = document.getElementById('editTransactionPopupModal');
                         if (modal) modal.classList.remove('show');
-                        window.location.reload();
+                        window.location.replace(window.location.href);
                     }
                 } catch (e) {
                 }

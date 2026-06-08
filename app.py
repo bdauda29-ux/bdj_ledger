@@ -2949,6 +2949,20 @@ def execute_fee(transaction_id):
     next_url = request.form.get('next') or request.referrer
     if not next_url:
         next_url = url_for('transactions')
+    wants_json = (
+        request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        or 'application/json' in (request.headers.get('Accept') or '')
+    )
+
+    def fee_response(error=None, status=200):
+        if wants_json:
+            payload = {'ok': error is None, 'next_url': next_url}
+            if error is not None:
+                payload['error'] = error
+            return jsonify(payload), status
+        if error is None:
+            return redirect(next_url)
+        return redirect(url_for('transactions', error=error))
 
     try:
         transaction = conn.execute(
@@ -2956,13 +2970,13 @@ def execute_fee(transaction_id):
             (transaction_id, current_model_id()),
         ).fetchone()
         if not transaction:
-            return redirect(next_url)
+            return fee_response(error='Transaction not found', status=404)
         if int(transaction.get('deleted') or 0) == 1:
-            return redirect(next_url)
+            return fee_response(error='Transaction not found', status=404)
         if int(transaction.get('is_paid') or 0) == 1:
-            return redirect(next_url)
+            return fee_response(error='Cannot execute fee for a paid transaction', status=400)
         if int(transaction.get('fee_executed') or 0) == 1:
-            return redirect(next_url)
+            return fee_response(error='Fee already executed for this transaction', status=400)
 
         try:
             fee_amount = float(request.form.get('fee_amount') or 0)
@@ -2987,7 +3001,7 @@ def execute_fee(transaction_id):
             }
             wallet_col = account_map.get(account)
             if not wallet_col:
-                return redirect(url_for('transactions', error='Select account to debit (gtb$, providus$, bybit$)'))
+                return fee_response(error='Select account to debit (gtb$, providus$, bybit$)', status=400)
 
             wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
             if not wallet:
@@ -2995,7 +3009,7 @@ def execute_fee(transaction_id):
                 wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
             wallet_val = float(wallet.get(wallet_col) or 0)
             if wallet_val < fee_amount:
-                return redirect(url_for('transactions', error='Insufficient wallet balance for selected account'))
+                return fee_response(error='Insufficient wallet balance for selected account', status=400)
 
             new_val = wallet_val - fee_amount
             conn.execute(f'UPDATE wallet SET {wallet_col} = ? WHERE model_id = ?', (new_val, mid))
@@ -3008,7 +3022,7 @@ def execute_fee(transaction_id):
             (fee_amount, fee_account, transaction_id, mid),
         )
         conn.commit()
-        return redirect(next_url)
+        return fee_response()
     except Exception:
         import traceback
         traceback.print_exc()
@@ -3016,7 +3030,7 @@ def execute_fee(transaction_id):
             conn.rollback()
         except Exception:
             pass
-        return redirect(url_for('transactions', error='Failed to execute fee'))
+        return fee_response(error='Failed to execute fee', status=500)
 
 
 @app.route('/transactions/<int:transaction_id>/undo_fee', methods=['POST'])

@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿{% extends "base.html" %}
+﻿﻿﻿﻿﻿﻿﻿﻿﻿{% extends "base.html" %}
 
 {% block title %}Transactions for {{ client.client_name }} - Ledger System{% endblock %}
 
@@ -470,7 +470,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const currentPath = iframe.contentWindow.location.pathname;
                 if (currentPath && currentPath !== addPath) {
                     closeAddTransactionPopup();
-                    window.location.reload();
+                    window.location.replace(window.location.href);
                 }
             } catch (e) {
             }
@@ -482,7 +482,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const data = event.data || {};
         if (data.type === 'transaction-popup-success' && data.mode === 'add') {
             closeAddTransactionPopup();
-            window.location.reload();
+            window.location.replace(window.location.href);
         }
     });
 });
