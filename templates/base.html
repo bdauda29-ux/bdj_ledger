@@ -404,6 +404,20 @@
             const amountEl = document.getElementById('feeModalAmount');
             const accountEl = document.getElementById('feeModalAccount');
             const nextEl = document.getElementById('feeModalNext');
+            const submitBtn = document.getElementById('feeModalSubmitBtn');
+
+            function updateFeeUi() {
+                const feeAmount = parseFloat(amountEl.value || '0') || 0;
+                const isZero = feeAmount <= 0;
+                if (accountEl) {
+                    accountEl.disabled = isZero;
+                    accountEl.required = !isZero;
+                    if (isZero) accountEl.value = '';
+                }
+                if (submitBtn) {
+                    submitBtn.textContent = isZero ? 'Mark Fee' : 'Debit Fee';
+                }
+            }
 
             function setOptionText(select, value, label, balance) {
                 const opt = Array.from(select.options).find(o => o.value === value);
@@ -448,6 +462,7 @@
 
                 form.setAttribute('action', `/transactions/${id}/fee`);
                 form.setAttribute('data-transaction-id', id);
+                updateFeeUi();
                 show();
             }
 
@@ -474,12 +489,19 @@
 
             if (form) {
                 form.addEventListener('submit', function(e) {
+                    updateFeeUi();
                     const state = validateBalance();
                     if (!state.ok) {
                         e.preventDefault();
                         alert(`Insufficient wallet balance ($${fmtMoney(state.bal)}) for fee $${fmtMoney(state.fee)}.`);
                         return;
                     }
+                });
+            }
+
+            if (amountEl) {
+                amountEl.addEventListener('input', function() {
+                    updateFeeUi();
                 });
             }
 

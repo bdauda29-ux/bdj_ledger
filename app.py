@@ -2948,20 +2948,6 @@ def execute_fee(transaction_id):
         if int(transaction.get('fee_executed') or 0) == 1:
             return redirect(next_url)
 
-        account = (request.form.get('account') or '').strip().lower()
-        account_map = {
-            'gtb': 'dollars',
-            'gtb$': 'dollars',
-            'dollars': 'dollars',
-            'providus': 'providus_dollars',
-            'providus$': 'providus_dollars',
-            'bybit': 'bybit_dollars',
-            'bybit$': 'bybit_dollars',
-        }
-        wallet_col = account_map.get(account)
-        if not wallet_col:
-            return redirect(url_for('transactions', error='Select account to debit (gtb$, providus$, bybit$)'))
-
         try:
             fee_amount = float(request.form.get('fee_amount') or 0)
         except Exception:
@@ -2969,23 +2955,41 @@ def execute_fee(transaction_id):
         if fee_amount <= 0:
             fee_amount = float(compute_country_fee(transaction.get('country_name'), transaction.get('country_price') or 0))
 
-        if fee_amount <= 0:
-            return redirect(url_for('transactions', error='Invalid fee amount'))
+        fee_amount = float(fee_amount or 0)
 
         mid = current_model_id()
-        wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
-        if not wallet:
-            conn.execute('INSERT INTO wallet (model_id) VALUES (?)', (mid,))
-            wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
-        wallet_val = float(wallet.get(wallet_col) or 0)
-        if wallet_val < fee_amount:
-            return redirect(url_for('transactions', error='Insufficient wallet balance for selected account'))
+        if fee_amount > 0:
+            account = (request.form.get('account') or '').strip().lower()
+            account_map = {
+                'gtb': 'dollars',
+                'gtb$': 'dollars',
+                'dollars': 'dollars',
+                'providus': 'providus_dollars',
+                'providus$': 'providus_dollars',
+                'bybit': 'bybit_dollars',
+                'bybit$': 'bybit_dollars',
+            }
+            wallet_col = account_map.get(account)
+            if not wallet_col:
+                return redirect(url_for('transactions', error='Select account to debit (gtb$, providus$, bybit$)'))
 
-        new_val = wallet_val - fee_amount
-        conn.execute(f'UPDATE wallet SET {wallet_col} = ? WHERE model_id = ?', (new_val, mid))
+            wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+            if not wallet:
+                conn.execute('INSERT INTO wallet (model_id) VALUES (?)', (mid,))
+                wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+            wallet_val = float(wallet.get(wallet_col) or 0)
+            if wallet_val < fee_amount:
+                return redirect(url_for('transactions', error='Insufficient wallet balance for selected account'))
+
+            new_val = wallet_val - fee_amount
+            conn.execute(f'UPDATE wallet SET {wallet_col} = ? WHERE model_id = ?', (new_val, mid))
+            fee_account = wallet_col
+        else:
+            fee_account = None
+
         conn.execute(
             'UPDATE transactions SET fee_executed = 1, fee_amount = ?, fee_account = ?, fee_executed_at = CURRENT_TIMESTAMP WHERE id = ? AND model_id = ?',
-            (fee_amount, wallet_col, transaction_id, mid),
+            (fee_amount, fee_account, transaction_id, mid),
         )
         conn.commit()
         return redirect(next_url)
@@ -3027,18 +3031,17 @@ def undo_fee(transaction_id):
 
         fee_amount = float(transaction.get('fee_amount') or 0)
         wallet_col = (transaction.get('fee_account') or '').strip()
-        if not wallet_col or fee_amount <= 0:
-            return redirect(url_for('transactions', error='Invalid fee state'))
 
         mid = current_model_id()
-        wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
-        if not wallet:
-            conn.execute('INSERT INTO wallet (model_id) VALUES (?)', (mid,))
+        if fee_amount > 0 and wallet_col:
             wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+            if not wallet:
+                conn.execute('INSERT INTO wallet (model_id) VALUES (?)', (mid,))
+                wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
 
-        wallet_val = float(wallet.get(wallet_col) or 0)
-        new_val = wallet_val + fee_amount
-        conn.execute(f'UPDATE wallet SET {wallet_col} = ? WHERE model_id = ?', (new_val, mid))
+            wallet_val = float(wallet.get(wallet_col) or 0)
+            new_val = wallet_val + fee_amount
+            conn.execute(f'UPDATE wallet SET {wallet_col} = ? WHERE model_id = ?', (new_val, mid))
         conn.execute(
             'UPDATE transactions SET fee_executed = 0, fee_amount = 0, fee_account = NULL, fee_executed_at = NULL WHERE id = ? AND model_id = ?',
             (transaction_id, mid),
@@ -3179,9 +3182,6 @@ def bulk_execute_fee():
         'bybit': 'bybit_dollars',
         'bybit$': 'bybit_dollars',
     }
-    wallet_col = account_map.get(account)
-    if not wallet_col:
-        return jsonify({'error': 'Invalid account. Use gtb$, providus$, or bybit$.'}), 400
 
     conn = get_db_connection()
     ensure_transaction_columns(conn)
@@ -3218,23 +3218,28 @@ def bulk_execute_fee():
             fee_amount = float(t.get('fee_amount') or 0)
             if fee_amount <= 0:
                 fee_amount = float(compute_country_fee(t.get('country_name'), t.get('country_price') or 0))
-            if fee_amount <= 0:
-                return jsonify({'error': f'Invalid fee amount for transaction #{tid}'}), 400
+            fee_amount = float(fee_amount or 0)
             fee_total += fee_amount
             fee_by_id[tid] = fee_amount
 
-        wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
-        if not wallet:
-            conn.execute('INSERT INTO wallet (model_id) VALUES (?)', (mid,))
-            wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,))
+        wallet_col = None
+        if fee_total > 0:
+            wallet_col = account_map.get(account)
+            if not wallet_col:
+                return jsonify({'error': 'Invalid account. Use gtb$, providus$, or bybit$.'}), 400
 
-        wallet_val = float(wallet.get(wallet_col) or 0)
-        if wallet_val < fee_total:
-            return jsonify({'error': f'Insufficient wallet balance for selected account. Need {fee_total} but have {wallet_val}.'}), 400
+        if fee_total > 0:
+            wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+            if not wallet:
+                conn.execute('INSERT INTO wallet (model_id) VALUES (?)', (mid,))
+                wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
 
-        # Debit wallet once for total, then mark each transaction
-        new_val = wallet_val - fee_total
-        conn.execute(f'UPDATE wallet SET {wallet_col} = ? WHERE model_id = ?', (new_val, mid))
+            wallet_val = float(wallet.get(wallet_col) or 0)
+            if wallet_val < fee_total:
+                return jsonify({'error': f'Insufficient wallet balance for selected account. Need {fee_total} but have {wallet_val}.'}), 400
+
+            new_val = wallet_val - fee_total
+            conn.execute(f'UPDATE wallet SET {wallet_col} = ? WHERE model_id = ?', (new_val, mid))
 
         for tid, fee_amount in fee_by_id.items():
             conn.execute(
@@ -3244,7 +3249,7 @@ def bulk_execute_fee():
                        fee_account = ?,
                        fee_executed_at = CURRENT_TIMESTAMP
                    WHERE id = ? AND model_id = ?''',
-                (fee_amount, wallet_col, tid, mid)
+                (fee_amount, (wallet_col if fee_amount > 0 else None), tid, mid)
             )
 
         conn.commit()
