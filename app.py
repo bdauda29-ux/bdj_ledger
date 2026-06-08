@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, g, send_file, session, flash
+from flask import Flask, render_template, request, redirect, url_for, jsonify, g, send_file, session, flash, render_template_string
 import json
 import sqlite3
 from datetime import datetime, timedelta
@@ -2542,6 +2542,7 @@ def add_transaction():
         ensure_transaction_columns(conn)
         next_url = safe_next_url(request.args.get('next'))
         selected_client = request.args.get('client_name') or None
+        popup_mode = (request.args.get('popup') == '1')
         
         if request.method == 'POST':
             try:
@@ -2550,6 +2551,7 @@ def add_transaction():
                 email = request.form.get('email', '')
                 service_type = request.form.get('service_type', 'eVisa')
                 next_url = safe_next_url(request.form.get('next')) or next_url
+                popup_mode = (request.form.get('popup') == '1') or popup_mode
                 try:
                     app_id = int(request.form['app_id'])
                 except (ValueError, TypeError):
@@ -2558,7 +2560,8 @@ def add_transaction():
                                          countries=conn.execute('SELECT name, price FROM countries WHERE model_id = ? OR model_id IS NULL ORDER BY name', (current_model_id(),)).fetchall(),
                                          error='Invalid App ID',
                                          next=next_url,
-                                         selected_client=client_name)
+                                         selected_client=client_name,
+                                         popup='1' if popup_mode else '')
 
                 country_name = request.form['country_name']
                 
@@ -2592,7 +2595,8 @@ def add_transaction():
                                          countries=countries_list,
                                          error='Country not found',
                                          next=next_url,
-                                         selected_client=client_name)
+                                         selected_client=client_name,
+                                         popup='1' if popup_mode else '')
                 
                 country_price = country['price']
                 amount = country_price + addition
@@ -2603,7 +2607,7 @@ def add_transaction():
                 if exists:
                     clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
                     countries_list = conn.execute('SELECT name, price FROM countries WHERE model_id = ? OR model_id IS NULL ORDER BY name', (current_model_id(),)).fetchall()
-                    return render_template('add_transaction.html', clients=clients_list, countries=countries_list, error='App ID already exists', next=next_url, selected_client=client_name)
+                    return render_template('add_transaction.html', clients=clients_list, countries=countries_list, error='App ID already exists', next=next_url, selected_client=client_name, popup='1' if popup_mode else '')
                 
                 if transaction_date:
                     sql = '''
@@ -2629,6 +2633,18 @@ def add_transaction():
                     transaction_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
 
                 conn.commit()
+                if popup_mode:
+                    return render_template_string(
+                        """<!DOCTYPE html>
+<html>
+<body>
+<script>
+window.parent.postMessage({ type: 'transaction-popup-success', mode: 'add', transactionId: {{ transaction_id }} }, window.location.origin);
+</script>
+</body>
+</html>""",
+                        transaction_id=transaction_id,
+                    )
                 if next_url:
                     return redirect(next_url)
                 return redirect(url_for('transactions'))
@@ -2642,7 +2658,7 @@ def add_transaction():
         
         clients_list = conn.execute('SELECT client_name FROM clients WHERE model_id = ? ORDER BY client_name', (current_model_id(),)).fetchall()
         countries_list = conn.execute('SELECT name, price FROM countries WHERE model_id = ? OR model_id IS NULL ORDER BY name', (current_model_id(),)).fetchall()
-        return render_template('add_transaction.html', clients=clients_list, countries=countries_list, next=next_url, selected_client=selected_client)
+        return render_template('add_transaction.html', clients=clients_list, countries=countries_list, next=next_url, selected_client=selected_client, popup='1' if popup_mode else '')
     except Exception as e:
         import traceback
         traceback.print_exc()

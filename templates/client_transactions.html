@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿{% extends "base.html" %}
+﻿﻿﻿﻿﻿﻿﻿﻿{% extends "base.html" %}
 
 {% block title %}Transactions for {{ client.client_name }} - Ledger System{% endblock %}
 
@@ -357,6 +357,15 @@
 
 <script>
 let currentAddFundParams = null;
+let suppressAddTransactionIframeLoad = false;
+
+function resetAddTransactionPopupFrame() {
+    const iframe = document.getElementById('addTransactionIframe');
+    if (iframe) {
+        suppressAddTransactionIframeLoad = true;
+        iframe.src = 'about:blank';
+    }
+}
 
 function openAddTransactionPopup() {
     const modal = document.getElementById('addTransactionPopupModal');
@@ -370,6 +379,7 @@ function openAddTransactionPopup() {
     const url = new URL(baseUrl, window.location.origin);
     url.searchParams.set('next', window.location.href);
     url.searchParams.set('popup', '1');
+    url.searchParams.set('_t', Date.now().toString());
     const clientName = {{ client.client_name|tojson }};
     if (clientName) url.searchParams.set('client_name', clientName);
 
@@ -380,6 +390,7 @@ function openAddTransactionPopup() {
 function closeAddTransactionPopup() {
     const modal = document.getElementById('addTransactionPopupModal');
     if (modal) modal.classList.remove('show');
+    resetAddTransactionPopupFrame();
 }
 
 function confirmPayment(amount, balance, clientName, clientId) {
@@ -451,6 +462,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (iframe) {
         const addPath = new URL('{{ url_for("add_transaction") }}', window.location.origin).pathname;
         iframe.addEventListener('load', function() {
+            if (suppressAddTransactionIframeLoad) {
+                suppressAddTransactionIframeLoad = false;
+                return;
+            }
             try {
                 const currentPath = iframe.contentWindow.location.pathname;
                 if (currentPath && currentPath !== addPath) {
@@ -461,6 +476,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    window.addEventListener('message', function(event) {
+        if (event.origin !== window.location.origin) return;
+        const data = event.data || {};
+        if (data.type === 'transaction-popup-success' && data.mode === 'add') {
+            closeAddTransactionPopup();
+            window.location.reload();
+        }
+    });
 });
 
 function toggleFeeAll(source) {

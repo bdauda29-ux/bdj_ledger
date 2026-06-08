@@ -497,6 +497,20 @@
 
 <script>
     let currentAddFundParams = null;
+    let suppressAddTransactionIframeLoad = false;
+    function resetAddTransactionPopupFrame() {
+        const iframe = document.getElementById('addTransactionIframe');
+        if (iframe) {
+            suppressAddTransactionIframeLoad = true;
+            iframe.src = 'about:blank';
+        }
+    }
+
+    function closeAddTransactionPopup() {
+        const modal = document.getElementById('addTransactionPopupModal');
+        if (modal) modal.classList.remove('show');
+        resetAddTransactionPopupFrame();
+    }
 
     function confirmPayment(amount, balance, clientName, clientId) {
         if (balance < amount) {
@@ -746,6 +760,7 @@
                 const url = new URL(baseUrl, window.location.origin);
                 url.searchParams.set('next', window.location.href);
                 url.searchParams.set('popup', '1');
+                url.searchParams.set('_t', Date.now().toString());
 
                 iframe.src = url.toString();
 
@@ -757,15 +772,14 @@
         const addModalCloseBtn = document.getElementById('addTransactionPopupClose');
         if (addModalCloseBtn) {
             addModalCloseBtn.addEventListener('click', function() {
-                const modal = document.getElementById('addTransactionPopupModal');
-                if (modal) modal.classList.remove('show');
+                closeAddTransactionPopup();
             });
         }
 
         const addModalOverlay = document.getElementById('addTransactionPopupModal');
         if (addModalOverlay) {
             addModalOverlay.addEventListener('click', function(e) {
-                if (e.target === addModalOverlay) addModalOverlay.classList.remove('show');
+                if (e.target === addModalOverlay) closeAddTransactionPopup();
             });
         }
 
@@ -773,17 +787,29 @@
         if (addIframe) {
             const addPath = new URL('{{ url_for("add_transaction") }}', window.location.origin).pathname;
             addIframe.addEventListener('load', function() {
+                if (suppressAddTransactionIframeLoad) {
+                    suppressAddTransactionIframeLoad = false;
+                    return;
+                }
                 try {
                     const currentPath = addIframe.contentWindow.location.pathname;
                     if (currentPath && currentPath !== addPath) {
-                        const modal = document.getElementById('addTransactionPopupModal');
-                        if (modal) modal.classList.remove('show');
+                        closeAddTransactionPopup();
                         window.location.reload();
                     }
                 } catch (e) {
                 }
             });
         }
+
+        window.addEventListener('message', function(event) {
+            if (event.origin !== window.location.origin) return;
+            const data = event.data || {};
+            if (data.type === 'transaction-popup-success' && data.mode === 'add') {
+                closeAddTransactionPopup();
+                window.location.reload();
+            }
+        });
 
         const editModalCloseBtn = document.getElementById('editTransactionPopupClose');
         if (editModalCloseBtn) {

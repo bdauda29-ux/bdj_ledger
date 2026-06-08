@@ -12,6 +12,7 @@
     
     <form method="POST" class="form" id="transactionForm">
         <input type="hidden" name="next" value="{{ next or '' }}">
+        <input type="hidden" name="popup" value="{{ popup or '' }}">
         <div class="form-group">
             <label for="client_name">Client Name *</label>
             <select name="client_name" id="client_name" required>
