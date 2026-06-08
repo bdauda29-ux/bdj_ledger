@@ -2651,7 +2651,25 @@ def add_transaction():
 @app.route('/transactions/<int:transaction_id>/edit', methods=['GET', 'POST'])
 def edit_transaction(transaction_id):
     """Edit a transaction"""
+    from urllib.parse import urlparse
+
+    def safe_next_url(raw):
+        if not raw:
+            return None
+        try:
+            parsed = urlparse(raw)
+        except Exception:
+            return None
+        if parsed.scheme or parsed.netloc:
+            return None
+        if not parsed.path.startswith('/'):
+            return None
+        if parsed.path.startswith('//'):
+            return None
+        return raw
+
     conn = get_db_connection()
+    next_url = safe_next_url(request.args.get('next'))
     # Check permissions with creator logic
     transaction_check = conn.execute('SELECT created_by, model_id FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
     if not transaction_check or transaction_check['model_id'] != current_model_id():
@@ -2666,6 +2684,7 @@ def edit_transaction(transaction_id):
     
     if request.method == 'POST':
         try:
+            next_url = safe_next_url(request.form.get('next')) or next_url
             # Get original transaction
             original_transaction = conn.execute('SELECT client_name, amount_n, is_paid, model_id FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
             if not original_transaction or original_transaction['model_id'] != current_model_id():
@@ -2721,7 +2740,8 @@ def edit_transaction(transaction_id):
                                      transaction=transaction,
                                      clients=clients_list, 
                                      countries=countries_list,
-                                     error='Country not found')
+                                     error='Country not found',
+                                     next=next_url)
         
             country_price = country['price']
             amount = country_price + addition
@@ -2735,7 +2755,8 @@ def edit_transaction(transaction_id):
                                      transaction=transaction,
                                      clients=clients_list, 
                                      countries=countries_list,
-                                     error='App ID already exists')
+                                     error='App ID already exists',
+                                     next=next_url)
         
             if transaction_date:
                 conn.execute('''
@@ -2779,9 +2800,12 @@ def edit_transaction(transaction_id):
                                      transaction=transaction,
                                      clients=clients_list, 
                                      countries=countries_list,
-                                     error='Selected client not found in current model')
+                                     error='Selected client not found in current model',
+                                     next=next_url)
         
             conn.commit()
+            if next_url:
+                return redirect(next_url)
             return redirect(url_for('transactions'))
         except Exception as e:
             import traceback
@@ -2803,7 +2827,8 @@ def edit_transaction(transaction_id):
                                      transaction=transaction,
                                      clients=clients_list, 
                                      countries=countries_list,
-                                     error=f'An unexpected error occurred: {str(e)}')
+                                     error=f'An unexpected error occurred: {str(e)}',
+                                     next=next_url)
             except Exception as e2:
                 print(f"CRITICAL ERROR recovering from edit_transaction failure: {e2}", file=sys.stderr)
                 traceback.print_exc()
@@ -2819,7 +2844,8 @@ def edit_transaction(transaction_id):
     return render_template('edit_transaction.html', 
                          transaction=transaction, 
                          clients=clients_list, 
-                         countries=countries_list)
+                         countries=countries_list,
+                         next=next_url)
 
 @app.route('/health/db')
 def health_db():

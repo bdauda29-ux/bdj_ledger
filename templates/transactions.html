@@ -444,16 +444,29 @@
 {% endif %}
 
 <!-- Add Transaction Popup Modal -->
-<div id="addTransactionPopupModal" class="modal-overlay" style="display:none; position:fixed; inset:0; z-index:1000;">
+<div id="addTransactionPopupModal" class="modal-overlay" style="position:fixed; inset:0; z-index:1000;">
     <div class="custom-modal" style="max-width: 780px; width: 92%; max-height: 90vh; overflow:auto;">
         <div class="modal-header" style="display:flex; align-items:center; justify-content:space-between;">
             <h3 style="margin:0;">Add New Transaction</h3>
             <button type="button" id="addTransactionPopupClose" style="background:none; border:none; font-size:1.6rem; cursor:pointer;">&times;</button>
         </div>
         <div class="modal-body" id="addTransactionPopupContent" style="padding-top: 0.75rem;">
-            <iframe id="addTransactionIframe" title="Add Transaction" style="width: 100%; height: 72vh; border: 0; background: white; display:block;" src="/transactions/add"></iframe>
+            <iframe id="addTransactionIframe" title="Add Transaction" style="width: 100%; height: 72vh; border: 0; background: white; display:block;"></iframe>
         </div>
 
+    </div>
+</div>
+
+<!-- Edit Transaction Popup Modal -->
+<div id="editTransactionPopupModal" class="modal-overlay" style="position:fixed; inset:0; z-index:1000;">
+    <div class="custom-modal" style="max-width: 780px; width: 92%; max-height: 90vh; overflow:auto;">
+        <div class="modal-header" style="display:flex; align-items:center; justify-content:space-between;">
+            <h3 style="margin:0;">Edit Transaction</h3>
+            <button type="button" id="editTransactionPopupClose" style="background:none; border:none; font-size:1.6rem; cursor:pointer;">&times;</button>
+        </div>
+        <div class="modal-body" style="padding-top: 0.75rem;">
+            <iframe id="editTransactionIframe" title="Edit Transaction" style="width: 100%; height: 72vh; border: 0; background: white; display:block;"></iframe>
+        </div>
     </div>
 </div>
 
@@ -722,7 +735,6 @@
         const openAddBtn = document.getElementById('openAddModalBtn');
         if (openAddBtn) {
             openAddBtn.addEventListener('click', function() {
-                // Load the add transaction page inside a popup modal via iframe (reliable)
                 const modal = document.getElementById('addTransactionPopupModal');
                 const iframe = document.getElementById('addTransactionIframe');
                 if (!modal || !iframe) {
@@ -730,10 +742,13 @@
                     return;
                 }
 
-                // Force reload so the form is fresh every time
-                iframe.src = '/transactions/add';
+                const baseUrl = '{{ url_for("add_transaction") }}';
+                const url = new URL(baseUrl, window.location.origin);
+                url.searchParams.set('next', window.location.href);
 
-                modal.style.display = 'flex';
+                iframe.src = url.toString();
+
+                modal.classList.add('show');
 
             });
         }
@@ -742,14 +757,60 @@
         if (addModalCloseBtn) {
             addModalCloseBtn.addEventListener('click', function() {
                 const modal = document.getElementById('addTransactionPopupModal');
-                if (modal) modal.style.display = 'none';
+                if (modal) modal.classList.remove('show');
             });
         }
 
         const addModalOverlay = document.getElementById('addTransactionPopupModal');
         if (addModalOverlay) {
             addModalOverlay.addEventListener('click', function(e) {
-                if (e.target === addModalOverlay) addModalOverlay.style.display = 'none';
+                if (e.target === addModalOverlay) addModalOverlay.classList.remove('show');
+            });
+        }
+
+        const addIframe = document.getElementById('addTransactionIframe');
+        if (addIframe) {
+            const addPath = new URL('{{ url_for("add_transaction") }}', window.location.origin).pathname;
+            addIframe.addEventListener('load', function() {
+                try {
+                    const currentPath = addIframe.contentWindow.location.pathname;
+                    if (currentPath && currentPath !== addPath) {
+                        const modal = document.getElementById('addTransactionPopupModal');
+                        if (modal) modal.classList.remove('show');
+                        window.location.reload();
+                    }
+                } catch (e) {
+                }
+            });
+        }
+
+        const editModalCloseBtn = document.getElementById('editTransactionPopupClose');
+        if (editModalCloseBtn) {
+            editModalCloseBtn.addEventListener('click', function() {
+                const modal = document.getElementById('editTransactionPopupModal');
+                if (modal) modal.classList.remove('show');
+            });
+        }
+
+        const editModalOverlay = document.getElementById('editTransactionPopupModal');
+        if (editModalOverlay) {
+            editModalOverlay.addEventListener('click', function(e) {
+                if (e.target === editModalOverlay) editModalOverlay.classList.remove('show');
+            });
+        }
+
+        const editIframe = document.getElementById('editTransactionIframe');
+        if (editIframe) {
+            editIframe.addEventListener('load', function() {
+                try {
+                    const currentPath = editIframe.contentWindow.location.pathname;
+                    if (currentPath && !/\/transactions\/\d+\/edit$/.test(currentPath)) {
+                        const modal = document.getElementById('editTransactionPopupModal');
+                        if (modal) modal.classList.remove('show');
+                        window.location.reload();
+                    }
+                } catch (e) {
+                }
             });
         }
 
@@ -835,6 +896,24 @@
             }
         });
     });
+
+    function openEditModal(linkEl) {
+        const idRaw = linkEl ? linkEl.getAttribute('data-id') : '';
+        const txId = parseInt(idRaw || '0', 10);
+        if (!txId) return;
+
+        const modal = document.getElementById('editTransactionPopupModal');
+        const iframe = document.getElementById('editTransactionIframe');
+        if (!modal || !iframe) {
+            window.location.href = '/transactions/' + txId + '/edit';
+            return;
+        }
+
+        const url = new URL('/transactions/' + txId + '/edit', window.location.origin);
+        url.searchParams.set('next', window.location.href);
+        iframe.src = url.toString();
+        modal.classList.add('show');
+    }
 
 </script>
 {% endblock %}

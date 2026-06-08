@@ -11,6 +11,7 @@
     {% endif %}
     
     <form method="POST" class="form" id="transactionForm">
+        <input type="hidden" name="next" value="{{ next or '' }}">
         <div class="form-group">
             <label for="client_name">Client Name *</label>
             <select name="client_name" id="client_name" required>
@@ -96,7 +97,7 @@
         
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Update Transaction</button>
-            <a href="{{ url_for('transactions') }}" class="btn btn-secondary">Cancel</a>
+            <a href="{{ next or url_for('transactions') }}" class="btn btn-secondary">Cancel</a>
         </div>
     </form>
 </div>
