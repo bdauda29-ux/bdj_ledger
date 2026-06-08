@@ -1,4 +1,4 @@
-﻿﻿{% extends "base.html" %}
+﻿﻿﻿﻿﻿{% extends "base.html" %}
 
 {% block title %}Transactions for {{ client.client_name }} - Ledger System{% endblock %}
 
@@ -35,6 +35,7 @@
         </script>
         {% endif %}
 
+        <button type="button" id="openAddTransactionModalBtn" class="btn btn-primary"><i class="fas fa-plus"></i> Add New Transaction</button>
         <a href="{{ url_for('clients') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Clients</a>
     </div>
 </div>
@@ -317,6 +318,19 @@
 <p class="empty-state">No transactions found for this client.</p>
 {% endif %}
 
+<!-- Add Transaction Popup Modal -->
+<div id="addTransactionPopupModal" class="modal-overlay">
+    <div class="custom-modal" style="max-width: 780px; width: 92%; max-height: 90vh; overflow:auto;">
+        <div class="modal-header" style="display:flex; align-items:center; justify-content:space-between;">
+            <h3 style="margin:0;">Add New Transaction</h3>
+            <button type="button" id="addTransactionPopupClose" style="background:none; border:none; font-size:1.6rem; cursor:pointer;">&times;</button>
+        </div>
+        <div class="modal-body" style="padding-top: 0.75rem;">
+            <iframe id="addTransactionIframe" title="Add Transaction" style="width: 100%; height: 72vh; border: 0; background: white; display:block;"></iframe>
+        </div>
+    </div>
+</div>
+
 <!-- Add Fund Modal -->
 <div id="addFundModal" class="modal-overlay">
     <div class="custom-modal">
@@ -343,6 +357,29 @@
 
 <script>
 let currentAddFundParams = null;
+
+function openAddTransactionPopup() {
+    const modal = document.getElementById('addTransactionPopupModal');
+    const iframe = document.getElementById('addTransactionIframe');
+    if (!modal || !iframe) {
+        window.location.href = '{{ url_for("add_transaction") }}';
+        return;
+    }
+
+    const baseUrl = '{{ url_for("add_transaction") }}';
+    const url = new URL(baseUrl, window.location.origin);
+    url.searchParams.set('next', window.location.href);
+    const clientName = {{ client.client_name|tojson }};
+    if (clientName) url.searchParams.set('client_name', clientName);
+
+    iframe.src = url.toString();
+    modal.classList.add('show');
+}
+
+function closeAddTransactionPopup() {
+    const modal = document.getElementById('addTransactionPopupModal');
+    if (modal) modal.classList.remove('show');
+}
 
 function confirmPayment(amount, balance, clientName, clientId) {
     if (balance < amount) {
@@ -386,6 +423,44 @@ function closeAddFundModal() {
     document.getElementById('addFundModal').classList.remove('show');
     currentAddFundParams = null;
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const openBtn = document.getElementById('openAddTransactionModalBtn');
+    if (openBtn) {
+        openBtn.addEventListener('click', function() {
+            openAddTransactionPopup();
+        });
+    }
+
+    const closeBtn = document.getElementById('addTransactionPopupClose');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            closeAddTransactionPopup();
+        });
+    }
+
+    const overlay = document.getElementById('addTransactionPopupModal');
+    if (overlay) {
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) closeAddTransactionPopup();
+        });
+    }
+
+    const iframe = document.getElementById('addTransactionIframe');
+    if (iframe) {
+        const addPath = new URL('{{ url_for("add_transaction") }}', window.location.origin).pathname;
+        iframe.addEventListener('load', function() {
+            try {
+                const currentPath = iframe.contentWindow.location.pathname;
+                if (currentPath && currentPath !== addPath) {
+                    closeAddTransactionPopup();
+                    window.location.reload();
+                }
+            } catch (e) {
+            }
+        });
+    }
+});
 
 function toggleFeeAll(source) {
     const container = document.querySelector('.table-container') && document.querySelector('.table-container').offsetParent
