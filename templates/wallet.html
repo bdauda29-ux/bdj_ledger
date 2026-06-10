@@ -143,20 +143,11 @@
                 <label>Required Naira Debit</label>
                 <input type="text" id="conversionRequiredDebit" class="readonly-field" readonly>
             </div>
-            <div class="form-group">
-                <label for="conversionMedium">Medium</label>
-                <select id="conversionMedium">
-                    <option value="Bank Transfer">Bank Transfer</option>
-                    <option value="Cash">Cash</option>
-                    <option value="POS">POS</option>
-                    <option value="Crypto">Crypto</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
             <div class="form-group" id="conversionNairaWalletGroup">
                 <label for="conversionNairaWallet">Naira Wallet to Debit</label>
                 <select id="conversionNairaWallet">
                     <option value="">Select wallet</option>
+                    <option value="other">Other</option>
                 </select>
                 <small id="conversionNairaWalletHelp" style="display:block; margin-top: 6px; color: var(--text-secondary);"></small>
             </div>
@@ -218,11 +209,12 @@
         if (amt) amt.value = '';
         if (required) required.value = '';
         if (nairaSel) {
-            nairaSel.innerHTML = '<option value=\"\">Select wallet</option>';
+            nairaSel.innerHTML = '<option value=\"\">Select wallet</option><option value=\"other\">Other</option>';
             if (nairaSel.tomselect) {
                 nairaSel.tomselect.clear(true);
                 nairaSel.tomselect.clearOptions();
                 nairaSel.tomselect.addOption({ value: '', text: 'Select wallet' });
+                nairaSel.tomselect.addOption({ value: 'other', text: 'Other' });
                 nairaSel.tomselect.refreshOptions(false);
             }
         }
@@ -268,17 +260,22 @@
                 opt.textContent = `${w.label} (Bal: ${fmt2(w.balance)})`;
                 nairaSel.appendChild(opt);
             });
+            const otherOpt = document.createElement('option');
+            otherOpt.value = 'other';
+            otherOpt.textContent = 'Other';
+            nairaSel.appendChild(otherOpt);
 
             if (nairaSel.tomselect) {
                 nairaSel.tomselect.clearOptions();
                 nairaSel.tomselect.addOption({ value: '', text: 'Select wallet' });
                 wallets.forEach(w => nairaSel.tomselect.addOption({ value: w.key, text: `${w.label} (Bal: ${fmt2(w.balance)})` }));
+                nairaSel.tomselect.addOption({ value: 'other', text: 'Other' });
                 nairaSel.tomselect.refreshOptions(false);
                 nairaSel.tomselect.setValue('', true);
             }
 
             if (help) {
-                help.textContent = wallets.length ? '' : 'No Naira wallet has sufficient balance for this debit.';
+                help.textContent = wallets.length ? '' : 'No Naira wallet has sufficient balance for this debit. You can still choose Other.';
             }
         } catch (e) {
             if (seq !== conversionFetchSeq) return;
@@ -289,21 +286,15 @@
     function updateConversionUI() {
         const amt = document.getElementById('conversionCreditAmount');
         const rate = document.getElementById('conversionRate');
-        const mediumSel = document.getElementById('conversionMedium');
         const req = document.getElementById('conversionRequiredDebit');
-        const group = document.getElementById('conversionNairaWalletGroup');
         const preview = document.getElementById('conversionPreview');
 
         const creditAmount = parseNum(amt ? amt.value : 0);
         const rateVal = parseNum(rate ? rate.value : 0);
-        const medium = mediumSel ? mediumSel.value : '';
         const requiredDebit = creditAmount > 0 && rateVal > 0 ? (creditAmount * rateVal) : 0;
         if (req) req.value = requiredDebit ? fmt2(requiredDebit) : '';
 
-        const showWallet = medium && medium.toLowerCase() !== 'other';
-        if (group) group.style.display = showWallet ? '' : 'none';
-
-        if (showWallet && requiredDebit > 0) {
+        if (requiredDebit > 0) {
             refreshEligibleNairaWallets(requiredDebit);
         } else {
             conversionFetchSeq++;
@@ -316,7 +307,6 @@
         const amt = document.getElementById('conversionCreditAmount');
         const rate = document.getElementById('conversionRate');
         const req = document.getElementById('conversionRequiredDebit');
-        const mediumSel = document.getElementById('conversionMedium');
         const nairaSel = document.getElementById('conversionNairaWallet');
         const preview = document.getElementById('conversionPreview');
         const pCredit = document.getElementById('previewCredit');
@@ -328,15 +318,13 @@
         const creditAmount = parseNum(amt ? amt.value : 0);
         const rateVal = parseNum(rate ? rate.value : 0);
         const debitText = req ? req.value : '';
-        const medium = mediumSel ? mediumSel.value : '';
         const walletKey = nairaSel ? nairaSel.value : '';
 
-        const showWallet = medium && medium.toLowerCase() !== 'other';
-        if (!(creditAmount > 0 && rateVal > 0 && medium)) {
+        if (!(creditAmount > 0 && rateVal > 0)) {
             preview.style.display = 'none';
             return;
         }
-        if (showWallet && !walletKey) {
+        if (!walletKey) {
             preview.style.display = 'none';
             return;
         }
@@ -344,7 +332,7 @@
         pCredit.textContent = fmt2(creditAmount);
         pRate.textContent = fmt2(rateVal);
         pDebit.textContent = debitText || fmt2(creditAmount * rateVal);
-        pWallet.textContent = showWallet ? (nairaSel.options[nairaSel.selectedIndex] ? nairaSel.options[nairaSel.selectedIndex].textContent : walletKey) : 'Other';
+        pWallet.textContent = nairaSel.options[nairaSel.selectedIndex] ? nairaSel.options[nairaSel.selectedIndex].textContent : walletKey;
         preview.style.display = 'block';
     }
 
@@ -392,16 +380,13 @@
     async function submitWalletConversion() {
         const amt = document.getElementById('conversionCreditAmount');
         const rate = document.getElementById('conversionRate');
-        const mediumSel = document.getElementById('conversionMedium');
         const nairaSel = document.getElementById('conversionNairaWallet');
         const btn = document.getElementById('walletConversionSubmit');
 
         const creditAmount = parseNum(amt ? amt.value : 0);
         const rateVal = parseNum(rate ? rate.value : 0);
-        const medium = mediumSel ? mediumSel.value : '';
         const requiredDebit = creditAmount * rateVal;
-        const showWallet = medium && medium.toLowerCase() !== 'other';
-        const nairaWalletKey = showWallet ? (nairaSel ? nairaSel.value : '') : '';
+        const nairaWalletKey = nairaSel ? nairaSel.value : '';
 
         if (!(creditAmount > 0)) {
             alert('Enter Credit Amount');
@@ -411,11 +396,7 @@
             alert('Enter Rate');
             return;
         }
-        if (!medium) {
-            alert('Select Medium');
-            return;
-        }
-        if (showWallet && !nairaWalletKey) {
+        if (!nairaWalletKey) {
             alert('Select a Naira wallet');
             return;
         }
@@ -425,7 +406,7 @@
             const res = await fetch('/wallet/conversion_credit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify({ usd_wallet_key: walletConversionState.usdWalletKey, credit_amount: creditAmount, rate: rateVal, medium: medium, naira_wallet_key: nairaWalletKey, required_naira_debit: requiredDebit })
+                body: JSON.stringify({ usd_wallet_key: walletConversionState.usdWalletKey, credit_amount: creditAmount, rate: rateVal, naira_wallet_key: nairaWalletKey, required_naira_debit: requiredDebit })
             });
             const data = await res.json();
             if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to process conversion');
@@ -433,7 +414,7 @@
             if (usdInput && data.wallet && data.wallet[walletConversionState.usdWalletKey] !== undefined) {
                 usdInput.value = String(data.wallet[walletConversionState.usdWalletKey]);
             }
-            if (showWallet && nairaWalletKey) {
+            if (nairaWalletKey && nairaWalletKey !== 'other') {
                 const ngnInput = document.getElementById(nairaWalletKey);
                 if (ngnInput && data.wallet && data.wallet[nairaWalletKey] !== undefined) ngnInput.value = String(data.wallet[nairaWalletKey]);
             }
@@ -473,20 +454,12 @@
 
         const cAmt = document.getElementById('conversionCreditAmount');
         const cRate = document.getElementById('conversionRate');
-        const cMed = document.getElementById('conversionMedium');
         const cNgn = document.getElementById('conversionNairaWallet');
         if (cAmt) cAmt.addEventListener('input', function() { updateConversionUI(); updateConversionPreview(); });
         if (cRate) cRate.addEventListener('input', function() { updateConversionUI(); updateConversionPreview(); });
-        if (cMed) cMed.addEventListener('change', function() { updateConversionUI(); updateConversionPreview(); });
         if (cNgn) cNgn.addEventListener('change', updateConversionPreview);
 
-        const mediumSel = document.getElementById('conversionMedium');
         const adjustMedium = document.getElementById('walletAdjustMedium');
-        if (mediumSel && !mediumSel.tomselect) {
-            new TomSelect(mediumSel, { create: false, sortField: null });
-        } else if (mediumSel && mediumSel.tomselect) {
-            mediumSel.tomselect.settings.sortField = null;
-        }
         if (adjustMedium && !adjustMedium.tomselect) {
             new TomSelect(adjustMedium, { create: false, sortField: null });
         } else if (adjustMedium && adjustMedium.tomselect) {

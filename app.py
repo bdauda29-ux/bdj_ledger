@@ -1939,7 +1939,6 @@ def wallet_conversion_credit():
 
     data = request.get_json(silent=True) or {}
     usd_wallet_key = (data.get('usd_wallet_key') or '').strip()
-    medium = (data.get('medium') or '').strip()
     naira_wallet_key = (data.get('naira_wallet_key') or '').strip()
 
     try:
@@ -1957,8 +1956,8 @@ def wallet_conversion_credit():
         return jsonify({'ok': False, 'error': 'Invalid credit amount'}), 400
     if rate <= 0:
         return jsonify({'ok': False, 'error': 'Invalid rate'}), 400
-    if not medium:
-        return jsonify({'ok': False, 'error': 'Select a medium'}), 400
+    if naira_wallet_key not in {'naira', 'naira_1', 'taj_naira', 'other'}:
+        return jsonify({'ok': False, 'error': 'Select a Naira wallet'}), 400
 
     required_naira_debit = credit_amount * rate
     mid = current_model_id()
@@ -1977,9 +1976,8 @@ def wallet_conversion_credit():
     debit_applied = False
     naira_before = None
     naira_after = None
-    if medium.lower() != 'other':
-        if naira_wallet_key not in {'naira', 'naira_1', 'taj_naira'}:
-            return jsonify({'ok': False, 'error': 'Select a Naira wallet'}), 400
+    medium = 'Other' if naira_wallet_key == 'other' else 'Bank Transfer'
+    if naira_wallet_key != 'other':
         naira_before = float(w.get(naira_wallet_key) or 0)
         naira_after = naira_before - required_naira_debit
         if naira_after < 0:
