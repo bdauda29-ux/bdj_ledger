@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿{% extends "base.html" %}
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿{% extends "base.html" %}
 
 {% block title %}Transactions for {{ client.client_name }} - Ledger System{% endblock %}
 
@@ -46,9 +46,9 @@
         <div>
             <strong>Current Balance:</strong>
             {% if client.balance < 0 %}
-                <span style="font-size: 1.2rem; font-weight: 700; color: var(--danger-color);">{{ client.balance|comma2 }}</span>
+                <span id="clientCurrentBalance" style="font-size: 1.2rem; font-weight: 700; color: var(--danger-color);">{{ client.balance|comma2 }}</span>
             {% else %}
-                <span style="font-size: 1.2rem; font-weight: 700; color: var(--success-color);">{{ client.balance|comma2 }}</span>
+                <span id="clientCurrentBalance" style="font-size: 1.2rem; font-weight: 700; color: var(--success-color);">{{ client.balance|comma2 }}</span>
             {% endif %}
         </div>
         <div>
@@ -58,7 +58,7 @@
                     {% set ns.payable_tx = ns.payable_tx + 1 %}
                 {% endif %}
             {% endfor %}
-            <strong>Total Transactions:</strong> {{ ns.payable_tx }}
+            <strong>Total Transactions:</strong> <span id="totalTransactionsCount">{{ ns.payable_tx }}</span>
         </div>
     </div>
 
@@ -92,7 +92,10 @@
         </thead>
         <tbody>
             {% for transaction in transactions %}
-            <tr class="transaction-row {% if (transaction.is_paid|int) == 1 %}row-paid{% elif (transaction.fee_executed|int) == 0 %}row-fee-pending{% endif %}">
+            <tr class="transaction-row {% if (transaction.is_paid|int) == 1 %}row-paid{% elif (transaction.fee_executed|int) == 0 %}row-fee-pending{% endif %}"
+                data-id="{{ transaction.id }}"
+                data-paid="{{ transaction.is_paid|int }}"
+                data-fee-executed="{{ transaction.fee_executed|int }}">
                 {% if session.permissions and session.permissions.is_admin %}
                 <td>
                     {% if (transaction.is_paid|int) == 0 and (transaction.fee_executed|int) == 0 %}
@@ -125,7 +128,7 @@
                     {% endif %}
                 </td>
 
-                <td><a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" style="color: inherit;">{{ transaction.app_id }}</a></td>
+                <td><a href="#" onclick="openEditTransactionPopup({{ transaction.id }}); return false;" style="color: inherit;">{{ transaction.app_id }}</a></td>
 
                 <td>
                     {% if transaction.email_link %}
@@ -142,7 +145,7 @@
                 <td style="white-space: nowrap;">{{ transaction.transaction_date|date_format }}</td>
 
                 <td class="action-cell">
-                    <a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" class="btn btn-secondary btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
+                    <a href="#" onclick="openEditTransactionPopup({{ transaction.id }}); return false;" class="btn btn-secondary btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
 
                     {% if session.permissions and session.permissions.is_admin %}
                         {% if (transaction.is_paid|int) == 0 %}
@@ -170,7 +173,11 @@
                             <form action="{{ url_for('pay_transaction', transaction_id=transaction.id) }}"
                                   method="POST"
                                   style="display: inline;"
-                                  onsubmit="return confirmPayment({{ transaction.amount_n or 0 }}, {{ client.balance or 0 }}, '{{ client.client_name|replace("'", "&#39;") }}', {{ client.id }});">
+                                  data-ajax-pay="1"
+                                  data-transaction-id="{{ transaction.id }}"
+                                  data-amount-n="{{ transaction.amount_n or 0 }}"
+                                  data-client-id="{{ client.id }}"
+                                  data-client-name="{{ client.client_name|replace("'", "&#39;") }}">
                                 <input type="hidden" name="next" value="{{ request.full_path }}">
                                 <button type="submit" class="btn btn-success btn-sm" title="Pay" {% if (transaction.fee_executed|int) == 0 %}disabled{% endif %}>
                                     <i class="fas fa-check"></i>
@@ -203,7 +210,10 @@
 <!-- Mobile Card View -->
 <div class="mobile-card-view">
     {% for transaction in transactions %}
-    <div class="mobile-card {% if (transaction.is_paid|int) == 1 %}card-paid{% elif (transaction.fee_executed|int) == 0 %}card-fee-pending{% endif %}">
+    <div class="mobile-card {% if (transaction.is_paid|int) == 1 %}card-paid{% elif (transaction.fee_executed|int) == 0 %}card-fee-pending{% endif %}"
+         data-id="{{ transaction.id }}"
+         data-paid="{{ transaction.is_paid|int }}"
+         data-fee-executed="{{ transaction.fee_executed|int }}">
         <div class="mobile-card-header">
             <div style="display: flex; align-items: center; gap: 10px;">
                 {% if session.permissions and session.permissions.is_admin and (transaction.is_paid|int) == 0 and (transaction.fee_executed|int) == 0 %}
@@ -230,7 +240,7 @@
         <div class="mobile-card-row" style="align-items: center;">
             <span class="mobile-card-label-sm">App ID:</span>
             <span class="mobile-card-value-sm">
-                <a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" style="color: inherit;">{{ transaction.app_id }}</a>
+                <a href="#" onclick="openEditTransactionPopup({{ transaction.id }}); return false;" style="color: inherit;">{{ transaction.app_id }}</a>
                 {% if transaction.email_link %}
                 <a href="{{ transaction.email_link }}" target="_blank" class="btn btn-primary btn-sm" style="padding: 1px 6px; font-size: 10px; margin-left: 5px;"><i class="fas fa-link"></i></a>
                 {% endif %}
@@ -260,7 +270,7 @@
         </div>
 
         <div class="mobile-card-actions">
-            <a href="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" class="btn btn-secondary btn-sm" style="flex: 1;"><i class="fas fa-edit"></i> Edit</a>
+            <a href="#" onclick="openEditTransactionPopup({{ transaction.id }}); return false;" class="btn btn-secondary btn-sm" style="flex: 1;"><i class="fas fa-edit"></i> Edit</a>
 
             {% if session.permissions and session.permissions.is_admin %}
                 {% if (transaction.is_paid|int) == 0 %}
@@ -288,7 +298,11 @@
                     <form action="{{ url_for('pay_transaction', transaction_id=transaction.id) }}"
                           method="POST"
                           style="flex: 1;"
-                          onsubmit="return confirmPayment({{ transaction.amount_n or 0 }}, {{ client.balance or 0 }}, '{{ client.client_name|replace("'", "&#39;") }}', {{ client.id }});">
+                          data-ajax-pay="1"
+                          data-transaction-id="{{ transaction.id }}"
+                          data-amount-n="{{ transaction.amount_n or 0 }}"
+                          data-client-id="{{ client.id }}"
+                          data-client-name="{{ client.client_name|replace("'", "&#39;") }}">
                         <input type="hidden" name="next" value="{{ request.full_path }}">
                         <button type="submit" class="btn btn-success btn-sm" style="width: 100%;" {% if (transaction.fee_executed|int) == 0 %}disabled{% endif %}>
                             <i class="fas fa-check"></i> Pay
@@ -333,6 +347,19 @@
     </div>
 </div>
 
+<!-- Edit Transaction Popup Modal -->
+<div id="editTransactionPopupModal" class="modal-overlay">
+    <div class="custom-modal" style="max-width: 780px; width: 92%; max-height: 90vh; overflow:auto;">
+        <div class="modal-header" style="display:flex; align-items:center; justify-content:space-between;">
+            <h3 style="margin:0;">Edit Transaction</h3>
+            <button type="button" id="editTransactionPopupClose" style="background:none; border:none; font-size:1.6rem; cursor:pointer;">&times;</button>
+        </div>
+        <div class="modal-body" style="padding-top: 0.75rem;">
+            <iframe id="editTransactionIframe" title="Edit Transaction" style="width: 100%; height: 72vh; border: 0; background: white; display:block;"></iframe>
+        </div>
+    </div>
+</div>
+
 <!-- Add Fund Modal -->
 <div id="addFundModal" class="modal-overlay">
     <div class="custom-modal">
@@ -360,6 +387,10 @@
 <script>
 let currentAddFundParams = null;
 let suppressAddTransactionIframeLoad = false;
+let suppressEditTransactionIframeLoad = false;
+const __isAdmin = {{ 'true' if session.permissions and session.permissions.is_admin else 'false' }};
+const __clientId = {{ client.id }};
+const __clientName = {{ client.client_name|tojson }};
 
 function resetAddTransactionPopupFrame() {
     const iframe = document.getElementById('addTransactionIframe');
@@ -393,6 +424,261 @@ function closeAddTransactionPopup() {
     const modal = document.getElementById('addTransactionPopupModal');
     if (modal) modal.classList.remove('show');
     resetAddTransactionPopupFrame();
+}
+
+function resetEditTransactionPopupFrame() {
+    const iframe = document.getElementById('editTransactionIframe');
+    if (iframe) {
+        suppressEditTransactionIframeLoad = true;
+        iframe.src = 'about:blank';
+    }
+}
+
+function openEditTransactionPopup(transactionId) {
+    const modal = document.getElementById('editTransactionPopupModal');
+    const iframe = document.getElementById('editTransactionIframe');
+    if (!modal || !iframe) return;
+
+    const baseUrl = '/transactions/' + transactionId + '/edit';
+    const url = new URL(baseUrl, window.location.origin);
+    url.searchParams.set('next', window.location.href);
+    url.searchParams.set('popup', '1');
+    url.searchParams.set('_t', Date.now().toString());
+    iframe.src = url.toString();
+    modal.classList.add('show');
+}
+
+function closeEditTransactionPopup() {
+    const modal = document.getElementById('editTransactionPopupModal');
+    if (modal) modal.classList.remove('show');
+    resetEditTransactionPopupFrame();
+}
+
+function fmt2(n) {
+    const v = typeof n === 'number' ? n : parseFloat(n);
+    const safe = Number.isFinite(v) ? v : 0;
+    return safe.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmt0(n) {
+    const v = typeof n === 'number' ? n : parseFloat(n);
+    const safe = Number.isFinite(v) ? v : 0;
+    return Math.round(safe).toLocaleString();
+}
+
+function fmtDate(dateStr) {
+    if (!dateStr) return '';
+    const raw = String(dateStr);
+    const d = new Date(raw.includes('T') ? raw : raw.replace(' ', 'T'));
+    if (Number.isNaN(d.getTime())) return raw;
+    return d.toLocaleDateString();
+}
+
+function renumberClientTransactions() {
+    const rows = Array.from(document.querySelectorAll('.transaction-row'));
+    rows.forEach((row, idx) => {
+        const sNo = row.querySelector('.s-no');
+        if (sNo) sNo.textContent = String(idx + 1);
+    });
+    const cards = Array.from(document.querySelectorAll('.mobile-card'));
+    cards.forEach((card, idx) => {
+        const sNo = card.querySelector('.card-s-no');
+        if (sNo) sNo.textContent = '#' + String(idx + 1);
+    });
+}
+
+function recomputeClientSummaryTotals() {
+    const totalEl = document.getElementById('totalTransactionsCount');
+    if (!totalEl) return;
+    const rows = Array.from(document.querySelectorAll('.transaction-row'));
+    const cards = Array.from(document.querySelectorAll('.mobile-card'));
+    const items = rows.length ? rows : cards;
+    const count = items.reduce((acc, el) => {
+        const feeExecuted = (el.getAttribute('data-fee-executed') === '1' || el.getAttribute('data-fee-executed') === 'True');
+        return acc + (feeExecuted ? 1 : 0);
+    }, 0);
+    totalEl.textContent = String(count);
+}
+
+function upsertTransactionInClientPage(tx, mode) {
+    if (!tx || !tx.id) return;
+    const txId = parseInt(tx.id, 10);
+    if (!txId) return;
+    const isPaid = parseInt(tx.is_paid || 0, 10) === 1;
+    const feeExecuted = parseInt(tx.fee_executed || 0, 10) === 1;
+
+    const row = document.querySelector(`.transaction-row[data-id="${txId}"]`);
+    const card = document.querySelector(`.mobile-card[data-id="${txId}"]`);
+    const tbody = document.querySelector('.data-table tbody');
+    const mobileContainer = document.querySelector('.mobile-card-view');
+
+    function applyRow(r) {
+        r.setAttribute('data-paid', isPaid ? '1' : '0');
+        r.setAttribute('data-fee-executed', feeExecuted ? '1' : '0');
+        r.classList.toggle('row-paid', isPaid);
+        r.classList.toggle('row-fee-pending', !isPaid && !feeExecuted);
+        const tds = r.querySelectorAll('td');
+        const offset = __isAdmin ? 1 : 0;
+        if (tds.length >= 12 + offset) {
+            tds[1 + offset].innerHTML = tx.applicant_name ? `<a href="/transactions?applicant_name=${encodeURIComponent(tx.applicant_name)}" style="color: inherit;">${tx.applicant_name}</a>` : '';
+            tds[2 + offset].innerHTML = `<a href="#" onclick="openEditTransactionPopup(${txId}); return false;" style="color: inherit;">${String(tx.app_id || '')}</a>`;
+            tds[3 + offset].innerHTML = tx.email_link ? `<a href="${tx.email_link}" target="_blank" class="btn btn-primary btn-sm" title="Open Link" style="padding: 2px 6px; font-size: 12px;"><i class="fas fa-link"></i></a>` : '';
+            tds[4 + offset].textContent = String(tx.country_name || '');
+            tds[5 + offset].textContent = fmt2(tx.country_price || 0);
+            tds[6 + offset].textContent = fmt2(tx.rate || 0);
+            tds[7 + offset].textContent = fmt2(tx.addition || 0);
+            tds[8 + offset].textContent = '$ ' + fmt2(tx.amount || 0);
+            tds[9 + offset].innerHTML = '<strong>' + fmt2(tx.amount_n || 0) + '</strong>';
+            tds[10 + offset].textContent = fmtDate(tx.transaction_date);
+        }
+
+        const feeBtn = r.querySelector('button.btn-fee');
+        if (feeBtn) {
+            feeBtn.dataset.transactionId = String(txId);
+            feeBtn.dataset.client = __clientName;
+            feeBtn.dataset.country = String(tx.country_name || '');
+            feeBtn.dataset.countryPrice = String(tx.country_price || 0);
+            feeBtn.disabled = feeExecuted || isPaid;
+        }
+
+        const payForm = r.querySelector('form[data-ajax-pay="1"]');
+        if (payForm) {
+            payForm.setAttribute('data-transaction-id', String(txId));
+            payForm.setAttribute('data-amount-n', String(tx.amount_n || 0));
+            payForm.setAttribute('data-client-id', String(__clientId));
+            payForm.setAttribute('data-client-name', __clientName);
+            const payBtn = payForm.querySelector('button[type="submit"]');
+            if (payBtn) payBtn.disabled = !feeExecuted || isPaid;
+        }
+    }
+
+    function applyCard(c) {
+        c.setAttribute('data-paid', isPaid ? '1' : '0');
+        c.setAttribute('data-fee-executed', feeExecuted ? '1' : '0');
+        c.classList.toggle('card-paid', isPaid);
+        c.classList.toggle('card-fee-pending', !isPaid && !feeExecuted);
+        const appLinks = c.querySelectorAll('a');
+        appLinks.forEach(a => {
+            if (a && a.getAttribute('onclick') && a.getAttribute('onclick').includes('openEditTransactionPopup')) {
+                a.textContent = String(tx.app_id || '');
+            }
+        });
+        const payForm = c.querySelector('form[data-ajax-pay="1"]');
+        if (payForm) {
+            payForm.setAttribute('data-transaction-id', String(txId));
+            payForm.setAttribute('data-amount-n', String(tx.amount_n || 0));
+            payForm.setAttribute('data-client-id', String(__clientId));
+            payForm.setAttribute('data-client-name', __clientName);
+            const payBtn = payForm.querySelector('button[type="submit"]');
+            if (payBtn) payBtn.disabled = !feeExecuted || isPaid;
+        }
+    }
+
+    if (row) {
+        applyRow(row);
+        if (tbody && tbody.firstElementChild !== row) tbody.insertBefore(row, tbody.firstElementChild);
+    } else if (tbody) {
+        const cbCell = __isAdmin ? `<td>${(!isPaid && !feeExecuted) ? `<input type="checkbox" class="transaction-checkbox fee-checkbox" value="${txId}" data-amount="${String(tx.amount_n || 0)}" data-country="${String(tx.country_name || '')}" data-country-price="${String(tx.country_price || 0)}" data-fee-executed="0" onchange="updateSelectedCount()">` : (!isPaid && feeExecuted) ? `<input type="checkbox" class="transaction-checkbox pay-checkbox" value="${txId}" data-amount="${String(tx.amount_n || 0)}" data-fee-executed="1" onchange="updateSelectedCount()">` : ''}</td>` : '';
+        const r = document.createElement('tr');
+        r.className = `transaction-row ${isPaid ? 'row-paid' : (!feeExecuted ? 'row-fee-pending' : '')}`.trim();
+        r.setAttribute('data-id', String(txId));
+        r.setAttribute('data-paid', isPaid ? '1' : '0');
+        r.setAttribute('data-fee-executed', feeExecuted ? '1' : '0');
+        r.innerHTML = `
+            ${cbCell}
+            <td class="s-no">1</td>
+            <td>${tx.applicant_name ? `<a href="/transactions?applicant_name=${encodeURIComponent(tx.applicant_name)}" style="color: inherit;">${tx.applicant_name}</a>` : ''}</td>
+            <td><a href="#" onclick="openEditTransactionPopup(${txId}); return false;" style="color: inherit;">${String(tx.app_id || '')}</a></td>
+            <td>${tx.email_link ? `<a href="${tx.email_link}" target="_blank" class="btn btn-primary btn-sm" title="Open Link" style="padding: 2px 6px; font-size: 12px;"><i class="fas fa-link"></i></a>` : ''}</td>
+            <td>${String(tx.country_name || '')}</td>
+            <td>${fmt2(tx.country_price || 0)}</td>
+            <td class="text-right">${fmt2(tx.rate || 0)}</td>
+            <td class="text-right">${fmt2(tx.addition || 0)}</td>
+            <td class="text-right">$ ${fmt2(tx.amount || 0)}</td>
+            <td class="text-right"><strong>${fmt2(tx.amount_n || 0)}</strong></td>
+            <td style="white-space: nowrap;">${fmtDate(tx.transaction_date)}</td>
+            <td class="action-cell">
+                <a href="#" onclick="openEditTransactionPopup(${txId}); return false;" class="btn btn-secondary btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
+                ${__isAdmin ? (!isPaid ? (
+                    !feeExecuted
+                        ? `<button type="button" class="btn btn-fee btn-sm" title="Execute Fee" data-transaction-id="${txId}" data-client="${__clientName}" data-country="${String(tx.country_name || '')}" data-country-price="${String(tx.country_price || 0)}" onclick="openFeePrompt(this)"><i class="fas fa-receipt"></i></button>`
+                        : `<form action="/transactions/${txId}/undo_fee" method="POST" style="display: inline;" onsubmit="return confirm('Undo fee and restore wallet?');"><input type="hidden" name="next" value="${window.location.pathname + window.location.search}"><button type="submit" class="btn btn-fee-undo btn-sm" title="Undo Fee"><i class="fas fa-undo"></i></button></form>`
+                ) : '' ) : ''}
+                ${__isAdmin && !isPaid ? `<form action="/transactions/${txId}/pay" method="POST" style="display: inline;" data-ajax-pay="1" data-transaction-id="${txId}" data-amount-n="${String(tx.amount_n || 0)}" data-client-id="${String(__clientId)}" data-client-name="${__clientName}"><input type="hidden" name="next" value="${window.location.pathname + window.location.search}"><button type="submit" class="btn btn-success btn-sm" title="Pay" ${!feeExecuted ? 'disabled' : ''}><i class="fas fa-check"></i></button></form>` : ''}
+                <form action="/transactions/${txId}/delete" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this transaction?');"><button type="submit" class="btn btn-danger btn-sm" title="Delete"><i class="fas fa-trash"></i></button></form>
+            </td>
+        `;
+        tbody.insertBefore(r, tbody.firstElementChild);
+    }
+
+    if (card) {
+        applyCard(card);
+        if (mobileContainer && mobileContainer.firstElementChild !== card) mobileContainer.insertBefore(card, mobileContainer.firstElementChild);
+    } else if (mobileContainer) {
+        const c = document.createElement('div');
+        c.className = `mobile-card ${isPaid ? 'card-paid' : (!feeExecuted ? 'card-fee-pending' : '')}`.trim();
+        c.setAttribute('data-id', String(txId));
+        c.setAttribute('data-paid', isPaid ? '1' : '0');
+        c.setAttribute('data-fee-executed', feeExecuted ? '1' : '0');
+        const feeAction = (__isAdmin && !isPaid)
+            ? (!feeExecuted
+                ? `<button type="button" class="btn btn-fee btn-sm" style="flex: 1;" data-transaction-id="${txId}" data-client="${__clientName}" data-country="${String(tx.country_name || '')}" data-country-price="${String(tx.country_price || 0)}" onclick="openFeePrompt(this)"><i class="fas fa-receipt"></i> Fee</button>`
+                : `<form action="/transactions/${txId}/undo_fee" method="POST" style="flex: 1;" onsubmit="return confirm('Undo fee and restore wallet?');"><input type="hidden" name="next" value="${window.location.pathname + window.location.search}"><button type="submit" class="btn btn-fee-undo btn-sm" style="width: 100%;"><i class="fas fa-undo"></i> Undo Fee</button></form>`)
+            : '';
+        const payAction = (__isAdmin && !isPaid)
+            ? `<form action="/transactions/${txId}/pay" method="POST" style="flex: 1;" data-ajax-pay="1" data-transaction-id="${txId}" data-amount-n="${String(tx.amount_n || 0)}" data-client-id="${String(__clientId)}" data-client-name="${__clientName}"><input type="hidden" name="next" value="${window.location.pathname + window.location.search}"><button type="submit" class="btn btn-success btn-sm" style="width: 100%;" ${!feeExecuted ? 'disabled' : ''}><i class="fas fa-check"></i> Pay</button></form>`
+            : '';
+        c.innerHTML = `
+            <div class="mobile-card-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    ${__isAdmin && !isPaid && !feeExecuted ? `<input type="checkbox" class="transaction-checkbox fee-checkbox" value="${txId}" data-amount="${String(tx.amount_n || 0)}" data-country="${String(tx.country_name || '')}" data-country-price="${String(tx.country_price || 0)}" data-fee-executed="0" onchange="updateSelectedCount()">` : (__isAdmin && !isPaid && feeExecuted ? `<input type="checkbox" class="transaction-checkbox pay-checkbox" value="${txId}" data-amount="${String(tx.amount_n || 0)}" data-fee-executed="1" onchange="updateSelectedCount()">` : '')}
+                    <span class="card-s-no">#1</span>
+                </div>
+                <span style="font-size: 0.85em; color: var(--text-secondary);">${fmtDate(tx.transaction_date)}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Applicant:</span>
+                <span class="mobile-card-value">${tx.applicant_name ? `<a href="/transactions?applicant_name=${encodeURIComponent(tx.applicant_name)}" style="color: inherit;">${tx.applicant_name}</a>` : ''}</span>
+            </div>
+            <div class="mobile-card-row" style="align-items: center;">
+                <span class="mobile-card-label-sm">App ID:</span>
+                <span class="mobile-card-value-sm">
+                    <a href="#" onclick="openEditTransactionPopup(${txId}); return false;" style="color: inherit;">${String(tx.app_id || '')}</a>
+                    ${tx.email_link ? `<a href="${tx.email_link}" target="_blank" class="btn btn-primary btn-sm" style="padding: 1px 6px; font-size: 10px; margin-left: 5px;"><i class="fas fa-link"></i></a>` : ''}
+                </span>
+            </div>
+            <div class="mobile-card-row" style="background-color: #f8f9fa; padding: 6px; border-radius: 4px; margin: 8px 0;">
+                <span class="mobile-card-value-sm" style="width: 100%; text-align: center;">${String(tx.country_name || '')} • ${fmt2(tx.country_price || 0)}</span>
+            </div>
+            <div class="mobile-grouped-row">
+                <div class="mobile-half-col">
+                    <span class="mobile-card-label-sm">Rate</span>
+                    <span class="mobile-card-value-sm">${fmt2(tx.rate || 0)}</span>
+                </div>
+                <div class="mobile-half-col">
+                    <span class="mobile-card-label-sm">Add</span>
+                    <span class="mobile-card-value-sm">${fmt2(tx.addition || 0)}</span>
+                </div>
+            </div>
+            <div class="mobile-card-row" style="background-color: #f8f9fa; padding: 8px; border-radius: 4px; margin: 8px 0; border: 1px solid var(--border-color);">
+                <div style="width: 100%; text-align: center;">
+                    <div style="font-size: 0.85em; color: var(--text-secondary);">$ ${fmt2(tx.amount || 0)}</div>
+                    <div style="font-size: 1.1em; font-weight: 700; color: var(--text-primary);">₦ ${fmt2(tx.amount_n || 0)}</div>
+                </div>
+            </div>
+            <div class="mobile-card-actions">
+                <a href="#" onclick="openEditTransactionPopup(${txId}); return false;" class="btn btn-secondary btn-sm" style="flex: 1;"><i class="fas fa-edit"></i> Edit</a>
+                ${feeAction}
+                ${payAction}
+                <form action="/transactions/${txId}/delete" method="POST" style="flex: 1;" onsubmit="return confirm('Are you sure you want to delete this transaction?');"><button type="submit" class="btn btn-danger btn-sm" style="width: 100%;"><i class="fas fa-trash"></i> Delete</button></form>
+            </div>
+        `;
+        mobileContainer.insertBefore(c, mobileContainer.firstElementChild);
+    }
+
+    renumberClientTransactions();
+    if (typeof updateSelectedCount === 'function') updateSelectedCount();
+    recomputeClientSummaryTotals();
 }
 
 function confirmPayment(amount, balance, clientName, clientId) {
@@ -472,7 +758,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const currentPath = iframe.contentWindow.location.pathname;
                 if (currentPath && currentPath !== addPath) {
                     closeAddTransactionPopup();
-                    window.location.replace(window.location.href);
                 }
             } catch (e) {
             }
@@ -482,12 +767,145 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('message', function(event) {
         if (event.origin !== window.location.origin) return;
         const data = event.data || {};
-        if (data.type === 'transaction-popup-success' && data.mode === 'add') {
-            closeAddTransactionPopup();
-            window.location.replace(window.location.href);
+        if (data.type === 'transaction-popup-success' && (data.mode === 'add' || data.mode === 'edit')) {
+            if (data.mode === 'add') closeAddTransactionPopup();
+            if (data.mode === 'edit') closeEditTransactionPopup();
+            if (data.transaction) upsertTransactionInClientPage(data.transaction, data.mode);
         }
     });
+
+    const editCloseBtn = document.getElementById('editTransactionPopupClose');
+    if (editCloseBtn) {
+        editCloseBtn.addEventListener('click', function() {
+            closeEditTransactionPopup();
+        });
+    }
+
+    const editOverlay = document.getElementById('editTransactionPopupModal');
+    if (editOverlay) {
+        editOverlay.addEventListener('click', function(e) {
+            if (e.target === editOverlay) closeEditTransactionPopup();
+        });
+    }
+
+    const editIframe = document.getElementById('editTransactionIframe');
+    if (editIframe) {
+        editIframe.addEventListener('load', function() {
+            if (suppressEditTransactionIframeLoad) {
+                suppressEditTransactionIframeLoad = false;
+                return;
+            }
+            try {
+                const currentPath = editIframe.contentWindow.location.pathname;
+                if (currentPath && !currentPath.endsWith('/edit')) {
+                    closeEditTransactionPopup();
+                }
+            } catch (e) {
+            }
+        });
+    }
+
+    document.addEventListener('submit', async function(e) {
+        const form = e.target;
+        if (!(form instanceof HTMLFormElement)) return;
+        if (!form.matches('form[data-ajax-pay="1"]')) return;
+        if (!confirmPaymentFromForm(form)) {
+            e.preventDefault();
+            return;
+        }
+        e.preventDefault();
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            });
+            const data = await response.json();
+            if (!response.ok || !data.ok) throw new Error(data.error || 'Failed to pay transaction');
+
+            const txId = parseInt(form.getAttribute('data-transaction-id') || '0', 10);
+            if (txId) {
+                const row = document.querySelector(`.transaction-row[data-id="${txId}"]`);
+                if (row) {
+                    row.classList.add('row-paid');
+                    row.classList.remove('row-fee-pending');
+                    row.setAttribute('data-paid', '1');
+                }
+                const card = document.querySelector(`.mobile-card[data-id="${txId}"]`);
+                if (card) {
+                    card.classList.add('card-paid');
+                    card.classList.remove('card-fee-pending');
+                    card.setAttribute('data-paid', '1');
+                }
+            }
+
+            if (data.balance_after !== undefined) {
+                const holder = document.getElementById('clientBalanceHolder');
+                if (holder) holder.dataset.clientBalance = data.balance_after;
+                const bal = document.getElementById('clientCurrentBalance');
+                if (bal) bal.textContent = Number(data.balance_after).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            const btn = form.querySelector('button[type="submit"]');
+            if (btn) btn.disabled = true;
+        } catch (err) {
+            alert(err && err.message ? err.message : 'Failed to pay transaction');
+        }
+    });
+
+    window.addEventListener('fee-executed', function(e) {
+        const data = (e && e.detail) ? e.detail : {};
+        const txId = parseInt(data.transaction_id || '0', 10);
+        if (!txId) return;
+
+        const row = document.querySelector(`.transaction-row[data-id="${txId}"]`);
+        const card = document.querySelector(`.mobile-card[data-id="${txId}"]`);
+        if (!row && !card) return;
+        const wasFeeExecuted = row ? (row.getAttribute('data-fee-executed') === '1') : (card ? (card.getAttribute('data-fee-executed') === '1') : false);
+
+        if (row) {
+            row.classList.remove('row-fee-pending');
+            row.setAttribute('data-fee-executed', '1');
+            const payBtn = row.querySelector('form[data-ajax-pay="1"] button[type="submit"]');
+            if (payBtn) payBtn.disabled = false;
+            const feeBtn = row.querySelector('button.btn-fee[data-transaction-id]');
+            if (feeBtn) feeBtn.disabled = true;
+            const feeCb = row.querySelector('input.transaction-checkbox.fee-checkbox');
+            if (feeCb) {
+                feeCb.classList.remove('fee-checkbox');
+                feeCb.classList.add('pay-checkbox');
+                feeCb.dataset.feeExecuted = '1';
+            }
+        }
+
+        if (card) {
+            card.classList.remove('card-fee-pending');
+            card.setAttribute('data-fee-executed', '1');
+            const payBtn = card.querySelector('form[data-ajax-pay="1"] button[type="submit"]');
+            if (payBtn) payBtn.disabled = false;
+            const feeCb = card.querySelector('input.transaction-checkbox.fee-checkbox');
+            if (feeCb) {
+                feeCb.classList.remove('fee-checkbox');
+                feeCb.classList.add('pay-checkbox');
+                feeCb.dataset.feeExecuted = '1';
+            }
+        }
+
+        recomputeClientSummaryTotals();
+    });
 });
+
+function confirmPaymentFromForm(form) {
+    const amount = parseFloat(form.getAttribute('data-amount-n') || '0') || 0;
+    const holder = document.getElementById('clientBalanceHolder');
+    const balance = holder ? (parseFloat(holder.dataset.clientBalance || '0') || 0) : 0;
+    const clientName = form.getAttribute('data-client-name') || '';
+    const clientId = parseInt(form.getAttribute('data-client-id') || '0', 10) || 0;
+    return confirmPayment(amount, balance, clientName, clientId);
+}
 
 function toggleFeeAll(source) {
     const container = document.querySelector('.table-container') && document.querySelector('.table-container').offsetParent

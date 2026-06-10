@@ -2591,6 +2591,71 @@ def add_transaction():
                 return None
             return raw
 
+        def build_transaction_ui_payload(transaction_id):
+            mid = current_model_id()
+            if POSTGRES_URL:
+                row = conn.execute(
+                    '''
+                    SELECT t.*,
+                           c.id AS client_id,
+                           c.balance AS client_balance
+                      FROM transactions t
+                      LEFT JOIN clients c
+                        ON c.client_name = t.client_name
+                       AND c.model_id = t.model_id
+                     WHERE t.id = %s
+                       AND t.model_id = %s
+                    ''',
+                    (transaction_id, mid),
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    '''
+                    SELECT t.*,
+                           c.id AS client_id,
+                           c.balance AS client_balance
+                      FROM transactions t
+                      LEFT JOIN clients c
+                        ON c.client_name = t.client_name
+                       AND c.model_id = t.model_id
+                     WHERE t.id = ?
+                       AND t.model_id = ?
+                    ''',
+                    (transaction_id, mid),
+                ).fetchone()
+            if not row:
+                return {'id': transaction_id}
+            try:
+                data = dict(row)
+            except Exception:
+                data = row
+            def num(v, default=0):
+                try:
+                    return float(v)
+                except Exception:
+                    return default
+            return {
+                'id': int(data.get('id') or transaction_id),
+                'client_name': data.get('client_name') or '',
+                'client_id': data.get('client_id'),
+                'client_balance': num(data.get('client_balance'), 0),
+                'service_type': data.get('service_type') or '',
+                'applicant_name': data.get('applicant_name') or '',
+                'app_id': data.get('app_id'),
+                'email_link': data.get('email_link') or '',
+                'country_name': data.get('country_name') or '',
+                'country_price': num(data.get('country_price'), 0),
+                'rate': num(data.get('rate'), 0),
+                'addition': num(data.get('addition'), 0),
+                'amount': num(data.get('amount'), 0),
+                'amount_n': num(data.get('amount_n'), 0),
+                'transaction_date': data.get('transaction_date'),
+                'fee_executed': int(data.get('fee_executed') or 0),
+                'fee_amount': num(data.get('fee_amount'), 0),
+                'is_paid': int(data.get('is_paid') or 0),
+                'created_by': data.get('created_by') or '',
+            }
+
         conn = get_db_connection()
         ensure_transaction_columns(conn)
         next_url = safe_next_url(request.args.get('next'))
@@ -2687,16 +2752,21 @@ def add_transaction():
 
                 conn.commit()
                 if popup_mode:
+                    payload = {
+                        'type': 'transaction-popup-success',
+                        'mode': 'add',
+                        'transaction': build_transaction_ui_payload(transaction_id),
+                    }
                     return render_template_string(
                         """<!DOCTYPE html>
 <html>
 <body>
 <script>
-window.parent.postMessage({ type: 'transaction-popup-success', mode: 'add', transactionId: {{ transaction_id }} }, window.location.origin);
+window.parent.postMessage({{ payload|tojson }}, window.location.origin);
 </script>
 </body>
 </html>""",
-                        transaction_id=transaction_id,
+                        payload=payload,
                     )
                 if next_url:
                     return redirect(next_url)
@@ -2738,6 +2808,7 @@ def edit_transaction(transaction_id):
         return raw
 
     conn = get_db_connection()
+    popup_mode = (request.args.get('popup') == '1')
     next_url = safe_next_url(request.args.get('next'))
     # Check permissions with creator logic
     transaction_check = conn.execute('SELECT created_by, model_id FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
@@ -2754,6 +2825,7 @@ def edit_transaction(transaction_id):
     if request.method == 'POST':
         try:
             next_url = safe_next_url(request.form.get('next')) or next_url
+            popup_mode = (request.form.get('popup') == '1') or popup_mode
             # Get original transaction
             original_transaction = conn.execute('SELECT client_name, amount_n, is_paid, model_id FROM transactions WHERE id = ?', (transaction_id,)).fetchone()
             if not original_transaction or original_transaction['model_id'] != current_model_id():
@@ -2873,6 +2945,80 @@ def edit_transaction(transaction_id):
                                      next=next_url)
         
             conn.commit()
+            if popup_mode:
+                mid = current_model_id()
+                if POSTGRES_URL:
+                    row = conn.execute(
+                        '''
+                        SELECT t.*,
+                               c.id AS client_id,
+                               c.balance AS client_balance
+                          FROM transactions t
+                          LEFT JOIN clients c
+                            ON c.client_name = t.client_name
+                           AND c.model_id = t.model_id
+                         WHERE t.id = %s
+                           AND t.model_id = %s
+                        ''',
+                        (transaction_id, mid),
+                    ).fetchone()
+                else:
+                    row = conn.execute(
+                        '''
+                        SELECT t.*,
+                               c.id AS client_id,
+                               c.balance AS client_balance
+                          FROM transactions t
+                          LEFT JOIN clients c
+                            ON c.client_name = t.client_name
+                           AND c.model_id = t.model_id
+                         WHERE t.id = ?
+                           AND t.model_id = ?
+                        ''',
+                        (transaction_id, mid),
+                    ).fetchone()
+                try:
+                    data = dict(row) if row else {}
+                except Exception:
+                    data = row or {}
+                def num(v, default=0):
+                    try:
+                        return float(v)
+                    except Exception:
+                        return default
+                tx_payload = {
+                    'id': int(data.get('id') or transaction_id),
+                    'client_name': data.get('client_name') or '',
+                    'client_id': data.get('client_id'),
+                    'client_balance': num(data.get('client_balance'), 0),
+                    'service_type': data.get('service_type') or '',
+                    'applicant_name': data.get('applicant_name') or '',
+                    'app_id': data.get('app_id'),
+                    'email_link': data.get('email_link') or '',
+                    'country_name': data.get('country_name') or '',
+                    'country_price': num(data.get('country_price'), 0),
+                    'rate': num(data.get('rate'), 0),
+                    'addition': num(data.get('addition'), 0),
+                    'amount': num(data.get('amount'), 0),
+                    'amount_n': num(data.get('amount_n'), 0),
+                    'transaction_date': data.get('transaction_date'),
+                    'fee_executed': int(data.get('fee_executed') or 0),
+                    'fee_amount': num(data.get('fee_amount'), 0),
+                    'is_paid': int(data.get('is_paid') or 0),
+                    'created_by': data.get('created_by') or '',
+                }
+                payload = {'type': 'transaction-popup-success', 'mode': 'edit', 'transaction': tx_payload}
+                return render_template_string(
+                    """<!DOCTYPE html>
+<html>
+<body>
+<script>
+window.parent.postMessage({{ payload|tojson }}, window.location.origin);
+</script>
+</body>
+</html>""",
+                    payload=payload,
+                )
             if next_url:
                 return redirect(next_url)
             return redirect(url_for('transactions'))
@@ -2952,21 +3098,35 @@ def pay_transaction(transaction_id):
     conn = get_db_connection()
     ensure_transaction_columns(conn)
     next_url = request.form.get('next') or request.referrer or url_for('transactions')
+    wants_json = (
+        request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        or 'application/json' in (request.headers.get('Accept') or '')
+    )
     
     try:
         transaction = conn.execute('SELECT * FROM transactions WHERE id = ? AND model_id = ?', (transaction_id, current_model_id())).fetchone()
         if not transaction:
+            if wants_json:
+                return jsonify({'ok': False, 'error': 'Transaction not found', 'next_url': next_url}), 404
             return redirect(next_url)
         if transaction['is_paid']:
+            if wants_json:
+                return jsonify({'ok': False, 'error': 'Transaction already paid', 'next_url': next_url}), 400
             return redirect(next_url)
         if int(transaction.get('fee_executed') or 0) != 1:
+            if wants_json:
+                return jsonify({'ok': False, 'error': 'Execute fee before paying this transaction', 'next_url': next_url}), 400
             return redirect(url_for('transactions', error='Execute fee before paying this transaction'))
         client = conn.execute('SELECT id, balance FROM clients WHERE client_name = ? AND model_id = ?', (transaction['client_name'], current_model_id())).fetchone()
         if not client:
+            if wants_json:
+                return jsonify({'ok': False, 'error': 'Client not found', 'next_url': next_url}), 404
             return redirect(next_url)
         balance_before = client['balance']
         amount_to_deduct = transaction['amount_n']
         if amount_to_deduct > balance_before:
+            if wants_json:
+                return jsonify({'ok': False, 'error': 'Insufficient balance to pay this transaction', 'next_url': next_url}), 400
             return redirect(url_for('transactions', error='Insufficient balance to pay this transaction'))
         balance_after = balance_before - amount_to_deduct
         conn.execute('UPDATE clients SET balance = ? WHERE id = ? AND model_id = ?', (balance_after, client['id'], current_model_id()))
@@ -2979,6 +3139,14 @@ def pay_transaction(transaction_id):
             f'Payment for transaction #{transaction_id}', current_model_id()
         ))
         conn.commit()
+        if wants_json:
+            return jsonify({
+                'ok': True,
+                'next_url': next_url,
+                'transaction_id': transaction_id,
+                'client_id': client['id'],
+                'balance_after': balance_after
+            })
         return redirect(next_url)
     except Exception:
         import traceback
@@ -2988,6 +3156,8 @@ def pay_transaction(transaction_id):
             conn.rollback()
         except Exception:
             pass
+        if wants_json:
+            return jsonify({'ok': False, 'error': 'Failed to mark transaction as paid', 'next_url': next_url}), 500
         return redirect(url_for('transactions', error='Failed to mark transaction as paid'))
 
 
@@ -3012,6 +3182,8 @@ def execute_fee(transaction_id):
             payload = {'ok': error is None, 'next_url': next_url}
             if error is not None:
                 payload['error'] = error
+            else:
+                payload['transaction_id'] = transaction_id
             return jsonify(payload), status
         if error is None:
             return redirect(next_url)
@@ -3075,6 +3247,14 @@ def execute_fee(transaction_id):
             (fee_amount, fee_account, transaction_id, mid),
         )
         conn.commit()
+        if wants_json:
+            return jsonify({
+                'ok': True,
+                'next_url': next_url,
+                'transaction_id': transaction_id,
+                'fee_amount': fee_amount,
+                'fee_account': fee_account
+            })
         return fee_response()
     except Exception:
         import traceback
