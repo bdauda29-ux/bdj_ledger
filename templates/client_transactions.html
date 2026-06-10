@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿{% extends "base.html" %}
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿{% extends "base.html" %}
 
 {% block title %}Transactions for {{ client.client_name }} - Ledger System{% endblock %}
 
@@ -694,22 +694,40 @@ function confirmPayment(amount, balance, clientName, clientId) {
         if (localStorage.getItem('suppressAddFundPopup') === 'true') return false;
 
         var needed = amount - balance;
-        document.getElementById('modalClientName').textContent = clientName;
-        document.getElementById('modalBalance').textContent = 'â‚¦' + balance.toLocaleString();
-        document.getElementById('modalTxAmount').textContent = 'â‚¦' + amount.toLocaleString();
-        document.getElementById('modalNeeded').textContent = 'â‚¦' + needed.toLocaleString();
-        document.getElementById('modalAddAmount').value = needed;
-        const walletSel = document.getElementById('modalAddFundWallet');
-        if (walletSel) {
-            walletSel.value = '';
-            if (walletSel.tomselect) walletSel.tomselect.setValue('', true);
-        }
-
-        currentAddFundParams = { clientId: clientId, needed: needed };
-        document.getElementById('addFundModal').classList.add('show');
+        openAddFundModal({
+            clientId: clientId,
+            clientName: clientName,
+            balance: balance,
+            transactionAmount: amount,
+            needed: needed
+        });
         return false;
     }
     return confirm('Pay â‚¦' + amount.toLocaleString() + ' from client balance?');
+}
+
+function openAddFundModal(options) {
+    const opts = options || {};
+    const walletSel = document.getElementById('modalAddFundWallet');
+    const amountEl = document.getElementById('modalAddAmount');
+    const modal = document.getElementById('addFundModal');
+
+    document.getElementById('modalClientName').textContent = String(opts.clientName || __clientName || '');
+    document.getElementById('modalBalance').textContent = 'â‚¦' + Number(opts.balance || 0).toLocaleString();
+    document.getElementById('modalTxAmount').textContent = 'â‚¦' + Number(opts.transactionAmount || 0).toLocaleString();
+    document.getElementById('modalNeeded').textContent = 'â‚¦' + Number(opts.needed || 0).toLocaleString();
+    if (amountEl) amountEl.value = String(opts.needed || '');
+    if (walletSel) {
+        walletSel.value = '';
+        if (walletSel.tomselect) walletSel.tomselect.setValue('', true);
+    }
+
+    currentAddFundParams = {
+        clientId: opts.clientId,
+        needed: Number(opts.needed || 0),
+        onSuccess: typeof opts.onSuccess === 'function' ? opts.onSuccess : null
+    };
+    if (modal) modal.classList.add('show');
 }
 
 function updateClientBalanceAfterFunding(balanceAfter) {
@@ -757,6 +775,7 @@ async function handleAddFundYes() {
         if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to credit');
 
         updateClientBalanceAfterFunding(Number(data.client_balance_after || 0));
+        const onSuccess = currentAddFundParams.onSuccess;
 
         try {
             const ch = new BroadcastChannel('bdj-ledger');
@@ -767,6 +786,7 @@ async function handleAddFundYes() {
 
         localStorage.removeItem('suppressAddFundPopup');
         closeAddFundModal();
+        if (typeof onSuccess === 'function') onSuccess(data);
     } catch (e) {
         alert(e && e.message ? e.message : 'Failed to credit');
     } finally {
@@ -1105,20 +1125,16 @@ function bulkPay() {
 
     if (totalAmount > clientBalance) {
         const needed = totalAmount - clientBalance;
-        if (confirm(
-            'Total amount â‚¦' + totalAmount.toLocaleString() +
-            ' exceeds balance â‚¦' + clientBalance.toLocaleString() +
-            '. Need â‚¦' + needed.toLocaleString() +
-            '. Add funds first?'
-        )) {
-            const addAmount = prompt('Amount to add:', needed);
-            if (addAmount) {
-                const currentUrl = window.location.href;
-                window.location.href =
-                    '/clients/{{ client.id }}/update_balance?amount=' + addAmount +
-                    '&type=credit&next=' + encodeURIComponent(currentUrl);
+        openAddFundModal({
+            clientId: __clientId,
+            clientName: __clientName,
+            balance: clientBalance,
+            transactionAmount: totalAmount,
+            needed: needed,
+            onSuccess: function() {
+                bulkPay();
             }
-        }
+        });
         return;
     }
 
