@@ -131,8 +131,12 @@
             <button type="button" id="walletConversionClose" class="close-btn"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
+            <div class="form-group" id="conversionUsdtGroup" style="display:none;">
+                <label for="conversionUsdtAmount">USDT</label>
+                <input type="number" step="0.01" id="conversionUsdtAmount" class="form-control">
+            </div>
             <div class="form-group">
-                <label for="conversionCreditAmount">Credit Amount</label>
+                <label for="conversionCreditAmount" id="conversionCreditAmountLabel">Credit Amount</label>
                 <input type="number" step="0.01" id="conversionCreditAmount" class="form-control">
             </div>
             <div class="form-group">
@@ -169,6 +173,7 @@
     let walletAdjustState = { walletKey: '', label: '', currency: '', type: 'credit' };
     let walletConversionState = { usdWalletKey: '', label: '' };
     let conversionFetchSeq = 0;
+    const BYBIT_USDT_RATE = 0.9861;
 
     function openWalletAdjust(walletKey, label, currency, type) {
         walletAdjustState = { walletKey: walletKey, label: label, currency: currency, type: type };
@@ -199,14 +204,22 @@
         walletConversionState = { usdWalletKey: usdWalletKey, label: label };
         const modal = document.getElementById('walletConversionModal');
         const title = document.getElementById('walletConversionTitle');
+        const usdtGroup = document.getElementById('conversionUsdtGroup');
+        const usdtAmt = document.getElementById('conversionUsdtAmount');
         const amt = document.getElementById('conversionCreditAmount');
+        const amtLabel = document.getElementById('conversionCreditAmountLabel');
         const rate = document.getElementById('conversionRate');
         const required = document.getElementById('conversionRequiredDebit');
         const nairaSel = document.getElementById('conversionNairaWallet');
         const help = document.getElementById('conversionNairaWalletHelp');
         const preview = document.getElementById('conversionPreview');
+        const isBybitCredit = usdWalletKey === 'bybit_dollars';
         if (title) title.textContent = `Wallet Conversion / Credit Funding: ${label}`;
+        if (usdtAmt) usdtAmt.value = '';
         if (amt) amt.value = '';
+        if (amt) amt.readOnly = isBybitCredit;
+        if (amtLabel) amtLabel.textContent = isBybitCredit ? 'Credit Amount ($ Equivalent)' : 'Credit Amount';
+        if (usdtGroup) usdtGroup.style.display = isBybitCredit ? '' : 'none';
         if (required) required.value = '';
         if (nairaSel) {
             nairaSel.innerHTML = '<option value=\"\">Select wallet</option><option value=\"other\">Other</option>';
@@ -237,6 +250,15 @@
     function fmt2(n) {
         const v = parseNum(n);
         return v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function syncBybitCreditAmountFromUsdt() {
+        if (walletConversionState.usdWalletKey !== 'bybit_dollars') return;
+        const usdtAmt = document.getElementById('conversionUsdtAmount');
+        const amt = document.getElementById('conversionCreditAmount');
+        if (!usdtAmt || !amt) return;
+        const usdtValue = parseNum(usdtAmt.value);
+        amt.value = usdtValue > 0 ? (usdtValue * BYBIT_USDT_RATE).toFixed(2) : '';
     }
 
     async function refreshEligibleNairaWallets(requiredDebit) {
@@ -284,6 +306,7 @@
     }
 
     function updateConversionUI() {
+        syncBybitCreditAmountFromUsdt();
         const amt = document.getElementById('conversionCreditAmount');
         const rate = document.getElementById('conversionRate');
         const req = document.getElementById('conversionRequiredDebit');
@@ -304,6 +327,8 @@
     }
 
     function updateConversionPreview() {
+        syncBybitCreditAmountFromUsdt();
+        const usdtAmt = document.getElementById('conversionUsdtAmount');
         const amt = document.getElementById('conversionCreditAmount');
         const rate = document.getElementById('conversionRate');
         const req = document.getElementById('conversionRequiredDebit');
@@ -316,11 +341,17 @@
         if (!preview || !pCredit || !pRate || !pDebit || !pWallet) return;
 
         const creditAmount = parseNum(amt ? amt.value : 0);
+        const usdtAmount = parseNum(usdtAmt ? usdtAmt.value : 0);
         const rateVal = parseNum(rate ? rate.value : 0);
         const debitText = req ? req.value : '';
         const walletKey = nairaSel ? nairaSel.value : '';
+        const isBybitCredit = walletConversionState.usdWalletKey === 'bybit_dollars';
 
         if (!(creditAmount > 0 && rateVal > 0)) {
+            preview.style.display = 'none';
+            return;
+        }
+        if (isBybitCredit && !(usdtAmount > 0)) {
             preview.style.display = 'none';
             return;
         }
@@ -453,9 +484,11 @@
         if (submitConv) submitConv.addEventListener('click', submitWalletConversion);
 
         const cAmt = document.getElementById('conversionCreditAmount');
+        const cUsdt = document.getElementById('conversionUsdtAmount');
         const cRate = document.getElementById('conversionRate');
         const cNgn = document.getElementById('conversionNairaWallet');
         if (cAmt) cAmt.addEventListener('input', function() { updateConversionUI(); updateConversionPreview(); });
+        if (cUsdt) cUsdt.addEventListener('input', function() { updateConversionUI(); updateConversionPreview(); });
         if (cRate) cRate.addEventListener('input', function() { updateConversionUI(); updateConversionPreview(); });
         if (cNgn) cNgn.addEventListener('change', updateConversionPreview);
 
