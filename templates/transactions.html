@@ -131,8 +131,7 @@
                 <th>Amount</th>
                 <th>Rate</th>
                 <th>Type</th>
-                <th class="text-right">Total ($)</th>
-                <th class="text-right">Total (₦)</th>
+                <th class="text-right">Total</th>
                 <th>Fee</th>
                 <th style="white-space: nowrap;">Date</th>
                 <th>Actions</th>
@@ -194,8 +193,10 @@
                 </td>
                 <td class="text-right">{{ "{:,.0f}".format(transaction.rate or 0) }}</td>
                 <td>{{ transaction.service_type }}</td>
-                <td class="text-right">$ {{ "{:,.0f}".format(transaction.amount or 0) }}</td>
-                <td class="text-right"><strong>{{ "{:,.0f}".format(transaction.amount_n or 0) }}</strong></td>
+                <td class="text-right">
+                    <div>$ {{ "{:,.0f}".format(transaction.amount or 0) }}</div>
+                    <div><strong>₦ {{ "{:,.0f}".format(transaction.amount_n or 0) }}</strong></div>
+                </td>
                 <td>
                     {% if (transaction.fee_executed|int) == 0 %}
                         <span class="text-muted" style="font-size: 0.95em;">Fee Pending</span>
@@ -277,7 +278,7 @@
         <div class="mobile-card-header">
             <div style="display: flex; align-items: center; gap: 10px;">
                 {% if session.permissions and session.permissions.is_admin and (transaction.is_paid|int) == 0 and (transaction.fee_executed|int) == 0 %}
-                <input type="checkbox" class="transaction-checkbox fee-checkbox" value="{{ transaction.id }}" onchange="updateBulkFeeSelection()">
+                <input type="checkbox" class="transaction-checkbox fee-checkbox" value="{{ transaction.id }}" data-id="{{ transaction.id }}" data-country="{{ transaction.country_name }}" data-country-price="{{ transaction.country_price or 0 }}" onchange="updateBulkFeeSelection()">
                 {% endif %}
                 <span class="card-s-no">#{{ loop.index }}</span>
                 {% if transaction.client_id %}
@@ -620,7 +621,7 @@
             row.classList.toggle(rowClassFeePending, !isPaid && !feeExecuted);
 
             const tds = row.querySelectorAll('td');
-            if (tds.length >= 13) {
+            if (tds.length >= 12) {
                 tds[1].innerHTML = buildClientCell();
                 tds[2].innerHTML = buildApplicantCell();
                 const appLink = tds[3].querySelector('a') || document.createElement('a');
@@ -637,10 +638,9 @@
                 tds[5].innerHTML = `<span class="font-mono">${fmt0(tx.country_price || 0)}</span> <span class="font-mono" style="color: var(--text-secondary);">(+${fmt0(tx.addition || 0)})</span>`;
                 tds[6].textContent = fmt0(tx.rate || 0);
                 tds[7].textContent = String(tx.service_type || '');
-                tds[8].textContent = '$ ' + fmt0(tx.amount || 0);
-                tds[9].innerHTML = '<strong>' + fmt0(tx.amount_n || 0) + '</strong>';
-                tds[10].innerHTML = buildFeeCell();
-                tds[11].textContent = fmtDate(tx.transaction_date);
+                tds[8].innerHTML = `<div>$ ${fmt0(tx.amount || 0)}</div><div><strong>₦ ${fmt0(tx.amount_n || 0)}</strong></div>`;
+                tds[9].innerHTML = buildFeeCell();
+                tds[10].textContent = fmtDate(tx.transaction_date);
             }
 
             const feeBtn = row.querySelector('button.btn-fee');
@@ -722,8 +722,7 @@
                 <td><span class="font-mono">${fmt0(tx.country_price || 0)}</span> <span class="font-mono" style="color: var(--text-secondary);">(+${fmt0(tx.addition || 0)})</span></td>
                 <td class="text-right">${fmt0(tx.rate || 0)}</td>
                 <td>${String(tx.service_type || '')}</td>
-                <td class="text-right">$ ${fmt0(tx.amount || 0)}</td>
-                <td class="text-right"><strong>${fmt0(tx.amount_n || 0)}</strong></td>
+                <td class="text-right"><div>$ ${fmt0(tx.amount || 0)}</div><div><strong>₦ ${fmt0(tx.amount_n || 0)}</strong></div></td>
                 <td>${buildFeeCell()}</td>
                 <td style="white-space: nowrap;">${fmtDate(tx.transaction_date)}</td>
                 <td class="action-cell">
@@ -852,11 +851,28 @@
         currentAddFundParams = null;
     }
 
+    function getActiveTransactionContainer() {
+        const table = document.querySelector('.table-container');
+        if (table && table.offsetParent !== null) return table;
+        const mobile = document.querySelector('.mobile-card-view');
+        if (mobile && mobile.offsetParent !== null) return mobile;
+        return document;
+    }
+
+    function isVisibleTransactionItem(el) {
+        if (!el) return false;
+        if (el.style && el.style.display === 'none') return false;
+        if (el.offsetParent === null) return false;
+        if (typeof el.getClientRects === 'function' && el.getClientRects().length === 0) return false;
+        return true;
+    }
+
     function toggleBulkFeeAll(source) {
-        const checkboxes = document.querySelectorAll('.transaction-checkbox.fee-checkbox');
+        const container = getActiveTransactionContainer();
+        const checkboxes = container.querySelectorAll('.transaction-checkbox.fee-checkbox');
         checkboxes.forEach(cb => {
             const row = cb.closest('.transaction-row') || cb.closest('.mobile-card');
-            if (row && row.style.display !== 'none') {
+            if (isVisibleTransactionItem(row)) {
                 cb.checked = source.checked;
             }
         });
@@ -864,7 +880,8 @@
     }
 
     function updateBulkFeeSelection() {
-        const checked = document.querySelectorAll('.transaction-checkbox.fee-checkbox:checked');
+        const container = getActiveTransactionContainer();
+        const checked = container.querySelectorAll('.transaction-checkbox.fee-checkbox:checked');
         const btn = document.getElementById('bulkFeeBtn');
         if (!btn) return;
 
@@ -876,9 +893,9 @@
             btn.style.opacity = '0.6';
         }
 
-        const visibleCheckboxes = Array.from(document.querySelectorAll('.transaction-checkbox.fee-checkbox')).filter(cb => {
+        const visibleCheckboxes = Array.from(container.querySelectorAll('.transaction-checkbox.fee-checkbox')).filter(cb => {
             const row = cb.closest('.transaction-row') || cb.closest('.mobile-card');
-            return row && row.style.display !== 'none';
+            return isVisibleTransactionItem(row);
         });
         const selectAllTop = document.getElementById('selectAllTop');
         if (selectAllTop && visibleCheckboxes.length > 0) {
@@ -909,7 +926,8 @@
             return;
         }
 
-        const checked = document.querySelectorAll('.transaction-checkbox.fee-checkbox:checked');
+        const container = getActiveTransactionContainer();
+        const checked = container.querySelectorAll('.transaction-checkbox.fee-checkbox:checked');
         const ids = Array.from(checked).map(cb => parseInt(cb.value, 10));
         
         if (ids.length === 0) return;
@@ -1165,7 +1183,7 @@
             if (row) {
                 row.classList.remove('row-fee-pending');
                 row.setAttribute('data-fee-executed', '1');
-                const feeCell = row.querySelector('td:nth-child(11)');
+                const feeCell = row.querySelector('td:nth-child(10)');
                 if (feeCell) {
                     feeCell.innerHTML = `<span style="font-weight: 700;">₦ ${feeAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
                 }
