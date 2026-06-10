@@ -1946,6 +1946,10 @@ def wallet_conversion_credit():
     except Exception:
         credit_amount = 0.0
     try:
+        usdt_amount = float(data.get('usdt_amount') or 0)
+    except Exception:
+        usdt_amount = 0.0
+    try:
         rate = float(data.get('rate') or 0)
     except Exception:
         rate = 0.0
@@ -1958,8 +1962,10 @@ def wallet_conversion_credit():
         return jsonify({'ok': False, 'error': 'Invalid rate'}), 400
     if naira_wallet_key not in {'naira', 'naira_1', 'taj_naira', 'other'}:
         return jsonify({'ok': False, 'error': 'Select a Naira wallet'}), 400
+    if usd_wallet_key == 'bybit_dollars' and usdt_amount <= 0:
+        return jsonify({'ok': False, 'error': 'Invalid USDT amount'}), 400
 
-    required_naira_debit = credit_amount * rate
+    required_naira_debit = (usdt_amount if usd_wallet_key == 'bybit_dollars' else credit_amount) * rate
     mid = current_model_id()
     conn = get_db_connection()
     ensure_wallet_columns(conn)

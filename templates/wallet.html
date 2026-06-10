@@ -307,14 +307,17 @@
 
     function updateConversionUI() {
         syncBybitCreditAmountFromUsdt();
+        const usdtAmt = document.getElementById('conversionUsdtAmount');
         const amt = document.getElementById('conversionCreditAmount');
         const rate = document.getElementById('conversionRate');
         const req = document.getElementById('conversionRequiredDebit');
         const preview = document.getElementById('conversionPreview');
 
         const creditAmount = parseNum(amt ? amt.value : 0);
+        const usdtAmount = parseNum(usdtAmt ? usdtAmt.value : 0);
         const rateVal = parseNum(rate ? rate.value : 0);
-        const requiredDebit = creditAmount > 0 && rateVal > 0 ? (creditAmount * rateVal) : 0;
+        const requiredBase = walletConversionState.usdWalletKey === 'bybit_dollars' ? usdtAmount : creditAmount;
+        const requiredDebit = requiredBase > 0 && rateVal > 0 ? (requiredBase * rateVal) : 0;
         if (req) req.value = requiredDebit ? fmt2(requiredDebit) : '';
 
         if (requiredDebit > 0) {
@@ -410,13 +413,16 @@
 
     async function submitWalletConversion() {
         const amt = document.getElementById('conversionCreditAmount');
+        const usdtAmt = document.getElementById('conversionUsdtAmount');
         const rate = document.getElementById('conversionRate');
         const nairaSel = document.getElementById('conversionNairaWallet');
         const btn = document.getElementById('walletConversionSubmit');
 
         const creditAmount = parseNum(amt ? amt.value : 0);
+        const usdtAmount = parseNum(usdtAmt ? usdtAmt.value : 0);
         const rateVal = parseNum(rate ? rate.value : 0);
-        const requiredDebit = creditAmount * rateVal;
+        const requiredBase = walletConversionState.usdWalletKey === 'bybit_dollars' ? usdtAmount : creditAmount;
+        const requiredDebit = requiredBase * rateVal;
         const nairaWalletKey = nairaSel ? nairaSel.value : '';
 
         if (!(creditAmount > 0)) {
@@ -437,7 +443,7 @@
             const res = await fetch('/wallet/conversion_credit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify({ usd_wallet_key: walletConversionState.usdWalletKey, credit_amount: creditAmount, rate: rateVal, naira_wallet_key: nairaWalletKey, required_naira_debit: requiredDebit })
+                body: JSON.stringify({ usd_wallet_key: walletConversionState.usdWalletKey, credit_amount: creditAmount, usdt_amount: walletConversionState.usdWalletKey === 'bybit_dollars' ? usdtAmount : 0, rate: rateVal, naira_wallet_key: nairaWalletKey, required_naira_debit: requiredDebit })
             });
             const data = await res.json();
             if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to process conversion');
