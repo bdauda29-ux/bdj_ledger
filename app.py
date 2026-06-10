@@ -1923,10 +1923,16 @@ def index():
         
         # Get total number of transactions
         try:
-            total_transactions = conn.execute('SELECT COUNT(*) FROM transactions WHERE model_id = %s', (mid,)).fetchone()['count']
+            total_transactions = conn.execute(
+                'SELECT COUNT(*) AS count FROM transactions WHERE model_id = %s AND deleted = 0 AND COALESCE(fee_executed, 0) = 1',
+                (mid,),
+            ).fetchone()['count']
         except:
              try:
-                total_transactions = conn.execute('SELECT COUNT(*) FROM transactions WHERE model_id = ?', (mid,)).fetchone()[0]
+                total_transactions = conn.execute(
+                    'SELECT COUNT(*) FROM transactions WHERE model_id = ? AND deleted = 0 AND COALESCE(fee_executed, 0) = 1',
+                    (mid,),
+                ).fetchone()[0]
              except:
                 total_transactions = 0
         
