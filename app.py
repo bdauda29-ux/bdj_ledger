@@ -1619,6 +1619,53 @@ def ensure_transaction_columns(conn):
             except Exception as e:
                 print(f"Failed to add column {col}: {e}", file=sys.stderr)
 
+    # Data migration: mark legacy paid transactions as fee_executed=1
+    try:
+        conn.execute('SELECT is_paid FROM transactions LIMIT 1')
+        conn.execute('SELECT fee_executed FROM transactions LIMIT 1')
+        has_model = True
+        try:
+            conn.execute('SELECT model_id FROM transactions LIMIT 1')
+        except Exception:
+            has_model = False
+
+        mid = None
+        try:
+            mid = current_model_id()
+        except Exception:
+            mid = None
+
+        if has_model and mid is not None:
+            conn.execute(
+                '''
+                UPDATE transactions
+                   SET fee_executed = 1
+                 WHERE model_id = ?
+                   AND COALESCE(deleted, 0) = 0
+                   AND COALESCE(is_paid, 0) = 1
+                   AND COALESCE(fee_executed, 0) = 0
+                ''',
+                (mid,),
+            )
+        else:
+            conn.execute(
+                '''
+                UPDATE transactions
+                   SET fee_executed = 1
+                 WHERE COALESCE(deleted, 0) = 0
+                   AND COALESCE(is_paid, 0) = 1
+                   AND COALESCE(fee_executed, 0) = 0
+                '''
+            )
+        if hasattr(conn, 'commit'):
+            conn.commit()
+    except Exception:
+        try:
+            if hasattr(conn, 'conn') and hasattr(conn.conn, 'rollback'):
+                conn.conn.rollback()
+        except Exception:
+            pass
+
 @app.route('/wallet', methods=['GET', 'POST'])
 def wallet_view():
     if not can('is_admin'):
