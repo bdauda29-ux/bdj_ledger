@@ -132,7 +132,6 @@
                 <th>Rate</th>
                 <th>Type</th>
                 <th class="text-right">Total</th>
-                <th>Fee</th>
                 <th style="white-space: nowrap;">Date</th>
                 <th>Actions</th>
             </tr>
@@ -196,13 +195,6 @@
                 <td class="text-right">
                     <div>$ {{ "{:,.0f}".format(transaction.amount or 0) }}</div>
                     <div><strong>₦ {{ "{:,.0f}".format(transaction.amount_n or 0) }}</strong></div>
-                </td>
-                <td>
-                    {% if (transaction.fee_executed|int) == 0 %}
-                        <span class="text-muted" style="font-size: 0.95em;">Fee Pending</span>
-                    {% else %}
-                        <span style="font-weight: 700;">₦ {{ (transaction.fee_amount or 0)|comma2 }}</span>
-                    {% endif %}
                 </td>
                 <td style="white-space: nowrap;">{{ transaction.transaction_date|date_format }}</td>
                 <td class="action-cell">
@@ -342,22 +334,11 @@
                 <div style="font-size: 1.1em; font-weight: 700; color: var(--text-primary);">₦ {{ "{:,.0f}".format(transaction.amount_n or 0) }}</div>
             </div>
         </div>
-
-        <div class="mobile-card-row">
-            <span class="mobile-card-label">Fee:</span>
-            <span class="mobile-card-value">
-                {% if (transaction.fee_executed|int) == 0 %}
-                    <span class="text-muted">Fee Pending</span>
-                {% else %}
-                    <span style="font-weight: 700;">₦ {{ (transaction.fee_amount or 0)|comma2 }}</span>
-                {% endif %}
-            </span>
         </div>
         
         <div class="mobile-card-row">
             <span class="mobile-card-label">Date:</span>
             <span class="mobile-card-value">{{ transaction.transaction_date|date_format }}</span>
-        </div>
         
         <div class="mobile-card-actions">
             {% if session.permissions and session.permissions.is_admin %}
@@ -500,10 +481,19 @@
                 <label>Amount to Add:</label>
                 <input type="number" id="modalAddAmount" class="form-control" step="0.01">
             </div>
+            <div class="form-group mt-3">
+                <label for="modalAddFundWallet">Bank / Naira Account</label>
+                <select id="modalAddFundWallet" class="form-control">
+                    <option value="">Select account</option>
+                    <option value="naira">GTB N (Bal: {{ ((wallet.naira or 0) if wallet else 0)|comma2 }})</option>
+                    <option value="naira_1">Access N (Bal: {{ ((wallet.naira_1 or 0) if wallet else 0)|comma2 }})</option>
+                    <option value="taj_naira">Taj N (Bal: {{ ((wallet.taj_naira or 0) if wallet else 0)|comma2 }})</option>
+                </select>
+            </div>
         </div>
         <div class="modal-actions">
-            <button class="btn btn-modal-secondary" onclick="handleAddFundNo()">No</button>
-            <button class="btn btn-modal-primary" onclick="handleAddFundYes()">Yes</button>
+            <button type="button" class="btn btn-modal-secondary" onclick="handleAddFundNo()">Cancel</button>
+            <button type="button" class="btn btn-modal-primary" onclick="handleAddFundYes()">Credit</button>
         </div>
     </div>
 </div>
@@ -607,11 +597,6 @@
             return `<a href="${href}" style="color: inherit;">${a}</a>`;
         }
 
-        function buildFeeCell() {
-            if (!feeExecuted) return `<span class="text-muted" style="font-size: 0.95em;">Fee Pending</span>`;
-            return `<span style="font-weight: 700;">₦ ${fmt2(tx.fee_amount || 0)}</span>`;
-        }
-
         function applyRowUpdates(row) {
             row.setAttribute('data-paid', isPaid ? '1' : '0');
             row.setAttribute('data-fee-executed', feeExecuted ? '1' : '0');
@@ -621,7 +606,7 @@
             row.classList.toggle(rowClassFeePending, !isPaid && !feeExecuted);
 
             const tds = row.querySelectorAll('td');
-            if (tds.length >= 12) {
+            if (tds.length >= 11) {
                 tds[1].innerHTML = buildClientCell();
                 tds[2].innerHTML = buildApplicantCell();
                 const appLink = tds[3].querySelector('a') || document.createElement('a');
@@ -639,8 +624,7 @@
                 tds[6].textContent = fmt0(tx.rate || 0);
                 tds[7].textContent = String(tx.service_type || '');
                 tds[8].innerHTML = `<div>$ ${fmt0(tx.amount || 0)}</div><div><strong>₦ ${fmt0(tx.amount_n || 0)}</strong></div>`;
-                tds[9].innerHTML = buildFeeCell();
-                tds[10].textContent = fmtDate(tx.transaction_date);
+                tds[9].textContent = fmtDate(tx.transaction_date);
             }
 
             const feeBtn = row.querySelector('button.btn-fee');
@@ -678,11 +662,6 @@
             }
             const clientBalanceEl = card.querySelector('.mobile-card-header span');
             if (clientBalanceEl) clientBalanceEl.textContent = fmt2(tx.client_balance || 0);
-
-            const feeRow = card.querySelector('.mobile-card-row .mobile-card-value');
-            if (feeRow) {
-                feeRow.innerHTML = feeExecuted ? `<span style="font-weight: 700;">₦ ${fmt2(tx.fee_amount || 0)}</span>` : `<span class="text-muted">Fee Pending</span>`;
-            }
 
             const payForm = card.querySelector('form[data-ajax-pay="1"]');
             if (payForm) {
@@ -723,7 +702,6 @@
                 <td class="text-right">${fmt0(tx.rate || 0)}</td>
                 <td>${String(tx.service_type || '')}</td>
                 <td class="text-right"><div>$ ${fmt0(tx.amount || 0)}</div><div><strong>₦ ${fmt0(tx.amount_n || 0)}</strong></div></td>
-                <td>${buildFeeCell()}</td>
                 <td style="white-space: nowrap;">${fmtDate(tx.transaction_date)}</td>
                 <td class="action-cell">
                     ${__isAdmin ? (!isPaid ? (
@@ -750,7 +728,6 @@
             card.setAttribute('data-amount', String(tx.amount || 0));
             card.setAttribute('data-amount-n', String(tx.amount_n || 0));
             const clientHref = tx.client_id ? `/clients/${tx.client_id}/transactions` : '#';
-            const feeHtml = feeExecuted ? `<span style="font-weight: 700;">₦ ${fmt2(tx.fee_amount || 0)}</span>` : `<span class="text-muted">Fee Pending</span>`;
             card.innerHTML = `
                 <div class="mobile-card-header">
                     <div style="display: flex; align-items: center; gap: 10px;">
@@ -768,7 +745,6 @@
                     <div class="mobile-half-col"><span class="mobile-card-label-sm">Rate</span><span class="mobile-card-value-sm">${fmt0(tx.rate || 0)}</span></div>
                 </div>
                 <div class="mobile-card-row" style="background-color: #f8f9fa; padding: 8px; border-radius: 4px; margin: 8px 0; border: 1px solid var(--border-color);"><div style="width: 100%; text-align: center;"><div style="font-size: 0.85em; color: var(--text-secondary);">$ ${fmt0(tx.amount || 0)}</div><div style="font-size: 1.1em; font-weight: 700; color: var(--text-primary);">₦ ${fmt0(tx.amount_n || 0)}</div></div></div>
-                <div class="mobile-card-row"><span class="mobile-card-label">Fee:</span><span class="mobile-card-value">${feeHtml}</span></div>
                 <div class="mobile-card-row"><span class="mobile-card-label">Date:</span><span class="mobile-card-value">${fmtDate(tx.transaction_date)}</span></div>
                 <div class="mobile-card-actions">
                     ${__isAdmin && !isPaid && !feeExecuted ? `<button type="button" class="btn btn-fee btn-sm" style="flex: 1;" data-transaction-id="${txId}" data-client="${String(tx.client_name || '')}" data-country="${String(tx.country_name || '')}" data-country-price="${String(tx.country_price || 0)}" onclick="openFeePrompt(this)"><i class="fas fa-receipt"></i> Fee</button>` : ''}
@@ -799,11 +775,17 @@
             document.getElementById('modalTxAmount').textContent = '₦' + amount.toLocaleString();
             document.getElementById('modalNeeded').textContent = '₦' + needed.toLocaleString();
             document.getElementById('modalAddAmount').value = needed;
+            const walletSel = document.getElementById('modalAddFundWallet');
+            if (walletSel) {
+                walletSel.value = '';
+                if (walletSel.tomselect) walletSel.tomselect.setValue('', true);
+            }
             
             // Store params for the Yes action
             currentAddFundParams = {
                 clientId: clientId,
-                needed: needed
+                needed: needed,
+                clientName: clientName
             };
             
             // Show modal
@@ -831,15 +813,74 @@
         }
     }
 
-    function handleAddFundYes() {
+    function updateClientBalanceDisplays(clientId, balanceAfter) {
+        const clientIdStr = String(clientId || '');
+        if (!clientIdStr) return;
+        document.querySelectorAll(`form[data-ajax-pay="1"][data-client-id="${clientIdStr}"]`).forEach(form => {
+            form.setAttribute('data-client-balance', String(balanceAfter));
+
+            const row = form.closest('.transaction-row');
+            if (row) {
+                const clientCell = row.children[1];
+                if (clientCell) {
+                    const balanceDiv = clientCell.querySelector('div');
+                    const balanceSpan = clientCell.querySelector('span');
+                    if (balanceDiv) balanceDiv.textContent = fmt2(balanceAfter);
+                    else if (balanceSpan) balanceSpan.textContent = `(${fmt2(balanceAfter)})`;
+                }
+            }
+
+            const card = form.closest('.mobile-card');
+            if (card) {
+                const balanceEl = card.querySelector('.mobile-card-header > span');
+                if (balanceEl) balanceEl.textContent = fmt2(balanceAfter);
+            }
+        });
+    }
+
+    async function handleAddFundYes() {
         if (!currentAddFundParams) return;
         
-        var addAmount = document.getElementById('modalAddAmount').value;
-        if (addAmount && addAmount > 0) {
-            var currentUrl = window.location.href;
-            window.location.href = `/clients/${currentAddFundParams.clientId}/update_balance?amount=${addAmount}&type=credit&next=${encodeURIComponent(currentUrl)}&_t=${new Date().getTime()}`;
+        const addAmountEl = document.getElementById('modalAddAmount');
+        const walletSel = document.getElementById('modalAddFundWallet');
+        const addAmount = parseFloat(addAmountEl && addAmountEl.value ? addAmountEl.value : '0') || 0;
+        const walletKey = walletSel ? walletSel.value : '';
+
+        if (!(addAmount > 0)) {
+            alert('Enter Amount to Add');
+            return;
         }
-        closeAddFundModal();
+        if (!walletKey) {
+            alert('Select a Bank / Naira Account');
+            return;
+        }
+
+        const creditBtn = document.querySelector('#addFundModal .btn-modal-primary');
+        if (creditBtn) creditBtn.disabled = true;
+        try {
+            const res = await fetch(`/clients/${currentAddFundParams.clientId}/credit_wallet`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ amount: addAmount, wallet_key: walletKey })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to credit');
+
+            updateClientBalanceDisplays(currentAddFundParams.clientId, Number(data.client_balance_after || 0));
+
+            try {
+                const ch = new BroadcastChannel('bdj-ledger');
+                ch.postMessage({ type: 'wallet_snapshot', payload: data });
+                ch.close();
+            } catch (e) {
+            }
+
+            closeAddFundModal();
+        } catch (e) {
+            alert(e && e.message ? e.message : 'Failed to credit');
+        } finally {
+            if (creditBtn) creditBtn.disabled = false;
+        }
     }
 
     function handleAddFundNo() {
@@ -848,6 +889,11 @@
 
     function closeAddFundModal() {
         document.getElementById('addFundModal').classList.remove('show');
+        const walletSel = document.getElementById('modalAddFundWallet');
+        if (walletSel) {
+            walletSel.value = '';
+            if (walletSel.tomselect) walletSel.tomselect.setValue('', true);
+        }
         currentAddFundParams = null;
     }
 
@@ -1177,16 +1223,11 @@
             const data = (e && e.detail) ? e.detail : {};
             const txId = parseInt(data.transaction_id || '0', 10);
             if (!txId) return;
-            const feeAmount = parseFloat(data.fee_amount || '0') || 0;
 
             const row = document.querySelector(`.transaction-row[data-id="${txId}"]`);
             if (row) {
                 row.classList.remove('row-fee-pending');
                 row.setAttribute('data-fee-executed', '1');
-                const feeCell = row.querySelector('td:nth-child(10)');
-                if (feeCell) {
-                    feeCell.innerHTML = `<span style="font-weight: 700;">₦ ${feeAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
-                }
                 const payBtn = row.querySelector('form[data-ajax-pay="1"] button[type="submit"]');
                 if (payBtn) payBtn.disabled = false;
             }

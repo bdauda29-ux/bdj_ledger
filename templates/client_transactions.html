@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿{% extends "base.html" %}
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿{% extends "base.html" %}
 
 {% block title %}Transactions for {{ client.client_name }} - Ledger System{% endblock %}
 
@@ -377,10 +377,19 @@
                 <label>Amount to Add:</label>
                 <input type="number" id="modalAddAmount" class="form-control" step="0.01">
             </div>
+            <div class="form-group mt-3">
+                <label for="modalAddFundWallet">Bank / Naira Account</label>
+                <select id="modalAddFundWallet" class="form-control">
+                    <option value="">Select account</option>
+                    <option value="naira">GTB N (Bal: {{ ((wallet.naira or 0) if wallet else 0)|comma2 }})</option>
+                    <option value="naira_1">Access N (Bal: {{ ((wallet.naira_1 or 0) if wallet else 0)|comma2 }})</option>
+                    <option value="taj_naira">Taj N (Bal: {{ ((wallet.taj_naira or 0) if wallet else 0)|comma2 }})</option>
+                </select>
+            </div>
         </div>
         <div class="modal-actions">
-            <button class="btn btn-modal-secondary" onclick="handleAddFundNo()">No</button>
-            <button class="btn btn-modal-primary" onclick="handleAddFundYes()">Yes</button>
+            <button type="button" class="btn btn-modal-secondary" onclick="handleAddFundNo()">Cancel</button>
+            <button type="button" class="btn btn-modal-primary" onclick="handleAddFundYes()">Credit</button>
         </div>
     </div>
 </div>
@@ -690,6 +699,11 @@ function confirmPayment(amount, balance, clientName, clientId) {
         document.getElementById('modalTxAmount').textContent = 'â‚¦' + amount.toLocaleString();
         document.getElementById('modalNeeded').textContent = 'â‚¦' + needed.toLocaleString();
         document.getElementById('modalAddAmount').value = needed;
+        const walletSel = document.getElementById('modalAddFundWallet');
+        if (walletSel) {
+            walletSel.value = '';
+            if (walletSel.tomselect) walletSel.tomselect.setValue('', true);
+        }
 
         currentAddFundParams = { clientId: clientId, needed: needed };
         document.getElementById('addFundModal').classList.add('show');
@@ -698,19 +712,66 @@ function confirmPayment(amount, balance, clientName, clientId) {
     return confirm('Pay â‚¦' + amount.toLocaleString() + ' from client balance?');
 }
 
-function handleAddFundYes() {
+function updateClientBalanceAfterFunding(balanceAfter) {
+    const holder = document.getElementById('clientBalanceHolder');
+    if (holder) holder.dataset.clientBalance = String(balanceAfter);
+
+    const bal = document.getElementById('clientCurrentBalance');
+    if (bal) {
+        const numeric = Number(balanceAfter || 0);
+        bal.textContent = numeric.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        bal.style.color = numeric < 0 ? 'var(--danger-color)' : 'var(--success-color)';
+    }
+
+    document.querySelectorAll('form[data-ajax-pay="1"]').forEach(form => {
+        form.setAttribute('data-client-balance', String(balanceAfter));
+    });
+}
+
+async function handleAddFundYes() {
     if (!currentAddFundParams) return;
 
-    var addAmount = document.getElementById('modalAddAmount').value;
-    if (addAmount && Number(addAmount) > 0) {
-        var currentUrl = window.location.href;
-        window.location.href =
-            '/clients/' + currentAddFundParams.clientId +
-            '/update_balance?amount=' + addAmount +
-            '&type=credit&next=' + encodeURIComponent(currentUrl) +
-            '&_t=' + new Date().getTime();
+    const addAmountEl = document.getElementById('modalAddAmount');
+    const walletSel = document.getElementById('modalAddFundWallet');
+    const addAmount = parseFloat(addAmountEl && addAmountEl.value ? addAmountEl.value : '0') || 0;
+    const walletKey = walletSel ? walletSel.value : '';
+
+    if (!(addAmount > 0)) {
+        alert('Enter Amount to Add');
+        return;
     }
-    closeAddFundModal();
+    if (!walletKey) {
+        alert('Select a Bank / Naira Account');
+        return;
+    }
+
+    const creditBtn = document.querySelector('#addFundModal .btn-modal-primary');
+    if (creditBtn) creditBtn.disabled = true;
+    try {
+        const res = await fetch(`/clients/${currentAddFundParams.clientId}/credit_wallet`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ amount: addAmount, wallet_key: walletKey })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to credit');
+
+        updateClientBalanceAfterFunding(Number(data.client_balance_after || 0));
+
+        try {
+            const ch = new BroadcastChannel('bdj-ledger');
+            ch.postMessage({ type: 'wallet_snapshot', payload: data });
+            ch.close();
+        } catch (e) {
+        }
+
+        localStorage.removeItem('suppressAddFundPopup');
+        closeAddFundModal();
+    } catch (e) {
+        alert(e && e.message ? e.message : 'Failed to credit');
+    } finally {
+        if (creditBtn) creditBtn.disabled = false;
+    }
 }
 
 function handleAddFundNo() {
@@ -720,6 +781,11 @@ function handleAddFundNo() {
 
 function closeAddFundModal() {
     document.getElementById('addFundModal').classList.remove('show');
+    const walletSel = document.getElementById('modalAddFundWallet');
+    if (walletSel) {
+        walletSel.value = '';
+        if (walletSel.tomselect) walletSel.tomselect.setValue('', true);
+    }
     currentAddFundParams = null;
 }
 
