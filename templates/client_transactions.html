@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿{% extends "base.html" %}
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿{% extends "base.html" %}
 
 {% block title %}Transactions for {{ client.client_name }} - Ledger System{% endblock %}
 
@@ -85,7 +85,6 @@
                 <th>Rate</th>
                 <th>Add</th>
                 <th class="text-right">Amount</th>
-                <th class="text-right">Amount N</th>
                 <th style="white-space: nowrap;">Date</th>
                 <th>Actions</th>
             </tr>
@@ -140,8 +139,10 @@
                 <td>{{ (transaction.country_price or 0)|comma2 }}</td>
                 <td class="text-right">{{ (transaction.rate or 0)|comma2 }}</td>
                 <td class="text-right">{{ (transaction.addition or 0)|comma2 }}</td>
-                <td class="text-right">$ {{ (transaction.amount or 0)|comma2 }}</td>
-                <td class="text-right"><strong>{{ (transaction.amount_n or 0)|comma2 }}</strong></td>
+                <td class="text-right">
+                    <div>$ {{ (transaction.amount or 0)|comma2 }}</div>
+                    <div><strong>₦ {{ (transaction.amount_n or 0)|comma2 }}</strong></div>
+                </td>
                 <td style="white-space: nowrap;">{{ transaction.transaction_date|date_format }}</td>
 
                 <td class="action-cell">
@@ -519,7 +520,7 @@ function upsertTransactionInClientPage(tx, mode) {
         r.classList.toggle('row-fee-pending', !isPaid && !feeExecuted);
         const tds = r.querySelectorAll('td');
         const offset = __isAdmin ? 1 : 0;
-        if (tds.length >= 12 + offset) {
+        if (tds.length >= 11 + offset) {
             tds[1 + offset].innerHTML = tx.applicant_name ? `<a href="/transactions?applicant_name=${encodeURIComponent(tx.applicant_name)}" style="color: inherit;">${tx.applicant_name}</a>` : '';
             tds[2 + offset].innerHTML = `<a href="#" onclick="openEditTransactionPopup(${txId}); return false;" style="color: inherit;">${String(tx.app_id || '')}</a>`;
             tds[3 + offset].innerHTML = tx.email_link ? `<a href="${tx.email_link}" target="_blank" class="btn btn-primary btn-sm" title="Open Link" style="padding: 2px 6px; font-size: 12px;"><i class="fas fa-link"></i></a>` : '';
@@ -527,9 +528,8 @@ function upsertTransactionInClientPage(tx, mode) {
             tds[5 + offset].textContent = fmt2(tx.country_price || 0);
             tds[6 + offset].textContent = fmt2(tx.rate || 0);
             tds[7 + offset].textContent = fmt2(tx.addition || 0);
-            tds[8 + offset].textContent = '$ ' + fmt2(tx.amount || 0);
-            tds[9 + offset].innerHTML = '<strong>' + fmt2(tx.amount_n || 0) + '</strong>';
-            tds[10 + offset].textContent = fmtDate(tx.transaction_date);
+            tds[8 + offset].innerHTML = `<div>$ ${fmt2(tx.amount || 0)}</div><div><strong>₦ ${fmt2(tx.amount_n || 0)}</strong></div>`;
+            tds[9 + offset].textContent = fmtDate(tx.transaction_date);
         }
 
         const feeBtn = r.querySelector('button.btn-fee');
@@ -594,8 +594,7 @@ function upsertTransactionInClientPage(tx, mode) {
             <td>${fmt2(tx.country_price || 0)}</td>
             <td class="text-right">${fmt2(tx.rate || 0)}</td>
             <td class="text-right">${fmt2(tx.addition || 0)}</td>
-            <td class="text-right">$ ${fmt2(tx.amount || 0)}</td>
-            <td class="text-right"><strong>${fmt2(tx.amount_n || 0)}</strong></td>
+            <td class="text-right"><div>$ ${fmt2(tx.amount || 0)}</div><div><strong>₦ ${fmt2(tx.amount_n || 0)}</strong></div></td>
             <td style="white-space: nowrap;">${fmtDate(tx.transaction_date)}</td>
             <td class="action-cell">
                 <a href="#" onclick="openEditTransactionPopup(${txId}); return false;" class="btn btn-secondary btn-sm" title="Edit"><i class="fas fa-edit"></i></a>

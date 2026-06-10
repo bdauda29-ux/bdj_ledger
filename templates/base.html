@@ -520,7 +520,7 @@
                             throw new Error(data.error || 'Failed to execute fee');
                         }
                         hide();
-                        window.location.replace(data.next_url || window.location.href);
+                        window.dispatchEvent(new CustomEvent('fee-executed', { detail: data }));
                     } catch (err) {
                         alert(err && err.message ? err.message : 'Failed to execute fee');
                     } finally {
