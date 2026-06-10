@@ -36,7 +36,7 @@
         </thead>
         <tbody>
             {% for client in clients %}
-            <tr class="client-row" data-search="{{ (client.client_name or '') ~ ' ' ~ (client.phone_number or '') }}">
+            <tr class="client-row" data-client-id="{{ client.id }}" data-search="{{ (client.client_name or '') ~ ' ' ~ (client.phone_number or '') }}">
                 <td class="s-no">{{ loop.index }}</td>
                 <td>{{ client.client_name }}</td>
                 <td>
@@ -53,7 +53,7 @@
                 </td>
                 <td class="action-cell">
                     <a href="{{ url_for('edit_client', client_id=client.id) }}" class="btn btn-secondary btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
-                    <button class="btn btn-success btn-sm" onclick="updateBalance('{{ client.id }}', 'credit')" title="Credit"><i class="fas fa-plus-circle"></i></button>
+                    <button class="btn btn-success btn-sm" onclick="openClientCreditModal('{{ client.id }}', {{ client.client_name|tojson }})" title="Credit"><i class="fas fa-plus-circle"></i></button>
                     <button class="btn btn-warning btn-sm" onclick="updateBalance('{{ client.id }}', 'debit')" title="Debit"><i class="fas fa-minus-circle"></i></button>
                     <button class="btn btn-info btn-sm" onclick="showHistory('{{ client.id }}')" title="History"><i class="fas fa-history"></i></button>
                     <a href="{{ url_for('client_transactions', client_id=client.id) }}" class="btn btn-primary btn-sm" title="Transactions"><i class="fas fa-list"></i></a>
@@ -73,7 +73,7 @@
 <!-- Mobile Card View -->
 <div class="mobile-card-view">
     {% for client in clients %}
-    <div class="mobile-card client-card" data-search="{{ (client.client_name or '') ~ ' ' ~ (client.phone_number or '') }}">
+    <div class="mobile-card client-card" data-client-id="{{ client.id }}" data-search="{{ (client.client_name or '') ~ ' ' ~ (client.phone_number or '') }}">
         <div class="mobile-card-header">
             <div><span class="card-s-no">#{{ loop.index }}</span> - {{ client.client_name }}</div>
         </div>
@@ -101,7 +101,7 @@
 
         <div class="mobile-card-actions">
             <a href="{{ url_for('edit_client', client_id=client.id) }}" class="btn btn-secondary btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
-            <button class="btn btn-success btn-sm" onclick="updateBalance('{{ client.id }}', 'credit')" title="Credit"><i class="fas fa-plus"></i></button>
+            <button class="btn btn-success btn-sm" onclick="openClientCreditModal('{{ client.id }}', {{ client.client_name|tojson }})" title="Credit"><i class="fas fa-plus"></i></button>
             <button class="btn btn-warning btn-sm" onclick="updateBalance('{{ client.id }}', 'debit')" title="Debit"><i class="fas fa-minus-circle"></i></button>
             <button class="btn btn-info btn-sm" onclick="showHistory('{{ client.id }}')" title="History"><i class="fas fa-history"></i></button>
             <a href="{{ url_for('client_transactions', client_id=client.id) }}" class="btn btn-primary btn-sm" title="Transactions"><i class="fas fa-list"></i></a>
@@ -196,12 +196,151 @@
     </div>
 </div>
 
+<div id="clientCreditModal" class="modal-overlay">
+    <div class="custom-modal" style="max-width: 520px; width: 95%;">
+        <div class="modal-header">
+            <h3 id="clientCreditModalTitle">Credit Client</h3>
+            <button type="button" id="clientCreditModalClose" class="close-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="clientCreditAmount">Amount Credited</label>
+                <input type="number" step="0.01" id="clientCreditAmount" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="clientCreditWallet">Bank / Naira Account</label>
+                <select id="clientCreditWallet">
+                    <option value="">Select account</option>
+                    {% for a in naira_accounts %}
+                    <option value="{{ a.key }}">{{ a.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div id="clientCreditPreview" style="display:none; margin-top: 10px; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: #f8fafc;">
+                <div style="display:flex; justify-content:space-between;"><span>Amount</span><strong id="clientCreditPreviewAmount"></strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>Account</span><strong id="clientCreditPreviewAccount"></strong></div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-modal-secondary" id="clientCreditCancelBtn">Cancel</button>
+            <button type="button" class="btn btn-modal-primary" id="clientCreditSubmitBtn">Submit</button>
+        </div>
+    </div>
+</div>
+
 <script>
-    function updateBalance(clientId, type) {
-        const amount = prompt(`Enter amount to ${type}:`);
-        if (amount) {
-            window.location.href = `/clients/${clientId}/update_balance?amount=${amount}&type=${type}`;
+    let clientCreditState = { clientId: null, clientName: '' };
+
+    function openClientCreditModal(clientId, clientName) {
+        const modal = document.getElementById('clientCreditModal');
+        const title = document.getElementById('clientCreditModalTitle');
+        const amt = document.getElementById('clientCreditAmount');
+        const walletSel = document.getElementById('clientCreditWallet');
+        const preview = document.getElementById('clientCreditPreview');
+        if (!modal || !amt || !walletSel) return;
+
+        clientCreditState = { clientId: String(clientId || ''), clientName: String(clientName || '') };
+        if (title) title.textContent = clientCreditState.clientName ? `Credit Client: ${clientCreditState.clientName}` : 'Credit Client';
+        amt.value = '';
+        walletSel.value = '';
+        if (walletSel.tomselect) walletSel.tomselect.setValue('', true);
+        if (preview) preview.style.display = 'none';
+        modal.classList.add('show');
+    }
+
+    function closeClientCreditModal() {
+        const modal = document.getElementById('clientCreditModal');
+        if (modal) modal.classList.remove('show');
+        clientCreditState = { clientId: null, clientName: '' };
+    }
+
+    function updateClientCreditPreview() {
+        const amt = document.getElementById('clientCreditAmount');
+        const walletSel = document.getElementById('clientCreditWallet');
+        const preview = document.getElementById('clientCreditPreview');
+        const pAmt = document.getElementById('clientCreditPreviewAmount');
+        const pAcc = document.getElementById('clientCreditPreviewAccount');
+        if (!amt || !walletSel || !preview || !pAmt || !pAcc) return;
+        const amount = parseFloat(amt.value || '0') || 0;
+        const walletKey = walletSel.value;
+        if (amount > 0 && walletKey) {
+            const selectedText = walletSel.options[walletSel.selectedIndex] ? walletSel.options[walletSel.selectedIndex].textContent : walletKey;
+            pAmt.textContent = amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            pAcc.textContent = selectedText;
+            preview.style.display = 'block';
+        } else {
+            preview.style.display = 'none';
         }
+    }
+
+    async function submitClientCredit() {
+        const amt = document.getElementById('clientCreditAmount');
+        const walletSel = document.getElementById('clientCreditWallet');
+        if (!amt || !walletSel || !clientCreditState.clientId) return;
+
+        const amount = parseFloat(amt.value || '0') || 0;
+        const walletKey = walletSel.value;
+        if (!(amount > 0)) {
+            alert('Enter Amount Credited');
+            return;
+        }
+        if (!walletKey) {
+            alert('Select a Bank / Naira Account');
+            return;
+        }
+
+        const btn = document.getElementById('clientCreditSubmitBtn');
+        if (btn) btn.disabled = true;
+        try {
+            const res = await fetch(`/clients/${clientCreditState.clientId}/credit_wallet`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ amount: amount, wallet_key: walletKey })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to credit');
+
+            const row = document.querySelector(`.client-row[data-client-id="${clientCreditState.clientId}"]`);
+            if (row) {
+                const balStrong = row.querySelector('td:nth-child(4) strong');
+                if (balStrong) {
+                    const v = Number(data.client_balance_after || 0);
+                    balStrong.textContent = v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    balStrong.style.color = v < 0 ? 'var(--danger-color)' : 'var(--success-color)';
+                }
+            }
+            const card = document.querySelector(`.client-card[data-client-id="${clientCreditState.clientId}"]`);
+            if (card) {
+                const balStrong = card.querySelector('.mobile-half-col:nth-child(2) strong');
+                if (balStrong) {
+                    const v = Number(data.client_balance_after || 0);
+                    balStrong.textContent = v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    balStrong.style.color = v < 0 ? 'var(--danger-color)' : 'var(--success-color)';
+                }
+            }
+
+            try {
+                const ch = new BroadcastChannel('bdj-ledger');
+                ch.postMessage({ type: 'wallet_snapshot', payload: data });
+                ch.close();
+            } catch (e) {
+            }
+
+            closeClientCreditModal();
+        } catch (e) {
+            alert(e && e.message ? e.message : 'Failed to credit');
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    function updateBalance(clientId, type) {
+        if (type === 'credit') {
+            openClientCreditModal(clientId, '');
+            return;
+        }
+        const amount = prompt(`Enter amount to ${type}:`);
+        if (amount) window.location.href = `/clients/${clientId}/update_balance?amount=${amount}&type=${type}`;
     }
 
     function showHistory(clientId) {
@@ -318,6 +457,22 @@
             });
             filterClients();
         }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const closeBtn = document.getElementById('clientCreditModalClose');
+        const cancelBtn = document.getElementById('clientCreditCancelBtn');
+        const submitBtn = document.getElementById('clientCreditSubmitBtn');
+        const overlay = document.getElementById('clientCreditModal');
+        const amt = document.getElementById('clientCreditAmount');
+        const walletSel = document.getElementById('clientCreditWallet');
+
+        if (closeBtn) closeBtn.addEventListener('click', closeClientCreditModal);
+        if (cancelBtn) cancelBtn.addEventListener('click', closeClientCreditModal);
+        if (overlay) overlay.addEventListener('click', function(e) { if (e.target === overlay) closeClientCreditModal(); });
+        if (submitBtn) submitBtn.addEventListener('click', submitClientCredit);
+        if (amt) amt.addEventListener('input', updateClientCreditPreview);
+        if (walletSel) walletSel.addEventListener('change', updateClientCreditPreview);
     });
 </script>
 {% endblock %}

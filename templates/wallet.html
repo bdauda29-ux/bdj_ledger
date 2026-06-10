@@ -10,32 +10,68 @@
 <div class="form-container">
     <form method="POST" class="form">
         <div class="form-group">
-            <label for="dollars">GTB $</label>
+            <label for="dollars" style="display:flex; align-items:center; justify-content:space-between; gap: 12px;">
+                <span>GTB $</span>
+                <span style="display:flex; gap: 8px;">
+                    <button type="button" class="btn btn-success btn-sm" onclick="openWalletCredit('dollars','GTB $','USD')">Credit</button>
+                    <button type="button" class="btn btn-warning btn-sm" onclick="openWalletAdjust('dollars','GTB $','USD','debit')">Debit</button>
+                </span>
+            </label>
             <input type="number" step="0.01" id="dollars" name="dollars" class="form-control" value="{{ wallet.dollars if wallet else 0 }}" required>
         </div>
 
         <div class="form-group">
-            <label for="providus_dollars">Providus $</label>
+            <label for="providus_dollars" style="display:flex; align-items:center; justify-content:space-between; gap: 12px;">
+                <span>Providus $</span>
+                <span style="display:flex; gap: 8px;">
+                    <button type="button" class="btn btn-success btn-sm" onclick="openWalletCredit('providus_dollars','Providus $','USD')">Credit</button>
+                    <button type="button" class="btn btn-warning btn-sm" onclick="openWalletAdjust('providus_dollars','Providus $','USD','debit')">Debit</button>
+                </span>
+            </label>
             <input type="number" step="0.01" id="providus_dollars" name="providus_dollars" class="form-control" value="{{ wallet.providus_dollars if wallet else 0 }}">
         </div>
 
         <div class="form-group">
-            <label for="bybit_dollars">Bybit $</label>
+            <label for="bybit_dollars" style="display:flex; align-items:center; justify-content:space-between; gap: 12px;">
+                <span>Bybit $</span>
+                <span style="display:flex; gap: 8px;">
+                    <button type="button" class="btn btn-success btn-sm" onclick="openWalletCredit('bybit_dollars','Bybit $','USD')">Credit</button>
+                    <button type="button" class="btn btn-warning btn-sm" onclick="openWalletAdjust('bybit_dollars','Bybit $','USD','debit')">Debit</button>
+                </span>
+            </label>
             <input type="number" step="0.01" id="bybit_dollars" name="bybit_dollars" class="form-control" value="{{ wallet.bybit_dollars if wallet else 0 }}">
         </div>
 
         <div class="form-group">
-            <label for="naira">GTB N</label>
+            <label for="naira" style="display:flex; align-items:center; justify-content:space-between; gap: 12px;">
+                <span>GTB N</span>
+                <span style="display:flex; gap: 8px;">
+                    <button type="button" class="btn btn-success btn-sm" onclick="openWalletAdjust('naira','GTB N','NGN','credit')">Credit</button>
+                    <button type="button" class="btn btn-warning btn-sm" onclick="openWalletAdjust('naira','GTB N','NGN','debit')">Debit</button>
+                </span>
+            </label>
             <input type="number" step="0.01" id="naira" name="naira" class="form-control" value="{{ wallet.naira if wallet else 0 }}" required>
         </div>
 
         <div class="form-group">
-            <label for="naira_1">Access N</label>
+            <label for="naira_1" style="display:flex; align-items:center; justify-content:space-between; gap: 12px;">
+                <span>Access N</span>
+                <span style="display:flex; gap: 8px;">
+                    <button type="button" class="btn btn-success btn-sm" onclick="openWalletAdjust('naira_1','Access N','NGN','credit')">Credit</button>
+                    <button type="button" class="btn btn-warning btn-sm" onclick="openWalletAdjust('naira_1','Access N','NGN','debit')">Debit</button>
+                </span>
+            </label>
             <input type="number" step="0.01" id="naira_1" name="naira_1" class="form-control" value="{{ wallet.naira_1 if wallet else 0 }}">
         </div>
 
         <div class="form-group">
-            <label for="taj_naira">Taj N</label>
+            <label for="taj_naira" style="display:flex; align-items:center; justify-content:space-between; gap: 12px;">
+                <span>Taj N</span>
+                <span style="display:flex; gap: 8px;">
+                    <button type="button" class="btn btn-success btn-sm" onclick="openWalletAdjust('taj_naira','Taj N','NGN','credit')">Credit</button>
+                    <button type="button" class="btn btn-warning btn-sm" onclick="openWalletAdjust('taj_naira','Taj N','NGN','debit')">Debit</button>
+                </span>
+            </label>
             <input type="number" step="0.01" id="taj_naira" name="taj_naira" class="form-control" value="{{ wallet.taj_naira if wallet else 0 }}">
         </div>
 
@@ -54,4 +90,428 @@
         </div>
     </form>
 </div>
+
+<div id="walletAdjustModal" class="modal-overlay">
+    <div class="custom-modal" style="max-width: 560px; width: 95%;">
+        <div class="modal-header">
+            <h3 id="walletAdjustTitle">Adjust Wallet</h3>
+            <button type="button" id="walletAdjustClose" class="close-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="walletAdjustAmount">Amount</label>
+                <input type="number" step="0.01" id="walletAdjustAmount" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="walletAdjustMedium">Medium</label>
+                <select id="walletAdjustMedium">
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Cash">Cash</option>
+                    <option value="POS">POS</option>
+                    <option value="Crypto">Crypto</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="walletAdjustDescription">Description</label>
+                <input type="text" id="walletAdjustDescription" class="form-control">
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-modal-secondary" id="walletAdjustCancel">Cancel</button>
+            <button type="button" class="btn btn-modal-primary" id="walletAdjustSubmit">Submit</button>
+        </div>
+    </div>
+</div>
+
+<div id="walletConversionModal" class="modal-overlay">
+    <div class="custom-modal" style="max-width: 640px; width: 95%;">
+        <div class="modal-header">
+            <h3 id="walletConversionTitle">Wallet Conversion / Credit Funding</h3>
+            <button type="button" id="walletConversionClose" class="close-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="conversionCreditAmount">Credit Amount</label>
+                <input type="number" step="0.01" id="conversionCreditAmount" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="conversionRate">Rate</label>
+                <input type="number" step="0.01" id="conversionRate" class="form-control" value="{{ wallet.rate if wallet else 0 }}">
+            </div>
+            <div class="form-group">
+                <label>Required Naira Debit</label>
+                <input type="text" id="conversionRequiredDebit" class="readonly-field" readonly>
+            </div>
+            <div class="form-group">
+                <label for="conversionMedium">Medium</label>
+                <select id="conversionMedium">
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Cash">Cash</option>
+                    <option value="POS">POS</option>
+                    <option value="Crypto">Crypto</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="form-group" id="conversionNairaWalletGroup">
+                <label for="conversionNairaWallet">Naira Wallet to Debit</label>
+                <select id="conversionNairaWallet">
+                    <option value="">Select wallet</option>
+                </select>
+                <small id="conversionNairaWalletHelp" style="display:block; margin-top: 6px; color: var(--text-secondary);"></small>
+            </div>
+            <div id="conversionPreview" style="display:none; margin-top: 10px; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: #f8fafc;">
+                <div style="display:flex; justify-content:space-between;"><span>Credit Amount</span><strong id="previewCredit"></strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>Rate</span><strong id="previewRate"></strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>Naira Debit</span><strong id="previewDebit"></strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>Wallet</span><strong id="previewWallet"></strong></div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-modal-secondary" id="walletConversionCancel">Cancel</button>
+            <button type="button" class="btn btn-modal-primary" id="walletConversionSubmit">Submit</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let walletAdjustState = { walletKey: '', label: '', currency: '', type: 'credit' };
+    let walletConversionState = { usdWalletKey: '', label: '' };
+    let conversionFetchSeq = 0;
+
+    function openWalletAdjust(walletKey, label, currency, type) {
+        walletAdjustState = { walletKey: walletKey, label: label, currency: currency, type: type };
+        const modal = document.getElementById('walletAdjustModal');
+        const title = document.getElementById('walletAdjustTitle');
+        const amt = document.getElementById('walletAdjustAmount');
+        const desc = document.getElementById('walletAdjustDescription');
+        if (title) title.textContent = `${type === 'credit' ? 'Credit' : 'Debit'} ${label}`;
+        if (amt) amt.value = '';
+        if (desc) desc.value = '';
+        if (modal) modal.classList.add('show');
+    }
+
+    function closeWalletAdjust() {
+        const modal = document.getElementById('walletAdjustModal');
+        if (modal) modal.classList.remove('show');
+    }
+
+    function openWalletCredit(walletKey, label, currency) {
+        if (currency === 'USD') {
+            openWalletConversion(walletKey, label);
+            return;
+        }
+        openWalletAdjust(walletKey, label, currency, 'credit');
+    }
+
+    function openWalletConversion(usdWalletKey, label) {
+        walletConversionState = { usdWalletKey: usdWalletKey, label: label };
+        const modal = document.getElementById('walletConversionModal');
+        const title = document.getElementById('walletConversionTitle');
+        const amt = document.getElementById('conversionCreditAmount');
+        const rate = document.getElementById('conversionRate');
+        const required = document.getElementById('conversionRequiredDebit');
+        const nairaSel = document.getElementById('conversionNairaWallet');
+        const help = document.getElementById('conversionNairaWalletHelp');
+        const preview = document.getElementById('conversionPreview');
+        if (title) title.textContent = `Wallet Conversion / Credit Funding: ${label}`;
+        if (amt) amt.value = '';
+        if (required) required.value = '';
+        if (nairaSel) {
+            nairaSel.innerHTML = '<option value=\"\">Select wallet</option>';
+            if (nairaSel.tomselect) {
+                nairaSel.tomselect.clear(true);
+                nairaSel.tomselect.clearOptions();
+                nairaSel.tomselect.addOption({ value: '', text: 'Select wallet' });
+                nairaSel.tomselect.refreshOptions(false);
+            }
+        }
+        if (help) help.textContent = '';
+        if (preview) preview.style.display = 'none';
+        if (modal) modal.classList.add('show');
+        updateConversionUI();
+    }
+
+    function closeWalletConversion() {
+        const modal = document.getElementById('walletConversionModal');
+        if (modal) modal.classList.remove('show');
+    }
+
+    function parseNum(v) {
+        const n = typeof v === 'number' ? v : parseFloat(String(v || '').replace(/,/g, ''));
+        return Number.isFinite(n) ? n : 0;
+    }
+
+    function fmt2(n) {
+        const v = parseNum(n);
+        return v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    async function refreshEligibleNairaWallets(requiredDebit) {
+        const seq = ++conversionFetchSeq;
+        const nairaSel = document.getElementById('conversionNairaWallet');
+        const help = document.getElementById('conversionNairaWalletHelp');
+        if (!nairaSel) return;
+        if (help) help.textContent = '';
+
+        try {
+            const res = await fetch(`/wallet/eligible_naira?amount=${encodeURIComponent(String(requiredDebit))}`, { headers: { 'Accept': 'application/json' } });
+            const data = await res.json();
+            if (seq !== conversionFetchSeq) return;
+            if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to load wallets');
+
+            const wallets = Array.isArray(data.wallets) ? data.wallets : [];
+            nairaSel.innerHTML = '<option value=\"\">Select wallet</option>';
+            wallets.forEach(w => {
+                const opt = document.createElement('option');
+                opt.value = w.key;
+                opt.textContent = `${w.label} (Bal: ${fmt2(w.balance)})`;
+                nairaSel.appendChild(opt);
+            });
+
+            if (nairaSel.tomselect) {
+                nairaSel.tomselect.clearOptions();
+                nairaSel.tomselect.addOption({ value: '', text: 'Select wallet' });
+                wallets.forEach(w => nairaSel.tomselect.addOption({ value: w.key, text: `${w.label} (Bal: ${fmt2(w.balance)})` }));
+                nairaSel.tomselect.refreshOptions(false);
+                nairaSel.tomselect.setValue('', true);
+            }
+
+            if (help) {
+                help.textContent = wallets.length ? '' : 'No Naira wallet has sufficient balance for this debit.';
+            }
+        } catch (e) {
+            if (seq !== conversionFetchSeq) return;
+            if (help) help.textContent = e && e.message ? e.message : 'Failed to load wallets';
+        }
+    }
+
+    function updateConversionUI() {
+        const amt = document.getElementById('conversionCreditAmount');
+        const rate = document.getElementById('conversionRate');
+        const mediumSel = document.getElementById('conversionMedium');
+        const req = document.getElementById('conversionRequiredDebit');
+        const group = document.getElementById('conversionNairaWalletGroup');
+        const preview = document.getElementById('conversionPreview');
+
+        const creditAmount = parseNum(amt ? amt.value : 0);
+        const rateVal = parseNum(rate ? rate.value : 0);
+        const medium = mediumSel ? mediumSel.value : '';
+        const requiredDebit = creditAmount > 0 && rateVal > 0 ? (creditAmount * rateVal) : 0;
+        if (req) req.value = requiredDebit ? fmt2(requiredDebit) : '';
+
+        const showWallet = medium && medium.toLowerCase() !== 'other';
+        if (group) group.style.display = showWallet ? '' : 'none';
+
+        if (showWallet && requiredDebit > 0) {
+            refreshEligibleNairaWallets(requiredDebit);
+        } else {
+            conversionFetchSeq++;
+        }
+
+        if (preview) preview.style.display = 'none';
+    }
+
+    function updateConversionPreview() {
+        const amt = document.getElementById('conversionCreditAmount');
+        const rate = document.getElementById('conversionRate');
+        const req = document.getElementById('conversionRequiredDebit');
+        const mediumSel = document.getElementById('conversionMedium');
+        const nairaSel = document.getElementById('conversionNairaWallet');
+        const preview = document.getElementById('conversionPreview');
+        const pCredit = document.getElementById('previewCredit');
+        const pRate = document.getElementById('previewRate');
+        const pDebit = document.getElementById('previewDebit');
+        const pWallet = document.getElementById('previewWallet');
+        if (!preview || !pCredit || !pRate || !pDebit || !pWallet) return;
+
+        const creditAmount = parseNum(amt ? amt.value : 0);
+        const rateVal = parseNum(rate ? rate.value : 0);
+        const debitText = req ? req.value : '';
+        const medium = mediumSel ? mediumSel.value : '';
+        const walletKey = nairaSel ? nairaSel.value : '';
+
+        const showWallet = medium && medium.toLowerCase() !== 'other';
+        if (!(creditAmount > 0 && rateVal > 0 && medium)) {
+            preview.style.display = 'none';
+            return;
+        }
+        if (showWallet && !walletKey) {
+            preview.style.display = 'none';
+            return;
+        }
+
+        pCredit.textContent = fmt2(creditAmount);
+        pRate.textContent = fmt2(rateVal);
+        pDebit.textContent = debitText || fmt2(creditAmount * rateVal);
+        pWallet.textContent = showWallet ? (nairaSel.options[nairaSel.selectedIndex] ? nairaSel.options[nairaSel.selectedIndex].textContent : walletKey) : 'Other';
+        preview.style.display = 'block';
+    }
+
+    async function submitWalletAdjust() {
+        const amt = document.getElementById('walletAdjustAmount');
+        const med = document.getElementById('walletAdjustMedium');
+        const desc = document.getElementById('walletAdjustDescription');
+        const btn = document.getElementById('walletAdjustSubmit');
+        const amount = parseNum(amt ? amt.value : 0);
+        const medium = med ? med.value : '';
+        const description = desc ? desc.value : '';
+        if (!(amount > 0)) {
+            alert('Enter amount');
+            return;
+        }
+        if (!medium) {
+            alert('Select medium');
+            return;
+        }
+        if (btn) btn.disabled = true;
+        try {
+            const res = await fetch('/wallet/adjust', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ wallet_key: walletAdjustState.walletKey, type: walletAdjustState.type, amount: amount, medium: medium, description: description })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to update wallet');
+            const input = document.getElementById(walletAdjustState.walletKey);
+            if (input) input.value = String(data.wallet && data.wallet[walletAdjustState.walletKey] !== undefined ? data.wallet[walletAdjustState.walletKey] : input.value);
+            try {
+                const ch = new BroadcastChannel('bdj-ledger');
+                ch.postMessage({ type: 'wallet_snapshot', payload: data });
+                ch.close();
+            } catch (e) {
+            }
+            closeWalletAdjust();
+        } catch (e) {
+            alert(e && e.message ? e.message : 'Failed to update wallet');
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    async function submitWalletConversion() {
+        const amt = document.getElementById('conversionCreditAmount');
+        const rate = document.getElementById('conversionRate');
+        const mediumSel = document.getElementById('conversionMedium');
+        const nairaSel = document.getElementById('conversionNairaWallet');
+        const btn = document.getElementById('walletConversionSubmit');
+
+        const creditAmount = parseNum(amt ? amt.value : 0);
+        const rateVal = parseNum(rate ? rate.value : 0);
+        const medium = mediumSel ? mediumSel.value : '';
+        const requiredDebit = creditAmount * rateVal;
+        const showWallet = medium && medium.toLowerCase() !== 'other';
+        const nairaWalletKey = showWallet ? (nairaSel ? nairaSel.value : '') : '';
+
+        if (!(creditAmount > 0)) {
+            alert('Enter Credit Amount');
+            return;
+        }
+        if (!(rateVal > 0)) {
+            alert('Enter Rate');
+            return;
+        }
+        if (!medium) {
+            alert('Select Medium');
+            return;
+        }
+        if (showWallet && !nairaWalletKey) {
+            alert('Select a Naira wallet');
+            return;
+        }
+
+        if (btn) btn.disabled = true;
+        try {
+            const res = await fetch('/wallet/conversion_credit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ usd_wallet_key: walletConversionState.usdWalletKey, credit_amount: creditAmount, rate: rateVal, medium: medium, naira_wallet_key: nairaWalletKey, required_naira_debit: requiredDebit })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to process conversion');
+            const usdInput = document.getElementById(walletConversionState.usdWalletKey);
+            if (usdInput && data.wallet && data.wallet[walletConversionState.usdWalletKey] !== undefined) {
+                usdInput.value = String(data.wallet[walletConversionState.usdWalletKey]);
+            }
+            if (showWallet && nairaWalletKey) {
+                const ngnInput = document.getElementById(nairaWalletKey);
+                if (ngnInput && data.wallet && data.wallet[nairaWalletKey] !== undefined) ngnInput.value = String(data.wallet[nairaWalletKey]);
+            }
+            try {
+                const ch = new BroadcastChannel('bdj-ledger');
+                ch.postMessage({ type: 'wallet_snapshot', payload: data });
+                ch.close();
+            } catch (e) {
+            }
+            closeWalletConversion();
+        } catch (e) {
+            alert(e && e.message ? e.message : 'Failed to process conversion');
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const closeAdj = document.getElementById('walletAdjustClose');
+        const cancelAdj = document.getElementById('walletAdjustCancel');
+        const submitAdj = document.getElementById('walletAdjustSubmit');
+        const adjOverlay = document.getElementById('walletAdjustModal');
+        const closeConv = document.getElementById('walletConversionClose');
+        const cancelConv = document.getElementById('walletConversionCancel');
+        const submitConv = document.getElementById('walletConversionSubmit');
+        const convOverlay = document.getElementById('walletConversionModal');
+
+        if (closeAdj) closeAdj.addEventListener('click', closeWalletAdjust);
+        if (cancelAdj) cancelAdj.addEventListener('click', closeWalletAdjust);
+        if (adjOverlay) adjOverlay.addEventListener('click', function(e) { if (e.target === adjOverlay) closeWalletAdjust(); });
+        if (submitAdj) submitAdj.addEventListener('click', submitWalletAdjust);
+
+        if (closeConv) closeConv.addEventListener('click', closeWalletConversion);
+        if (cancelConv) cancelConv.addEventListener('click', closeWalletConversion);
+        if (convOverlay) convOverlay.addEventListener('click', function(e) { if (e.target === convOverlay) closeWalletConversion(); });
+        if (submitConv) submitConv.addEventListener('click', submitWalletConversion);
+
+        const cAmt = document.getElementById('conversionCreditAmount');
+        const cRate = document.getElementById('conversionRate');
+        const cMed = document.getElementById('conversionMedium');
+        const cNgn = document.getElementById('conversionNairaWallet');
+        if (cAmt) cAmt.addEventListener('input', function() { updateConversionUI(); updateConversionPreview(); });
+        if (cRate) cRate.addEventListener('input', function() { updateConversionUI(); updateConversionPreview(); });
+        if (cMed) cMed.addEventListener('change', function() { updateConversionUI(); updateConversionPreview(); });
+        if (cNgn) cNgn.addEventListener('change', updateConversionPreview);
+
+        const mediumSel = document.getElementById('conversionMedium');
+        const adjustMedium = document.getElementById('walletAdjustMedium');
+        if (mediumSel && !mediumSel.tomselect) {
+            new TomSelect(mediumSel, { create: false, sortField: null });
+        } else if (mediumSel && mediumSel.tomselect) {
+            mediumSel.tomselect.settings.sortField = null;
+        }
+        if (adjustMedium && !adjustMedium.tomselect) {
+            new TomSelect(adjustMedium, { create: false, sortField: null });
+        } else if (adjustMedium && adjustMedium.tomselect) {
+            adjustMedium.tomselect.settings.sortField = null;
+        }
+        if (cNgn && !cNgn.tomselect) {
+            new TomSelect(cNgn, { create: false, sortField: null });
+        } else if (cNgn && cNgn.tomselect) {
+            cNgn.tomselect.settings.sortField = null;
+        }
+
+        try {
+            const ch = new BroadcastChannel('bdj-ledger');
+            ch.onmessage = function(ev) {
+                const msg = ev && ev.data ? ev.data : {};
+                if (msg.type !== 'wallet_snapshot') return;
+                const payload = msg.payload || {};
+                const w = payload.wallet || {};
+                Object.keys(w).forEach(k => {
+                    const input = document.getElementById(k);
+                    if (input && typeof w[k] !== 'undefined' && w[k] !== null) input.value = String(w[k]);
+                });
+            };
+        } catch (e) {
+        }
+    });
+</script>
 {% endblock %}

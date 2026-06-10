@@ -230,7 +230,7 @@
             <div class="cash-stack-row">
                 <div class="cash-stack-info">
                     <span class="card-title">CASH OF $</span>
-                    <h3 class="card-number">$ {{ (cash_usd or 0)|comma2 }}</h3>
+                    <h3 class="card-number" id="dashboardCashUsd">$ {{ (cash_usd or 0)|comma2 }}</h3>
                 </div>
                 <div class="cash-stack-icon" aria-hidden="true">
                     <i class="fas fa-dollar-sign"></i>
@@ -240,7 +240,7 @@
             <div class="cash-stack-row">
                 <div class="cash-stack-info">
                     <span class="card-title">CASH OF NAIRA</span>
-                    <h3 class="card-number">₦ {{ (cash_naira or 0)|comma2 }}</h3>
+                    <h3 class="card-number" id="dashboardCashNaira">₦ {{ (cash_naira or 0)|comma2 }}</h3>
                 </div>
                 <div class="cash-stack-icon" aria-hidden="true">
                     <i class="fas fa-coins"></i>

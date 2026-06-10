@@ -203,6 +203,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('select').forEach(function(el) {
                 if (el.id === 'feeModalAccount') return;
+                if (el.id === 'conversionMedium') return;
+                if (el.id === 'conversionNairaWallet') return;
+                if (el.id === 'walletAdjustMedium') return;
                 if (el.tomselect) return;
                 new TomSelect(el, {
                     create: false,
@@ -323,6 +326,29 @@
                 localStorage.setItem('sidebar-collapsed', isCollapsed);
             });
         });
+    </script>
+    <script>
+        (function() {
+            function fmt2(n) {
+                const v = typeof n === 'number' ? n : parseFloat(String(n || '').replace(/,/g, ''));
+                const safe = Number.isFinite(v) ? v : 0;
+                return safe.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+            try {
+                const ch = new BroadcastChannel('bdj-ledger');
+                ch.onmessage = function(ev) {
+                    const msg = ev && ev.data ? ev.data : {};
+                    if (msg.type !== 'wallet_snapshot') return;
+                    const payload = msg.payload || {};
+                    const totals = payload.totals || {};
+                    const usdEl = document.getElementById('dashboardCashUsd');
+                    const ngnEl = document.getElementById('dashboardCashNaira');
+                    if (usdEl && typeof totals.usd_total !== 'undefined') usdEl.textContent = '$ ' + fmt2(totals.usd_total);
+                    if (ngnEl && typeof totals.ngn_total !== 'undefined') ngnEl.textContent = '₦ ' + fmt2(totals.ngn_total);
+                };
+            } catch (e) {
+            }
+        })();
     </script>
 
     <div class="modal-overlay" id="feeModalOverlay" style="display: none;">

@@ -1593,6 +1593,86 @@ def ensure_wallet_columns(conn):
             except Exception as e:
                 print(f"Failed to add column {col}: {e}", file=sys.stderr)
 
+def ensure_wallet_history_table(conn):
+    try:
+        conn.execute('SELECT 1 FROM wallet_history LIMIT 1')
+        return
+    except Exception:
+        try:
+            if hasattr(conn, 'conn') and hasattr(conn.conn, 'rollback'):
+                conn.conn.rollback()
+        except Exception:
+            pass
+
+    if POSTGRES_URL:
+        conn.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS wallet_history (
+              id SERIAL PRIMARY KEY,
+              wallet_key TEXT NOT NULL,
+              currency TEXT NOT NULL,
+              amount DOUBLE PRECISION NOT NULL,
+              type TEXT NOT NULL,
+              balance_before DOUBLE PRECISION NOT NULL,
+              balance_after DOUBLE PRECISION NOT NULL,
+              medium TEXT,
+              rate DOUBLE PRECISION,
+              related_wallet_key TEXT,
+              related_client_id INTEGER,
+              description TEXT,
+              timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              model_id INTEGER
+            )
+            '''
+        )
+    elif MYSQL_URL:
+        conn.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS wallet_history (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              wallet_key VARCHAR(64) NOT NULL,
+              currency VARCHAR(8) NOT NULL,
+              amount DOUBLE NOT NULL,
+              type VARCHAR(16) NOT NULL,
+              balance_before DOUBLE NOT NULL,
+              balance_after DOUBLE NOT NULL,
+              medium VARCHAR(255),
+              rate DOUBLE,
+              related_wallet_key VARCHAR(64),
+              related_client_id INT,
+              description TEXT,
+              timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              model_id INT
+            )
+            '''
+        )
+    else:
+        conn.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS wallet_history (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              wallet_key TEXT NOT NULL,
+              currency TEXT NOT NULL,
+              amount REAL NOT NULL,
+              type TEXT NOT NULL,
+              balance_before REAL NOT NULL,
+              balance_after REAL NOT NULL,
+              medium TEXT,
+              rate REAL,
+              related_wallet_key TEXT,
+              related_client_id INTEGER,
+              description TEXT,
+              timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              model_id INTEGER
+            )
+            '''
+        )
+    try:
+        if hasattr(conn, 'commit'):
+            conn.commit()
+    except Exception:
+        pass
+
 def ensure_transaction_columns(conn):
     """Ensure transactions table has new columns (runtime migration fix)"""
     new_cols = [
@@ -1674,6 +1754,7 @@ def wallet_view():
     try:
         conn = get_db_connection()
         ensure_wallet_columns(conn)
+        ensure_wallet_history_table(conn)
         mid = current_model_id()
         
         if request.method == 'POST':
@@ -1722,11 +1803,248 @@ def wallet_view():
             return redirect(url_for('wallet_view', message='Wallet updated'))
             
         wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
-        return render_template('wallet.html', wallet=wallet, message=request.args.get('message'))
+        account_defs = [
+            {'key': 'dollars', 'label': 'GTB $', 'currency': 'USD'},
+            {'key': 'providus_dollars', 'label': 'Providus $', 'currency': 'USD'},
+            {'key': 'bybit_dollars', 'label': 'Bybit $', 'currency': 'USD'},
+            {'key': 'naira', 'label': 'GTB N', 'currency': 'NGN'},
+            {'key': 'naira_1', 'label': 'Access N', 'currency': 'NGN'},
+            {'key': 'taj_naira', 'label': 'Taj N', 'currency': 'NGN'},
+        ]
+        naira_accounts = [a for a in account_defs if a['currency'] == 'NGN']
+        usd_accounts = [a for a in account_defs if a['currency'] == 'USD']
+        return render_template(
+            'wallet.html',
+            wallet=wallet,
+            message=request.args.get('message'),
+            account_defs=account_defs,
+            naira_accounts=naira_accounts,
+            usd_accounts=usd_accounts,
+        )
     except Exception as e:
         import traceback
         traceback.print_exc()
         return redirect(url_for('index', error=f"Error accessing wallet: {str(e)}"))
+
+def wallet_snapshot(conn, mid):
+    ensure_wallet_columns(conn)
+    wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+    if not wallet:
+        conn.execute('INSERT INTO wallet (model_id) VALUES (?)', (mid,))
+        wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+    w = dict(wallet) if wallet else {}
+    usd_total = float(w.get('dollars') or 0) + float(w.get('providus_dollars') or 0) + float(w.get('bybit_dollars') or 0)
+    ngn_total = float(w.get('naira') or 0) + float(w.get('naira_1') or 0) + float(w.get('taj_naira') or 0)
+    return {
+        'wallet': {
+            'dollars': float(w.get('dollars') or 0),
+            'providus_dollars': float(w.get('providus_dollars') or 0),
+            'bybit_dollars': float(w.get('bybit_dollars') or 0),
+            'naira': float(w.get('naira') or 0),
+            'naira_1': float(w.get('naira_1') or 0),
+            'taj_naira': float(w.get('taj_naira') or 0),
+            'debt': float(w.get('debt') or 0),
+            'rate': float(w.get('rate') or 0),
+        },
+        'totals': {
+            'usd_total': usd_total,
+            'ngn_total': ngn_total,
+        },
+    }
+
+@app.route('/wallet/eligible_naira', methods=['GET'])
+def wallet_eligible_naira():
+    if not can('is_admin'):
+        return jsonify({'ok': False, 'error': 'Unauthorized'}), 403
+    try:
+        required = float(request.args.get('amount') or 0)
+    except Exception:
+        required = 0.0
+    if required <= 0:
+        return jsonify({'ok': True, 'required': required, 'wallets': []})
+
+    conn = get_db_connection()
+    ensure_wallet_columns(conn)
+    mid = current_model_id()
+    wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+    if not wallet:
+        conn.execute('INSERT INTO wallet (model_id) VALUES (?)', (mid,))
+        wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+    w = dict(wallet) if wallet else {}
+
+    candidates = [
+        {'key': 'naira', 'label': 'GTB N', 'balance': float(w.get('naira') or 0)},
+        {'key': 'naira_1', 'label': 'Access N', 'balance': float(w.get('naira_1') or 0)},
+        {'key': 'taj_naira', 'label': 'Taj N', 'balance': float(w.get('taj_naira') or 0)},
+    ]
+    eligible = [c for c in candidates if c['balance'] >= required]
+    eligible.sort(key=lambda x: x['label'])
+    return jsonify({'ok': True, 'required': required, 'wallets': eligible})
+
+@app.route('/wallet/adjust', methods=['POST'])
+def wallet_adjust():
+    if not can('is_admin'):
+        return jsonify({'ok': False, 'error': 'Unauthorized'}), 403
+
+    data = request.get_json(silent=True) or {}
+    wallet_key = (data.get('wallet_key') or '').strip()
+    change_type = (data.get('type') or '').strip().lower()
+    medium = (data.get('medium') or '').strip()
+    description = (data.get('description') or '').strip()
+
+    try:
+        amount = float(data.get('amount') or 0)
+    except Exception:
+        amount = 0.0
+
+    if wallet_key not in {'dollars', 'providus_dollars', 'bybit_dollars', 'naira', 'naira_1', 'taj_naira'}:
+        return jsonify({'ok': False, 'error': 'Invalid wallet account'}), 400
+    if change_type not in {'credit', 'debit'}:
+        return jsonify({'ok': False, 'error': 'Invalid type'}), 400
+    if amount <= 0:
+        return jsonify({'ok': False, 'error': 'Invalid amount'}), 400
+
+    currency = 'USD' if wallet_key in {'dollars', 'providus_dollars', 'bybit_dollars'} else 'NGN'
+    mid = current_model_id()
+    conn = get_db_connection()
+    ensure_wallet_columns(conn)
+    ensure_wallet_history_table(conn)
+    wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+    if not wallet:
+        conn.execute('INSERT INTO wallet (model_id) VALUES (?)', (mid,))
+        wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+    w = dict(wallet) if wallet else {}
+    before = float(w.get(wallet_key) or 0)
+    after = before + amount if change_type == 'credit' else before - amount
+    if change_type == 'debit' and after < 0:
+        return jsonify({'ok': False, 'error': 'Insufficient wallet balance'}), 400
+
+    conn.execute(f'UPDATE wallet SET {wallet_key} = ? WHERE model_id = ?', (after, mid))
+    conn.execute(
+        '''
+        INSERT INTO wallet_history (wallet_key, currency, amount, type, balance_before, balance_after, medium, description, model_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''',
+        (wallet_key, currency, amount, change_type, before, after, medium, description, mid),
+    )
+    conn.commit()
+    snap = wallet_snapshot(conn, mid)
+    snap.update({'ok': True, 'updated_key': wallet_key, 'balance_after': after})
+    return jsonify(snap)
+
+@app.route('/wallet/conversion_credit', methods=['POST'])
+def wallet_conversion_credit():
+    if not can('is_admin'):
+        return jsonify({'ok': False, 'error': 'Unauthorized'}), 403
+
+    data = request.get_json(silent=True) or {}
+    usd_wallet_key = (data.get('usd_wallet_key') or '').strip()
+    medium = (data.get('medium') or '').strip()
+    naira_wallet_key = (data.get('naira_wallet_key') or '').strip()
+
+    try:
+        credit_amount = float(data.get('credit_amount') or 0)
+    except Exception:
+        credit_amount = 0.0
+    try:
+        rate = float(data.get('rate') or 0)
+    except Exception:
+        rate = 0.0
+
+    if usd_wallet_key not in {'dollars', 'providus_dollars', 'bybit_dollars'}:
+        return jsonify({'ok': False, 'error': 'Invalid USD account'}), 400
+    if credit_amount <= 0:
+        return jsonify({'ok': False, 'error': 'Invalid credit amount'}), 400
+    if rate <= 0:
+        return jsonify({'ok': False, 'error': 'Invalid rate'}), 400
+    if not medium:
+        return jsonify({'ok': False, 'error': 'Select a medium'}), 400
+
+    required_naira_debit = credit_amount * rate
+    mid = current_model_id()
+    conn = get_db_connection()
+    ensure_wallet_columns(conn)
+    ensure_wallet_history_table(conn)
+    wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+    if not wallet:
+        conn.execute('INSERT INTO wallet (model_id) VALUES (?)', (mid,))
+        wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+    w = dict(wallet) if wallet else {}
+
+    usd_before = float(w.get(usd_wallet_key) or 0)
+    usd_after = usd_before + credit_amount
+
+    debit_applied = False
+    naira_before = None
+    naira_after = None
+    if medium.lower() != 'other':
+        if naira_wallet_key not in {'naira', 'naira_1', 'taj_naira'}:
+            return jsonify({'ok': False, 'error': 'Select a Naira wallet'}), 400
+        naira_before = float(w.get(naira_wallet_key) or 0)
+        naira_after = naira_before - required_naira_debit
+        if naira_after < 0:
+            return jsonify({'ok': False, 'error': 'Insufficient Naira wallet balance'}), 400
+        debit_applied = True
+
+    conn.execute(f'UPDATE wallet SET {usd_wallet_key} = ? WHERE model_id = ?', (usd_after, mid))
+    if debit_applied:
+        conn.execute(f'UPDATE wallet SET {naira_wallet_key} = ? WHERE model_id = ?', (naira_after, mid))
+
+    conn.execute(
+        '''
+        INSERT INTO wallet_history (wallet_key, currency, amount, type, balance_before, balance_after, medium, rate, related_wallet_key, description, model_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''',
+        (
+            usd_wallet_key,
+            'USD',
+            credit_amount,
+            'credit',
+            usd_before,
+            usd_after,
+            medium,
+            rate,
+            naira_wallet_key if debit_applied else None,
+            'Wallet conversion credit',
+            mid,
+        ),
+    )
+    if debit_applied:
+        conn.execute(
+            '''
+            INSERT INTO wallet_history (wallet_key, currency, amount, type, balance_before, balance_after, medium, rate, related_wallet_key, description, model_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            (
+                naira_wallet_key,
+                'NGN',
+                required_naira_debit,
+                'debit',
+                naira_before,
+                naira_after,
+                medium,
+                rate,
+                usd_wallet_key,
+                'Wallet conversion debit',
+                mid,
+            ),
+        )
+    conn.commit()
+
+    snap = wallet_snapshot(conn, mid)
+    snap.update(
+        {
+            'ok': True,
+            'usd_wallet_key': usd_wallet_key,
+            'usd_balance_after': usd_after,
+            'naira_wallet_key': naira_wallet_key if debit_applied else None,
+            'naira_balance_after': naira_after if debit_applied else None,
+            'required_naira_debit': required_naira_debit,
+            'medium': medium,
+            'rate': rate,
+        }
+    )
+    return jsonify(snap)
 
 @app.route('/assets', methods=['GET', 'POST'])
 def assets():
@@ -2167,6 +2485,8 @@ def clients():
     if not can('can_view_clients'):
         return redirect(url_for('index'))
     conn = get_db_connection()
+    ensure_wallet_columns(conn)
+    ensure_wallet_history_table(conn)
     q = (request.args.get('q') or '').strip()
     where_sql = 'WHERE model_id = ?'
     params = [current_model_id()]
@@ -2178,7 +2498,13 @@ def clients():
         {where_sql}
         ORDER BY balance DESC, client_name
     ''', params).fetchall()
-    return render_template('clients.html', clients=clients_list, q=q)
+    wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (current_model_id(),)).fetchone()
+    naira_accounts = [
+        {'key': 'naira', 'label': 'GTB N'},
+        {'key': 'naira_1', 'label': 'Access N'},
+        {'key': 'taj_naira', 'label': 'Taj N'},
+    ]
+    return render_template('clients.html', clients=clients_list, q=q, naira_accounts=naira_accounts, wallet=wallet)
 
 @app.route('/clients/add', methods=['GET', 'POST'])
 def add_client():
@@ -2288,6 +2614,73 @@ def update_balance(client_id):
         except Exception:
             pass
         return redirect(url_for('clients'))
+
+@app.route('/clients/<int:client_id>/credit_wallet', methods=['POST'])
+def credit_client_and_wallet(client_id):
+    if not can('can_view_clients'):
+        return jsonify({'ok': False, 'error': 'Unauthorized'}), 403
+
+    data = request.get_json(silent=True) or {}
+    try:
+        amount = float(data.get('amount') or 0)
+    except Exception:
+        amount = 0.0
+    wallet_key = (data.get('wallet_key') or '').strip()
+
+    if amount <= 0:
+        return jsonify({'ok': False, 'error': 'Invalid amount'}), 400
+    if wallet_key not in {'naira', 'naira_1', 'taj_naira'}:
+        return jsonify({'ok': False, 'error': 'Select a Naira account'}), 400
+
+    conn = get_db_connection()
+    ensure_wallet_columns(conn)
+    ensure_wallet_history_table(conn)
+    mid = current_model_id()
+
+    client = conn.execute('SELECT id, client_name, balance FROM clients WHERE id = ? AND model_id = ?', (client_id, mid)).fetchone()
+    if not client:
+        return jsonify({'ok': False, 'error': 'Client not found'}), 404
+
+    wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+    if not wallet:
+        conn.execute('INSERT INTO wallet (model_id) VALUES (?)', (mid,))
+        wallet = conn.execute('SELECT * FROM wallet WHERE model_id = ?', (mid,)).fetchone()
+    w = dict(wallet) if wallet else {}
+
+    client_before = float(client['balance'] or 0)
+    client_after = client_before + amount
+    wallet_before = float(w.get(wallet_key) or 0)
+    wallet_after = wallet_before + amount
+
+    conn.execute('UPDATE clients SET balance = ? WHERE id = ? AND model_id = ?', (client_after, client_id, mid))
+    conn.execute(f'UPDATE wallet SET {wallet_key} = ? WHERE model_id = ?', (wallet_after, mid))
+
+    conn.execute(
+        'INSERT INTO balance_history (client_id, amount, type, balance_before, balance_after, description, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        (client_id, amount, 'credit', client_before, client_after, f'Client credited (funded via {wallet_key})', mid),
+    )
+    conn.execute(
+        '''
+        INSERT INTO wallet_history (wallet_key, currency, amount, type, balance_before, balance_after, medium, related_client_id, description, model_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''',
+        (wallet_key, 'NGN', amount, 'credit', wallet_before, wallet_after, 'Client Funding', client_id, f'Client funding: {client["client_name"]}', mid),
+    )
+    conn.commit()
+
+    snap = wallet_snapshot(conn, mid)
+    snap.update(
+        {
+            'ok': True,
+            'client_id': client_id,
+            'client_name': client['client_name'],
+            'client_balance_after': client_after,
+            'wallet_key': wallet_key,
+            'wallet_balance_after': wallet_after,
+            'amount': amount,
+        }
+    )
+    return jsonify(snap)
 
 @app.route('/clients/<int:client_id>/transactions')
 def client_transactions(client_id):
