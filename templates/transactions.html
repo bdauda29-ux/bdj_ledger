@@ -334,11 +334,11 @@
                 <div style="font-size: 1.1em; font-weight: 700; color: var(--text-primary);">₦ {{ "{:,.0f}".format(transaction.amount_n or 0) }}</div>
             </div>
         </div>
-        </div>
         
         <div class="mobile-card-row">
             <span class="mobile-card-label">Date:</span>
             <span class="mobile-card-value">{{ transaction.transaction_date|date_format }}</span>
+        </div>
         
         <div class="mobile-card-actions">
             {% if session.permissions and session.permissions.is_admin %}
@@ -552,6 +552,121 @@
         return d.toLocaleDateString();
     }
 
+    function encodeHtmlAttr(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function currentTransactionsNextValue() {
+        return window.location.pathname + window.location.search;
+    }
+
+    function buildDesktopActionHtml(state) {
+        if (!__isAdmin) return '';
+        const nextValue = encodeHtmlAttr(currentTransactionsNextValue());
+        const txId = String(state.txId || '');
+        const clientNameAttr = encodeHtmlAttr(state.clientName || '');
+        const countryNameAttr = encodeHtmlAttr(state.countryName || '');
+        const countryPriceAttr = encodeHtmlAttr(state.countryPrice || 0);
+        const amountNAttr = encodeHtmlAttr(state.amountN || 0);
+        const clientBalanceAttr = encodeHtmlAttr(state.clientBalance || 0);
+        const clientIdAttr = encodeHtmlAttr(state.clientId || 0);
+        const canDelete = !!state.canDelete;
+        const isPaid = !!state.isPaid;
+        const feeExecuted = !!state.feeExecuted;
+
+        let html = '';
+        if (!isPaid) {
+            html += feeExecuted
+                ? `<form action="/transactions/${txId}/undo_fee" method="POST" style="display: inline;" onsubmit="return confirm('Undo fee and restore wallet?');"><input type="hidden" name="next" value="${nextValue}"><button type="submit" class="btn btn-fee-undo btn-sm" title="Undo Fee"><i class="fas fa-undo"></i></button></form>`
+                : `<button type="button" class="btn btn-fee btn-sm" title="Execute Fee" data-transaction-id="${txId}" data-client="${clientNameAttr}" data-country="${countryNameAttr}" data-country-price="${countryPriceAttr}" onclick="openFeePrompt(this)"><i class="fas fa-receipt"></i></button>`;
+            html += `<form action="/transactions/${txId}/pay" method="POST" style="display: inline;" data-ajax-pay="1" data-transaction-id="${txId}" data-amount-n="${amountNAttr}" data-client-balance="${clientBalanceAttr}" data-client-name="${clientNameAttr}" data-client-id="${clientIdAttr}"><input type="hidden" name="next" value="${nextValue}"><button type="submit" class="btn btn-success btn-sm" title="Pay" ${!feeExecuted ? 'disabled' : ''}><i class="fas fa-check"></i></button></form>`;
+        } else {
+            html += `<form action="/transactions/${txId}/undo_pay" method="POST" style="display: inline;" onsubmit="return confirm('Undo payment and restore client balance?');"><input type="hidden" name="next" value="${nextValue}"><button type="submit" class="btn btn-secondary btn-sm" title="Undo Pay"><i class="fas fa-undo"></i></button></form>`;
+        }
+        if (canDelete) {
+            html += `<form action="/transactions/${txId}/delete" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this transaction?');"><button type="submit" class="btn btn-danger btn-sm" title="Delete"><i class="fas fa-trash"></i></button></form>`;
+        }
+        return html;
+    }
+
+    function buildMobileActionHtml(state) {
+        if (!__isAdmin) return '';
+        const nextValue = encodeHtmlAttr(currentTransactionsNextValue());
+        const txId = String(state.txId || '');
+        const clientNameAttr = encodeHtmlAttr(state.clientName || '');
+        const countryNameAttr = encodeHtmlAttr(state.countryName || '');
+        const countryPriceAttr = encodeHtmlAttr(state.countryPrice || 0);
+        const amountNAttr = encodeHtmlAttr(state.amountN || 0);
+        const clientBalanceAttr = encodeHtmlAttr(state.clientBalance || 0);
+        const clientIdAttr = encodeHtmlAttr(state.clientId || 0);
+        const canDelete = !!state.canDelete;
+        const isPaid = !!state.isPaid;
+        const feeExecuted = !!state.feeExecuted;
+
+        let html = '';
+        if (!isPaid) {
+            html += feeExecuted
+                ? `<form action="/transactions/${txId}/undo_fee" method="POST" style="flex: 1;" onsubmit="return confirm('Undo fee and restore wallet?');"><input type="hidden" name="next" value="${nextValue}"><button type="submit" class="btn btn-fee-undo btn-sm" style="width: 100%;"><i class="fas fa-undo"></i> Undo Fee</button></form>`
+                : `<button type="button" class="btn btn-fee btn-sm" style="flex: 1;" data-transaction-id="${txId}" data-client="${clientNameAttr}" data-country="${countryNameAttr}" data-country-price="${countryPriceAttr}" onclick="openFeePrompt(this)"><i class="fas fa-receipt"></i> Fee</button>`;
+            html += `<form action="/transactions/${txId}/pay" method="POST" style="flex: 1;" data-ajax-pay="1" data-transaction-id="${txId}" data-amount-n="${amountNAttr}" data-client-balance="${clientBalanceAttr}" data-client-name="${clientNameAttr}" data-client-id="${clientIdAttr}"><input type="hidden" name="next" value="${nextValue}"><button type="submit" class="btn btn-success btn-sm" style="width: 100%;" ${!feeExecuted ? 'disabled' : ''}><i class="fas fa-check"></i> Pay</button></form>`;
+        } else {
+            html += `<form action="/transactions/${txId}/undo_pay" method="POST" style="flex: 1;" onsubmit="return confirm('Undo payment and restore client balance?');"><input type="hidden" name="next" value="${nextValue}"><button type="submit" class="btn btn-secondary btn-sm" style="width: 100%;"><i class="fas fa-undo"></i> Undo</button></form>`;
+        }
+        if (canDelete) {
+            html += `<form action="/transactions/${txId}/delete" method="POST" style="flex: 1;" onsubmit="return confirm('Are you sure you want to delete this transaction?');"><button type="submit" class="btn btn-danger btn-sm" style="width: 100%;"><i class="fas fa-trash"></i> Delete</button></form>`;
+        }
+        return html;
+    }
+
+    function renderTransactionActionsFromDom(txId) {
+        const row = document.querySelector(`.transaction-row[data-id="${txId}"]`);
+        const card = document.querySelector(`.mobile-card[data-id="${txId}"]`);
+        const host = row || card;
+        if (!host) return;
+
+        const payForm = host.querySelector('form[data-ajax-pay="1"]');
+        const feeBtn = host.querySelector('button.btn-fee');
+        const state = {
+            txId: txId,
+            isPaid: host.getAttribute('data-paid') === '1',
+            feeExecuted: host.getAttribute('data-fee-executed') === '1',
+            canDelete: !((host.getAttribute('data-paid') === '1')) && !!host.querySelector('form[action$="/delete"]'),
+            clientName: '',
+            countryName: '',
+            countryPrice: 0,
+            amountN: 0,
+            clientBalance: 0,
+            clientId: 0
+        };
+
+        if (payForm) {
+            state.amountN = payForm.getAttribute('data-amount-n') || 0;
+            state.clientBalance = payForm.getAttribute('data-client-balance') || 0;
+            state.clientName = (payForm.getAttribute('data-client-name') || '').replace(/&#39;/g, "'");
+            state.clientId = payForm.getAttribute('data-client-id') || 0;
+        }
+        if (feeBtn) {
+            state.clientName = state.clientName || feeBtn.getAttribute('data-client') || '';
+            state.countryName = feeBtn.getAttribute('data-country') || '';
+            state.countryPrice = feeBtn.getAttribute('data-country-price') || 0;
+        }
+        if (!state.countryName && row && row.children[4]) state.countryName = row.children[4].textContent.trim();
+
+        if (row) {
+            const actionCell = row.querySelector('.action-cell');
+            if (actionCell) actionCell.innerHTML = buildDesktopActionHtml(state);
+        }
+        if (card) {
+            const actionWrap = card.querySelector('.mobile-card-actions');
+            if (actionWrap) actionWrap.innerHTML = buildMobileActionHtml(state);
+        }
+    }
+
     function renumberTransactionRows() {
         const rows = Array.from(document.querySelectorAll('.transaction-row'));
         rows.forEach((row, idx) => {
@@ -645,6 +760,21 @@
                 const payBtn = payForm.querySelector('button[type="submit"]');
                 if (payBtn) payBtn.disabled = !feeExecuted || isPaid;
             }
+            const actionCell = row.querySelector('.action-cell');
+            if (actionCell) {
+                actionCell.innerHTML = buildDesktopActionHtml({
+                    txId: txId,
+                    isPaid: isPaid,
+                    feeExecuted: feeExecuted,
+                    canDelete: canDelete,
+                    clientName: tx.client_name || '',
+                    countryName: tx.country_name || '',
+                    countryPrice: tx.country_price || 0,
+                    amountN: tx.amount_n || 0,
+                    clientBalance: tx.client_balance || 0,
+                    clientId: tx.client_id || 0
+                });
+            }
         }
 
         function applyCardUpdates(card) {
@@ -672,6 +802,21 @@
                 payForm.setAttribute('data-client-balance', String(tx.client_balance || 0));
                 const payBtn = payForm.querySelector('button[type="submit"]');
                 if (payBtn) payBtn.disabled = !feeExecuted || isPaid;
+            }
+            const actionWrap = card.querySelector('.mobile-card-actions');
+            if (actionWrap) {
+                actionWrap.innerHTML = buildMobileActionHtml({
+                    txId: txId,
+                    isPaid: isPaid,
+                    feeExecuted: feeExecuted,
+                    canDelete: canDelete,
+                    clientName: tx.client_name || '',
+                    countryName: tx.country_name || '',
+                    countryPrice: tx.country_price || 0,
+                    amountN: tx.amount_n || 0,
+                    clientBalance: tx.client_balance || 0,
+                    clientId: tx.client_id || 0
+                });
             }
         }
 
@@ -703,15 +848,7 @@
                 <td>${String(tx.service_type || '')}</td>
                 <td class="text-right"><div>$ ${fmt0(tx.amount || 0)}</div><div><strong>₦ ${fmt0(tx.amount_n || 0)}</strong></div></td>
                 <td style="white-space: nowrap;">${fmtDate(tx.transaction_date)}</td>
-                <td class="action-cell">
-                    ${__isAdmin ? (!isPaid ? (
-                        !feeExecuted
-                            ? `<button type="button" class="btn btn-fee btn-sm" title="Execute Fee" data-transaction-id="${txId}" data-client="${String(tx.client_name || '')}" data-country="${String(tx.country_name || '')}" data-country-price="${String(tx.country_price || 0)}" onclick="openFeePrompt(this)"><i class="fas fa-receipt"></i></button>`
-                            : `<form action="/transactions/${txId}/undo_fee" method="POST" style="display: inline;" onsubmit="return confirm('Undo fee and restore wallet?');"><input type="hidden" name="next" value="${window.location.pathname + window.location.search}"><button type="submit" class="btn btn-fee-undo btn-sm" title="Undo Fee"><i class="fas fa-undo"></i></button></form>`
-                    ) : '' ) : ''}
-                    ${__isAdmin && !isPaid ? `<form action="/transactions/${txId}/pay" method="POST" style="display: inline;" data-ajax-pay="1" data-transaction-id="${txId}" data-amount-n="${String(tx.amount_n || 0)}" data-client-balance="${String(tx.client_balance || 0)}" data-client-name="${String(tx.client_name || '').replace(/'/g, '&#39;')}" data-client-id="${String(tx.client_id || 0)}"><input type="hidden" name="next" value="${window.location.pathname + window.location.search}"><button type="submit" class="btn btn-success btn-sm" title="Pay" ${!feeExecuted ? 'disabled' : ''}><i class="fas fa-check"></i></button></form>` : ''}
-                    ${canDelete ? `<form action="/transactions/${txId}/delete" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this transaction?');"><button type="submit" class="btn btn-danger btn-sm" title="Delete"><i class="fas fa-trash"></i></button></form>` : ''}
-                </td>
+                <td class="action-cell">${buildDesktopActionHtml({ txId: txId, isPaid: isPaid, feeExecuted: feeExecuted, canDelete: canDelete, clientName: tx.client_name || '', countryName: tx.country_name || '', countryPrice: tx.country_price || 0, amountN: tx.amount_n || 0, clientBalance: tx.client_balance || 0, clientId: tx.client_id || 0 })}</td>
             `;
             tbody.insertBefore(row, tbody.firstElementChild);
         }
@@ -746,11 +883,7 @@
                 </div>
                 <div class="mobile-card-row" style="background-color: #f8f9fa; padding: 8px; border-radius: 4px; margin: 8px 0; border: 1px solid var(--border-color);"><div style="width: 100%; text-align: center;"><div style="font-size: 0.85em; color: var(--text-secondary);">$ ${fmt0(tx.amount || 0)}</div><div style="font-size: 1.1em; font-weight: 700; color: var(--text-primary);">₦ ${fmt0(tx.amount_n || 0)}</div></div></div>
                 <div class="mobile-card-row"><span class="mobile-card-label">Date:</span><span class="mobile-card-value">${fmtDate(tx.transaction_date)}</span></div>
-                <div class="mobile-card-actions">
-                    ${__isAdmin && !isPaid && !feeExecuted ? `<button type="button" class="btn btn-fee btn-sm" style="flex: 1;" data-transaction-id="${txId}" data-client="${String(tx.client_name || '')}" data-country="${String(tx.country_name || '')}" data-country-price="${String(tx.country_price || 0)}" onclick="openFeePrompt(this)"><i class="fas fa-receipt"></i> Fee</button>` : ''}
-                    ${__isAdmin && !isPaid ? `<form action="/transactions/${txId}/pay" method="POST" style="flex: 1;" data-ajax-pay="1" data-transaction-id="${txId}" data-amount-n="${String(tx.amount_n || 0)}" data-client-balance="${String(tx.client_balance || 0)}" data-client-name="${String(tx.client_name || '').replace(/'/g, '&#39;')}" data-client-id="${String(tx.client_id || 0)}"><input type="hidden" name="next" value="${window.location.pathname + window.location.search}"><button type="submit" class="btn btn-success btn-sm" style="width: 100%;" ${!feeExecuted ? 'disabled' : ''}><i class="fas fa-check"></i> Pay</button></form>` : ''}
-                    ${canDelete ? `<form action="/transactions/${txId}/delete" method="POST" style="flex: 1;" onsubmit="return confirm('Are you sure you want to delete this transaction?');"><button type="submit" class="btn btn-danger btn-sm" style="width: 100%;"><i class="fas fa-trash"></i> Delete</button></form>` : ''}
-                </div>
+                <div class="mobile-card-actions">${buildMobileActionHtml({ txId: txId, isPaid: isPaid, feeExecuted: feeExecuted, canDelete: canDelete, clientName: tx.client_name || '', countryName: tx.country_name || '', countryPrice: tx.country_price || 0, amountN: tx.amount_n || 0, clientBalance: tx.client_balance || 0, clientId: tx.client_id || 0 })}</div>
             `;
             mobileContainer.insertBefore(card, mobileContainer.firstElementChild);
         }
@@ -1199,16 +1332,16 @@
                         row.classList.add('row-paid');
                         row.classList.remove('row-fee-pending');
                         row.setAttribute('data-paid', '1');
+                        renderTransactionActionsFromDom(txId);
                     }
                     const card = document.querySelector(`.mobile-card[data-id="${txId}"]`);
                     if (card) {
                         card.classList.add('card-paid');
                         card.classList.remove('card-fee-pending');
                         card.setAttribute('data-paid', '1');
+                        renderTransactionActionsFromDom(txId);
                     }
                 }
-                const btn = form.querySelector('button[type="submit"]');
-                if (btn) btn.disabled = true;
                 const active = document.querySelector('.tab.active');
                 let status = '0';
                 if (active && active.id === 'tab-all') status = 'all';
@@ -1228,16 +1361,14 @@
             if (row) {
                 row.classList.remove('row-fee-pending');
                 row.setAttribute('data-fee-executed', '1');
-                const payBtn = row.querySelector('form[data-ajax-pay="1"] button[type="submit"]');
-                if (payBtn) payBtn.disabled = false;
+                renderTransactionActionsFromDom(txId);
             }
 
             const card = document.querySelector(`.mobile-card[data-id="${txId}"]`);
             if (card) {
                 card.classList.remove('card-fee-pending');
                 card.setAttribute('data-fee-executed', '1');
-                const payBtn = card.querySelector('form[data-ajax-pay="1"] button[type="submit"]');
-                if (payBtn) payBtn.disabled = false;
+                renderTransactionActionsFromDom(txId);
             }
 
             const active = document.querySelector('.tab.active');
