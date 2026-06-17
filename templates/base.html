@@ -368,6 +368,7 @@
                     <div class="form-group">
                         <label for="feeModalAmount">Amount</label>
                         <input type="number" step="0.01" min="0" class="form-control" id="feeModalAmount" name="fee_amount" required>
+                        <small id="feeModalUsdtHint" style="display:none; margin-top: 6px; color: var(--text-secondary);"></small>
                     </div>
                     <div class="form-group">
                         <label for="feeModalAccount">Account to debit</label>
@@ -433,6 +434,8 @@
             const accountEl = document.getElementById('feeModalAccount');
             const nextEl = document.getElementById('feeModalNext');
             const submitBtn = document.getElementById('feeModalSubmitBtn');
+            const usdtHintEl = document.getElementById('feeModalUsdtHint');
+            const bybitUsdtRate = 0.9861;
 
             function updateFeeUi() {
                 const feeAmount = parseFloat(amountEl.value || '0') || 0;
@@ -444,6 +447,15 @@
                 }
                 if (submitBtn) {
                     submitBtn.textContent = isZero ? 'Mark Fee' : 'Debit Fee';
+                }
+                if (usdtHintEl) {
+                    if (!isZero && accountEl && accountEl.value === 'bybit') {
+                        usdtHintEl.textContent = `USDT equivalent: ${fmtMoney(feeAmount / bybitUsdtRate)}`;
+                        usdtHintEl.style.display = 'block';
+                    } else {
+                        usdtHintEl.textContent = '';
+                        usdtHintEl.style.display = 'none';
+                    }
                 }
             }
 
@@ -563,6 +575,11 @@
 
             if (amountEl) {
                 amountEl.addEventListener('input', function() {
+                    updateFeeUi();
+                });
+            }
+            if (accountEl) {
+                accountEl.addEventListener('change', function() {
                     updateFeeUi();
                 });
             }

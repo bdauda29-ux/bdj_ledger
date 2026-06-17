@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿{% extends "base.html" %}
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿{% extends "base.html" %}
 
 {% block title %}Transactions for {{ client.client_name }} - Ledger System{% endblock %}
 
@@ -1079,7 +1079,11 @@ function bulkFee() {
         return sum + computeBulkFeeAmount(cb.dataset.country, cb.dataset.countryPrice);
     }, 0);
 
-    if (!confirm('Execute fee for ' + ids.length + ' transactions using account \'' + account + '\' ? Total fee: ' + totalFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }))) return;
+    const totalFeeText = totalFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const bybitUsdtText = account === 'bybit$'
+        ? ' | USDT equivalent: ' + (totalFee / 0.9861).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : '';
+    if (!confirm('Execute fee for ' + ids.length + ' transactions using account \'' + account + '\' ? Total fee: ' + totalFeeText + bybitUsdtText)) return;
 
     fetch('/transactions/bulk_fee', {
         method: 'POST',
