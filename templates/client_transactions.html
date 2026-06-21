@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿{% extends "base.html" %}
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿{% extends "base.html" %}
 
 {% block title %}Transactions for {{ client.client_name }} - Ledger System{% endblock %}
 
@@ -945,6 +945,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const data = (e && e.detail) ? e.detail : {};
         const txId = parseInt(data.transaction_id || '0', 10);
         if (!txId) return;
+        if (data.transaction) {
+            upsertTransactionInClientPage(data.transaction, 'edit');
+            return;
+        }
 
         const row = document.querySelector(`.transaction-row[data-id="${txId}"]`);
         const card = document.querySelector(`.mobile-card[data-id="${txId}"]`);

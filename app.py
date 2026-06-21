@@ -3586,6 +3586,73 @@ def execute_fee(transaction_id):
             return redirect(next_url)
         return redirect(url_for('transactions', error=error))
 
+    def build_transaction_ui_payload():
+        mid = current_model_id()
+        if POSTGRES_URL:
+            row = conn.execute(
+                '''
+                SELECT t.*,
+                       c.id AS client_id,
+                       c.balance AS client_balance
+                  FROM transactions t
+                  LEFT JOIN clients c
+                    ON c.client_name = t.client_name
+                   AND c.model_id = t.model_id
+                 WHERE t.id = %s
+                   AND t.model_id = %s
+                ''',
+                (transaction_id, mid),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                '''
+                SELECT t.*,
+                       c.id AS client_id,
+                       c.balance AS client_balance
+                  FROM transactions t
+                  LEFT JOIN clients c
+                    ON c.client_name = t.client_name
+                   AND c.model_id = t.model_id
+                 WHERE t.id = ?
+                   AND t.model_id = ?
+                ''',
+                (transaction_id, mid),
+            ).fetchone()
+        if not row:
+            return {'id': transaction_id}
+        try:
+            data = dict(row)
+        except Exception:
+            data = row
+
+        def num(v, default=0):
+            try:
+                return float(v)
+            except Exception:
+                return default
+
+        return {
+            'id': int(data.get('id') or transaction_id),
+            'client_name': data.get('client_name') or '',
+            'client_id': data.get('client_id'),
+            'client_balance': num(data.get('client_balance'), 0),
+            'service_type': data.get('service_type') or '',
+            'applicant_name': data.get('applicant_name') or '',
+            'app_id': data.get('app_id'),
+            'email_link': data.get('email_link') or '',
+            'country_name': data.get('country_name') or '',
+            'country_price': num(data.get('country_price'), 0),
+            'rate': num(data.get('rate'), 0),
+            'addition': num(data.get('addition'), 0),
+            'amount': num(data.get('amount'), 0),
+            'amount_n': num(data.get('amount_n'), 0),
+            'transaction_date': data.get('transaction_date'),
+            'fee_executed': int(data.get('fee_executed') or 0),
+            'fee_amount': num(data.get('fee_amount'), 0),
+            'is_paid': int(data.get('is_paid') or 0),
+            'created_by': data.get('created_by') or '',
+        }
+
     try:
         transaction = conn.execute(
             'SELECT * FROM transactions WHERE id = ? AND model_id = ?',
@@ -3640,15 +3707,18 @@ def execute_fee(transaction_id):
             fee_account = None
 
         conn.execute(
-            'UPDATE transactions SET fee_executed = 1, fee_amount = ?, fee_account = ?, fee_executed_at = CURRENT_TIMESTAMP WHERE id = ? AND model_id = ?',
+            'UPDATE transactions SET fee_executed = 1, fee_amount = ?, fee_account = ?, fee_executed_at = CURRENT_TIMESTAMP, transaction_date = CURRENT_TIMESTAMP WHERE id = ? AND model_id = ?',
             (fee_amount, fee_account, transaction_id, mid),
         )
         conn.commit()
         if wants_json:
+            ui_transaction = build_transaction_ui_payload()
             return jsonify({
                 'ok': True,
                 'next_url': next_url,
                 'transaction_id': transaction_id,
+                'transaction_date': ui_transaction.get('transaction_date'),
+                'transaction': ui_transaction,
                 'fee_amount': fee_amount,
                 'fee_account': fee_account
             })
@@ -3907,7 +3977,8 @@ def bulk_execute_fee():
                    SET fee_executed = 1,
                        fee_amount = ?,
                        fee_account = ?,
-                       fee_executed_at = CURRENT_TIMESTAMP
+                       fee_executed_at = CURRENT_TIMESTAMP,
+                       transaction_date = CURRENT_TIMESTAMP
                    WHERE id = ? AND model_id = ?''',
                 (fee_amount, (wallet_col if fee_amount > 0 else None), tid, mid)
             )
