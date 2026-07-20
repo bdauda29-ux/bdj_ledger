@@ -25,15 +25,17 @@
                     </div>
                     <div class="form-group">
                         <label for="document_type">Document Type</label>
-                        <select id="document_type" name="document_type" required>
+                        <select id="document_type" name="document_type">
+                            <option value="">Auto detect from filename</option>
                             {% for item in document_types %}
                             <option value="{{ item }}">{{ item }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="form-group full-span">
-                        <label for="document">Document File</label>
-                        <input type="file" id="document" name="document" accept=".png,.jpg,.jpeg,.webp,.pdf,.doc,.docx,.xls,.xlsx" required>
+                        <label for="documents">Document Files</label>
+                        <input type="file" id="documents" name="documents" accept=".png,.jpg,.jpeg,.webp,.pdf,.doc,.docx,.xls,.xlsx" multiple required>
+                        <small class="form-help">Select one or many files. Leave Document Type on auto-detect to classify each file from its filename, or pick one type to apply it to all selected files.</small>
                     </div>
                     <div class="form-group full-span">
                         <label for="extracted_data">Validation Notes</label>
@@ -41,7 +43,7 @@
                     </div>
                 </div>
                 <div class="toolbar-actions">
-                    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-cloud-upload-alt"></i> Upload Document</button>
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-cloud-upload-alt"></i> Upload Document(s)</button>
                 </div>
             </form>
         </section>

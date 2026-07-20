@@ -920,6 +920,25 @@ def normalize_whitespace(value):
     return re.sub(r'\s+', ' ', str(value or '').strip())
 
 
+def infer_document_type_from_name(filename, fallback='Additional Documents'):
+    normalized = os.path.splitext(str(filename or ''))[0].lower()
+    normalized = re.sub(r'[^a-z0-9]+', ' ', normalized)
+    keyword_map = {
+        'Passport': ('passport',),
+        'Photograph': ('photo', 'photograph', 'picture', 'portrait', 'headshot'),
+        'Invitation': ('invitation', 'invite'),
+        'Hotel Reservation': ('hotel', 'reservation', 'booking', 'accommodation'),
+        'Flight Ticket': ('flight', 'ticket', 'itinerary', 'boarding'),
+        'Bank Statement': ('bank', 'statement'),
+        'CAC Certificate': ('cac', 'certificate', 'incorporation'),
+        'Host Letter': ('host', 'letter'),
+    }
+    for document_type, keywords in keyword_map.items():
+        if any(keyword in normalized for keyword in keywords):
+            return document_type
+    return fallback or 'Additional Documents'
+
+
 def normalize_title(value):
     raw = normalize_whitespace(value).lower()
     return TITLE_NORMALIZATION.get(raw, normalize_whitespace(value))
@@ -2157,7 +2176,7 @@ def register_immigration_routes(app, helpers):
             contacts=rows,
             companies=get_companies(conn, model_id),
             form_contact=form_contact,
-            countries=DEFAULT_COUNTRIES,
+            countries=COUNTRY_OPTIONS,
         )
 
     @app.route('/immigration/contacts/save', methods=['POST'])
@@ -2306,7 +2325,7 @@ def register_immigration_routes(app, helpers):
             page_title='Companies',
             companies=companies,
             form_company=form_company,
-            countries=DEFAULT_COUNTRIES,
+            countries=COUNTRY_OPTIONS,
         )
 
     @app.route('/immigration/companies/save', methods=['POST'])
@@ -2485,6 +2504,7 @@ def register_immigration_routes(app, helpers):
             applicants=applicants,
             selected_applicant_id=applicant_id,
             document_types=DOCUMENT_TYPES,
+            message=request.args.get('message', ''),
         )
 
     @app.route('/immigration/documents/upload', methods=['POST'])
@@ -2493,26 +2513,45 @@ def register_immigration_routes(app, helpers):
         ensure_immigration_ready(conn)
         model_id = current_model_id()
         applicant_id = request.form.get('applicant_id')
-        document_type = normalize_whitespace(request.form.get('document_type')) or 'Additional Documents'
-        upload = upload_file(request.files.get('document'), 'documents', ALLOWED_DOCUMENT_EXTENSIONS)
-        if not applicant_id or not upload:
+        selected_document_type = normalize_whitespace(request.form.get('document_type'))
+        requested_uploads = request.files.getlist('documents')
+        if not requested_uploads:
+            requested_uploads = [request.files.get('document')]
+        uploads = [
+            upload_file(file_storage, 'documents', ALLOWED_DOCUMENT_EXTENSIONS)
+            for file_storage in requested_uploads
+            if file_storage and getattr(file_storage, 'filename', '')
+        ]
+        uploads = [item for item in uploads if item]
+        if not applicant_id or not uploads:
             return redirect(url_for('immigration_documents', applicant_id=applicant_id))
-        validation_status = 'Validated' if document_type in ('Passport', 'Photograph', 'Invitation') else 'Pending'
-        conn.execute(
-            '''
-            INSERT INTO documents (
-                model_id, applicant_id, document_type, original_name, stored_name, file_path,
-                mime_type, size_bytes, validation_status, extracted_data
+        extracted_data = request.form.get('extracted_data') or ''
+        uploaded_count = 0
+        for upload in uploads:
+            document_type = selected_document_type or infer_document_type_from_name(upload['original_name'])
+            validation_status = 'Validated' if document_type in ('Passport', 'Photograph', 'Invitation') else 'Pending'
+            conn.execute(
+                '''
+                INSERT INTO documents (
+                    model_id, applicant_id, document_type, original_name, stored_name, file_path,
+                    mime_type, size_bytes, validation_status, extracted_data
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''',
+                (
+                    model_id, applicant_id, document_type, upload['original_name'], upload['stored_name'], upload['relative_path'],
+                    upload['mime_type'], upload['size_bytes'], validation_status, extracted_data,
+                ),
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''',
-            (
-                model_id, applicant_id, document_type, upload['original_name'], upload['stored_name'], upload['relative_path'],
-                upload['mime_type'], upload['size_bytes'], validation_status, request.form.get('extracted_data') or '',
-            ),
-        )
+            uploaded_count += 1
         maybe_commit(conn)
-        return redirect(url_for('immigration_documents', applicant_id=applicant_id))
+        return redirect(
+            url_for(
+                'immigration_documents',
+                applicant_id=applicant_id,
+                message=f'Uploaded {uploaded_count} document(s).',
+            )
+        )
 
     @app.route('/immigration/documents/<int:document_id>/rename', methods=['POST'])
     def rename_immigration_document(document_id):
