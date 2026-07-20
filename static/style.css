@@ -2857,6 +2857,360 @@ body.popup-embed .app-container {
     mix-blend-mode: multiply;
 }
 
+.applicant-form-exact-shell {
+    gap: 1.3rem;
+}
+
+.applicant-form-hero-compact {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    padding: 1.35rem 1.5rem;
+}
+
+.applicant-form-hero-compact h2 {
+    margin: 0.75rem 0 0.35rem;
+}
+
+.applicant-hero-status {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    align-items: flex-end;
+}
+
+.applicant-form-card {
+    padding: 1.3rem;
+    border-radius: 28px;
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: var(--card-shadow);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.applicant-form-toolbar {
+    margin-bottom: 1rem;
+}
+
+.applicant-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px 18px;
+}
+
+.form-field {
+    min-width: 0;
+}
+
+.form-field label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea,
+.form-field .ts-wrapper.single .ts-control,
+.date-field-shell,
+.duration-field-shell,
+.contact-select-shell {
+    min-height: 50px;
+    height: 50px;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 6px 22px rgba(15, 23, 42, 0.05);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+    width: 100%;
+    padding: 0 0.95rem;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus,
+.date-field-shell:focus-within,
+.duration-field-shell:focus-within,
+.contact-select-shell:focus-within,
+.form-field .ts-wrapper.single.focus .ts-control {
+    outline: none;
+    border-color: rgba(79, 70, 229, 0.42);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
+}
+
+.read-only-input {
+    background: rgba(226, 232, 240, 0.72) !important;
+    color: var(--text-secondary);
+    cursor: not-allowed;
+}
+
+.field-meta {
+    min-height: 1.2rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding-top: 0.38rem;
+}
+
+.field-error,
+.field-warning {
+    display: block;
+    min-height: 1rem;
+    font-size: 0.8rem;
+    line-height: 1.2;
+    font-weight: 600;
+}
+
+.field-error {
+    color: #b91c1c;
+}
+
+.field-warning {
+    color: #b45309;
+}
+
+.form-field.has-error input,
+.form-field.has-error select,
+.form-field.has-error textarea,
+.form-field.has-error .date-field-shell,
+.form-field.has-error .duration-field-shell,
+.form-field.has-error .contact-select-shell,
+.form-field.has-error .ts-wrapper.single .ts-control {
+    border-color: rgba(220, 38, 38, 0.5);
+    background: rgba(254, 242, 242, 0.9);
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08);
+}
+
+.form-field.has-valid input,
+.form-field.has-valid select,
+.form-field.has-valid textarea,
+.form-field.has-valid .date-field-shell,
+.form-field.has-valid .duration-field-shell,
+.form-field.has-valid .contact-select-shell,
+.form-field.has-valid .ts-wrapper.single .ts-control {
+    border-color: rgba(16, 185, 129, 0.45);
+    background: rgba(236, 253, 245, 0.92);
+}
+
+.form-field.is-loading {
+    opacity: 0.78;
+}
+
+.date-field-shell,
+.duration-field-shell,
+.contact-select-shell {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+.date-field-shell input,
+.duration-field-shell input {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    height: 48px;
+}
+
+.date-icon-button {
+    width: 48px;
+    height: 48px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.duration-field-shell span {
+    flex: 0 0 auto;
+    padding-right: 0.95rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.contact-select-shell {
+    gap: 0.55rem;
+    padding-right: 0.45rem;
+}
+
+.contact-select-shell .ts-wrapper {
+    flex: 1;
+}
+
+.contact-add-btn {
+    flex: 0 0 50px;
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(79, 70, 229, 0.08);
+    color: #4338ca;
+    font-size: 1.15rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.contact-add-btn:hover,
+.contact-add-btn:focus {
+    outline: none;
+    background: rgba(79, 70, 229, 0.14);
+}
+
+.ts-wrapper.single .ts-control {
+    padding: 0 2.15rem 0 0.95rem;
+    display: flex;
+    align-items: center;
+    box-shadow: none;
+}
+
+.ts-wrapper.single .ts-control input {
+    min-width: 0;
+}
+
+.ts-wrapper.single .ts-control > div,
+.ts-dropdown .option,
+.ts-dropdown .create {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ts-wrapper.single .ts-control::after {
+    border-color: #64748b transparent transparent transparent;
+    right: 0.85rem;
+}
+
+.ts-wrapper.plugin-clear_button .clear-button {
+    right: 2rem;
+    color: var(--text-muted);
+}
+
+.ts-dropdown {
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
+    overflow: hidden;
+}
+
+.ts-dropdown .option,
+.ts-dropdown .create {
+    padding: 0.8rem 0.95rem;
+    font-size: 0.92rem;
+}
+
+.ts-dropdown .active {
+    background: rgba(79, 70, 229, 0.1);
+    color: #4338ca;
+}
+
+.ts-empty-state,
+.ts-dropdown .no-results {
+    padding: 0.85rem 0.95rem;
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+}
+
+.applicant-toast {
+    position: fixed;
+    right: 1.35rem;
+    bottom: 1.35rem;
+    z-index: 40;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.9rem 1rem;
+    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.94);
+    color: #fff;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.28);
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.applicant-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.contact-modal-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.contact-modal-grid .contact-modal-address {
+    grid-column: 1 / -1;
+}
+
+body.theme-dark .applicant-form-card,
+body.theme-dark .applicant-toast {
+    background: rgba(17, 24, 39, 0.9);
+}
+
+body.theme-dark .form-field input,
+body.theme-dark .form-field select,
+body.theme-dark .form-field textarea,
+body.theme-dark .form-field .ts-wrapper.single .ts-control,
+body.theme-dark .date-field-shell,
+body.theme-dark .duration-field-shell,
+body.theme-dark .contact-select-shell {
+    background: rgba(17, 24, 39, 0.78);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.92);
+}
+
+body.theme-dark .read-only-input {
+    background: rgba(51, 65, 85, 0.84) !important;
+}
+
+body.theme-dark .contact-add-btn {
+    border-color: rgba(129, 140, 248, 0.24);
+    background: rgba(99, 102, 241, 0.18);
+    color: #c4b5fd;
+}
+
+body.theme-dark .ts-dropdown {
+    background: rgba(17, 24, 39, 0.98);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 1180px) {
+    .applicant-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .applicant-form-hero-compact {
+        grid-template-columns: 1fr;
+    }
+
+    .applicant-hero-status {
+        align-items: flex-start;
+    }
+
+    .applicant-grid,
+    .contact-modal-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sticky-action-bar {
+        bottom: 0.5rem;
+    }
+}
+
 .skeleton-bar {
     height: 12px;
     border-radius: 999px;

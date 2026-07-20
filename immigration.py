@@ -33,16 +33,67 @@ UPLOAD_ROOT = os.getenv('IMMIGRATION_UPLOAD_ROOT') or (
 )
 ALLOWED_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp'}
 ALLOWED_DOCUMENT_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.pdf', '.doc', '.docx', '.xls', '.xlsx'}
-APPLICANT_TITLES = ['Mr.', 'Mrs.', 'Miss', 'Ms.', 'Dr.', 'Prof.']
-PASSPORT_TYPES = ['Ordinary Passport', 'Official Passport', 'Diplomatic Passport', 'Service Passport', 'Travel Certificate']
-GENDERS = ['Male', 'Female']
-MARITAL_STATUSES = ['Single', 'Married', 'Divorced', 'Widowed']
-VISA_TYPES = ['Business Visa', 'Visiting Visa', 'Conference Visa', 'Transit Visa']
+APPLICANT_TITLES = ['Mr.', 'Mrs.', 'Miss', 'Ms.', 'Master', 'Doctor', 'Prof']
+TITLE_NORMALIZATION = {
+    'mr': 'Mr.',
+    'mr.': 'Mr.',
+    'mrs': 'Mrs.',
+    'mrs.': 'Mrs.',
+    'miss': 'Miss',
+    'ms': 'Ms.',
+    'ms.': 'Ms.',
+    'master': 'Master',
+    'dr': 'Doctor',
+    'dr.': 'Doctor',
+    'doctor': 'Doctor',
+    'prof': 'Prof',
+    'prof.': 'Prof',
+    'professor': 'Prof',
+}
+PASSPORT_TYPES = ['Standard', 'Service', 'Official']
+GENDER_OPTIONS = [('MALE', 'Male'), ('FEMALE', 'Female')]
+MARITAL_STATUS_OPTIONS = [('SINGLE', 'Single'), ('MARRIED', 'Married'), ('WIDOWED', 'Widowed'), ('DIVORCED', 'Divorced')]
+VISA_CATEGORIES = [
+    'F3B - Transit Visa',
+    'F4A - Business',
+    'F4B - Business Visa (Multiple Entry)',
+    'F5A - Tourism Visa',
+    'F6A - Visiting Visa (Single Entry)',
+    'F7E - Sports Visa',
+    'F7F - Creative Arts Visa',
+    'F7G - Study Tour Visa',
+    'F7H - Academic Exchange Programme Visa',
+    'F71 - International Cultural Exchange Visa',
+    'F7K - Emergency/Relief Work Visa',
+    'F9A - Returning holders of foreign Passports who are Nigerians by Birth',
+    'F9B - Returning Holders of Foreign Passports (Nigerian by Birth)',
+]
 REASONS = ['Business Meeting', 'Business Talks', 'Conference', 'Visit']
-JOURNEY_PURPOSES = ['Business Meeting', 'Business Talks', 'Conference', 'Tourism', 'Visit', 'Training']
+JOURNEY_PURPOSES = [
+    'Business Meeting',
+    'Business Talks',
+    'Conference',
+    'Tourism',
+    'Visit',
+    'Training',
+    'Transit',
+    'Academic Exchange',
+    'Study Tour',
+    'Sports',
+    'Creative Arts',
+    'Emergency/Relief Work',
+    'Returning Nigerian by Birth',
+]
 ARRIVAL_CHANNELS = ['Air', 'Land', 'Sea']
-PORTS_BY_CHANNEL = {
-    'Air': ['Murtala Muhammed International Airport', 'Nnamdi Azikiwe International Airport', 'Port Harcourt International Airport', 'Mallam Aminu Kano International Airport'],
+DEFAULT_ENTRY_PORTS = {
+    'Air': [
+        'Nnamdi Azikiwe international Airport, Abuja',
+        'Mallam Aminu Kano Airport, Kano',
+        'Murtala Mohammed Airport, Lagos',
+        'Margret Ekpo Airport, Calabar',
+        'PortHarcourt International Airport, Rivers',
+        'Akanu Ibiam International Airport, Enugu',
+    ],
     'Land': ['Seme Border', 'Jibiya Border', 'Idiroko Border', 'Mfum Border'],
     'Sea': ['Apapa Seaport', 'Tin Can Island Port', 'Onne Port', 'Calabar Port'],
 }
@@ -58,9 +109,39 @@ DOCUMENT_TYPES = [
     'Additional Documents',
 ]
 APPLICANT_STATUSES = ['Draft', 'Pending', 'In Review', 'Validated', 'Completed']
-DEFAULT_COUNTRIES = [
-    'Nigeria', 'Ghana', 'Kenya', 'South Africa', 'United Kingdom', 'United States',
-    'India', 'China', 'UAE', 'Canada', 'Germany', 'France'
+COUNTRY_OPTIONS = [
+    'Afghanistan', 'Albania', 'Algeria', 'Angola', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan',
+    'Bahrain', 'Bangladesh', 'Belarus', 'Belgium', 'Benin', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil',
+    'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde', 'Central African Republic',
+    'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo', 'Costa Rica', 'Croatia', 'Cuba', 'Cyprus', 'Czech Republic',
+    'Denmark', 'Djibouti', 'Dominican Republic', 'DR Congo', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea',
+    'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece',
+    'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran',
+    'Iraq', 'Ireland', 'Israel', 'Italy', 'Ivory Coast', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kuwait',
+    'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Lithuania', 'Luxembourg', 'Madagascar',
+    'Malawi', 'Malaysia', 'Mali', 'Malta', 'Mauritania', 'Mauritius', 'Mexico', 'Moldova', 'Mongolia', 'Montenegro', 'Morocco',
+    'Mozambique', 'Myanmar', 'Namibia', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea',
+    'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Panama', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar',
+    'Romania', 'Russia', 'Rwanda', 'Saudi Arabia', 'Senegal', 'Serbia', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia',
+    'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Sweden', 'Switzerland', 'Syria',
+    'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Togo', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Uganda',
+    'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Venezuela', 'Vietnam',
+    'Yemen', 'Zambia', 'Zimbabwe'
+]
+NATIONALITY_OPTIONS = [
+    'Afghan', 'Albanian', 'Algerian', 'Angolan', 'Argentine', 'Armenian', 'Australian', 'Austrian', 'Azerbaijani', 'Bahraini',
+    'Bangladeshi', 'Belgian', 'Beninese', 'Bolivian', 'Botswanan', 'Brazilian', 'British', 'Bulgarian', 'Burkinabe', 'Burundian',
+    'Cambodian', 'Cameroonian', 'Canadian', 'Chadian', 'Chilean', 'Chinese', 'Colombian', 'Congolese', 'Costa Rican', 'Croatian',
+    'Cuban', 'Czech', 'Danish', 'Dominican', 'Ecuadorean', 'Egyptian', 'Emirati', 'Eritrean', 'Ethiopian', 'Finnish', 'French',
+    'Gabonese', 'Gambian', 'Georgian', 'German', 'Ghanaian', 'Greek', 'Guinean', 'Haitian', 'Hungarian', 'Indian', 'Indonesian',
+    'Iranian', 'Iraqi', 'Irish', 'Israeli', 'Italian', 'Ivorian', 'Jamaican', 'Japanese', 'Jordanian', 'Kazakh', 'Kenyan',
+    'Kuwaiti', 'Lao', 'Latvian', 'Lebanese', 'Liberian', 'Libyan', 'Lithuanian', 'Malagasy', 'Malawian', 'Malaysian', 'Malian',
+    'Maltese', 'Mauritanian', 'Mauritian', 'Mexican', 'Moldovan', 'Mongolian', 'Moroccan', 'Mozambican', 'Namibian', 'Nepalese',
+    'Nigerian', 'Nigerien', 'Norwegian', 'Omani', 'Pakistani', 'Panamanian', 'Paraguayan', 'Peruvian', 'Philippine', 'Polish',
+    'Portuguese', 'Qatari', 'Romanian', 'Russian', 'Rwandan', 'Saudi', 'Senegalese', 'Serbian', 'Sierra Leonean', 'Singaporean',
+    'Slovak', 'Slovenian', 'Somali', 'South African', 'South Korean', 'Spanish', 'Sri Lankan', 'Sudanese', 'Swedish', 'Swiss',
+    'Syrian', 'Taiwanese', 'Tajik', 'Tanzanian', 'Thai', 'Togolese', 'Trinidadian', 'Tunisian', 'Turkish', 'Ugandan', 'Ukrainian',
+    'American', 'Uruguayan', 'Uzbek', 'Venezuelan', 'Vietnamese', 'Yemeni', 'Zambian', 'Zimbabwean'
 ]
 AIRLINE_PREFIXES = {
     'TK': 'Turkish Airlines',
@@ -322,6 +403,16 @@ def ensure_immigration_schema(cursor, backend):
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             ''',
+            '''
+            CREATE TABLE IF NOT EXISTS entry_ports (
+                id SERIAL PRIMARY KEY,
+                channel TEXT NOT NULL,
+                port_name TEXT NOT NULL,
+                sort_order INTEGER DEFAULT 0,
+                is_active INTEGER DEFAULT 1
+            )
+            ''',
+            'CREATE UNIQUE INDEX IF NOT EXISTS idx_entry_ports_unique ON entry_ports(channel, port_name)',
         ]
     elif backend == 'mysql':
         statements = [
@@ -514,6 +605,16 @@ def ensure_immigration_schema(cursor, backend):
                 entity_id INT,
                 details LONGTEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            ''',
+            '''
+            CREATE TABLE IF NOT EXISTS entry_ports (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                channel VARCHAR(32) NOT NULL,
+                port_name VARCHAR(255) NOT NULL,
+                sort_order INT DEFAULT 0,
+                is_active TINYINT(1) DEFAULT 1,
+                UNIQUE KEY idx_entry_ports_unique (channel, port_name)
             )
             ''',
         ]
@@ -712,6 +813,16 @@ def ensure_immigration_schema(cursor, backend):
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             ''',
+            '''
+            CREATE TABLE IF NOT EXISTS entry_ports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                channel TEXT NOT NULL,
+                port_name TEXT NOT NULL,
+                sort_order INTEGER DEFAULT 0,
+                is_active INTEGER DEFAULT 1
+            )
+            ''',
+            'CREATE UNIQUE INDEX IF NOT EXISTS idx_entry_ports_unique ON entry_ports(channel, port_name)',
         ]
 
     for statement in statements:
@@ -722,6 +833,37 @@ def ensure_immigration_schema(cursor, backend):
                 pass
             else:
                 raise
+
+    for channel, ports in DEFAULT_ENTRY_PORTS.items():
+        for index, port_name in enumerate(ports, start=1):
+            try:
+                if backend == 'postgres':
+                    cursor.execute(
+                        '''
+                        INSERT INTO entry_ports (channel, port_name, sort_order, is_active)
+                        VALUES (%s, %s, %s, 1)
+                        ON CONFLICT (channel, port_name) DO NOTHING
+                        ''',
+                        (channel, port_name, index),
+                    )
+                elif backend == 'mysql':
+                    cursor.execute(
+                        '''
+                        INSERT IGNORE INTO entry_ports (channel, port_name, sort_order, is_active)
+                        VALUES (%s, %s, %s, 1)
+                        ''',
+                        (channel, port_name, index),
+                    )
+                else:
+                    cursor.execute(
+                        '''
+                        INSERT OR IGNORE INTO entry_ports (channel, port_name, sort_order, is_active)
+                        VALUES (?, ?, ?, 1)
+                        ''',
+                        (channel, port_name, index),
+                    )
+            except Exception:
+                pass
 
     required_applicant_columns = [
         ('passport_type', 'TEXT' if backend != 'mysql' else 'VARCHAR(255)'),
@@ -778,20 +920,16 @@ def normalize_whitespace(value):
 
 
 def normalize_title(value):
-    title = normalize_whitespace(value).title()
-    known = {
-        'Mr': 'Mr.',
-        'Mrs': 'Mrs.',
-        'Ms': 'Ms.',
-        'Miss': 'Miss',
-        'Dr': 'Dr.',
-        'Prof': 'Prof.',
-    }
-    return known.get(title.rstrip('.'), title)
+    raw = normalize_whitespace(value).lower()
+    return TITLE_NORMALIZATION.get(raw, normalize_whitespace(value))
 
 
 def normalize_name(value):
     return normalize_whitespace(value).title()
+
+
+def normalize_upper_text(value):
+    return normalize_whitespace(value).upper()
 
 
 def normalize_date(value):
@@ -805,6 +943,20 @@ def normalize_date(value):
         except ValueError:
             continue
     return raw
+
+
+def nigeria_now():
+    return datetime.utcnow() + timedelta(hours=1)
+
+
+def parse_iso_date(value):
+    normalized = normalize_date(value)
+    if not normalized:
+        return None
+    try:
+        return datetime.strptime(normalized, '%Y-%m-%d')
+    except ValueError:
+        return None
 
 
 def normalize_display_date(value):
@@ -827,6 +979,39 @@ def detect_travel_carrier(flight_number):
         return ''
     prefix2 = normalized[:2]
     return AIRLINE_PREFIXES.get(prefix2, '')
+
+
+def get_entry_ports_map(conn):
+    rows = conn.execute(
+        'SELECT channel, port_name FROM entry_ports WHERE is_active = 1 ORDER BY channel ASC, sort_order ASC, port_name ASC'
+    ).fetchall()
+    ports = {'Air': [], 'Land': [], 'Sea': []}
+    for row in rows:
+        record = row_to_dict(row)
+        channel = record.get('channel')
+        if channel in ports:
+            ports[channel].append(record.get('port_name'))
+    for channel, defaults in DEFAULT_ENTRY_PORTS.items():
+        if not ports.get(channel):
+            ports[channel] = list(defaults)
+    return ports
+
+
+def build_default_applicant():
+    travel_dt = nigeria_now() + timedelta(days=3)
+    travel_display = travel_dt.strftime('%Y-%m-%d')
+    return {
+        'reference_number': generate_reference(),
+        'status': 'Draft',
+        'passport_type': 'Standard',
+        'nigerian_passport': 'No',
+        'arrival_channel': 'Air',
+        'marital_status': 'SINGLE',
+        'gender': '',
+        'departure_date': travel_display,
+        'arrival_date': travel_display,
+        'contact_country': 'Nigeria',
+    }
 
 
 def ordinal_day(day):
@@ -902,21 +1087,21 @@ def normalize_yes_no(value):
 def parse_applicant_form(form):
     data = {
         'title': normalize_title(form.get('title')),
-        'surname': normalize_name(form.get('surname')),
-        'first_name': normalize_name(form.get('first_name')),
-        'middle_name': normalize_name(form.get('middle_name')),
+        'surname': normalize_upper_text(form.get('surname')),
+        'first_name': normalize_upper_text(form.get('first_name')),
+        'middle_name': normalize_upper_text(form.get('middle_name')),
         'passport_type': normalize_whitespace(form.get('passport_type')),
         'gender': normalize_whitespace(form.get('gender')),
         'marital_status': normalize_whitespace(form.get('marital_status')),
         'date_of_birth': normalize_date(form.get('date_of_birth')),
-        'place_of_birth': normalize_name(form.get('place_of_birth')),
+        'place_of_birth': normalize_upper_text(form.get('place_of_birth')),
         'passport_number': normalize_whitespace(form.get('passport_number')).upper(),
         'passport_expiry': normalize_date(form.get('passport_expiry')),
         'nigerian_passport': normalize_yes_no(form.get('nigerian_passport')),
-        'nationality': normalize_name(form.get('nationality')),
+        'nationality': normalize_whitespace(form.get('nationality')),
         'visa_type': normalize_whitespace(form.get('visa_type')),
         'status': normalize_whitespace(form.get('status')) or 'Pending',
-        'country_of_departure': normalize_name(form.get('country_of_departure')),
+        'country_of_departure': normalize_whitespace(form.get('country_of_departure')),
         'departure_date': normalize_date(form.get('departure_date')),
         'arrival_date': normalize_date(form.get('arrival_date')),
         'arrival_channel': normalize_whitespace(form.get('arrival_channel')),
@@ -930,13 +1115,13 @@ def parse_applicant_form(form):
         'reference_number': normalize_whitespace(form.get('reference_number')) or generate_reference(),
         'company_id': form.get('company_id') or None,
         'contact_id': form.get('contact_id') or None,
-        'contact_name': normalize_name(form.get('contact_name')),
+        'contact_name': normalize_whitespace(form.get('contact_name')),
         'contact_email': normalize_whitespace(form.get('contact_email')).lower(),
         'contact_phone': normalize_whitespace(form.get('contact_phone')),
         'contact_address': normalize_whitespace(form.get('contact_address')),
-        'contact_city': normalize_name(form.get('contact_city')),
-        'contact_state': normalize_name(form.get('contact_state')),
-        'contact_country': normalize_name(form.get('contact_country')),
+        'contact_city': normalize_whitespace(form.get('contact_city')),
+        'contact_state': normalize_whitespace(form.get('contact_state')),
+        'contact_country': normalize_whitespace(form.get('contact_country')),
         'contact_postal_code': normalize_whitespace(form.get('contact_postal_code')),
         'reason': normalize_whitespace(form.get('reason')),
         'notes': normalize_whitespace(form.get('notes')),
@@ -1504,7 +1689,7 @@ def register_immigration_routes(app, helpers):
             companies=companies,
             contacts=contacts,
             nationalities=nationalities,
-            visa_types=VISA_TYPES,
+            visa_types=VISA_CATEGORIES,
             statuses=APPLICANT_STATUSES,
             reasons=REASONS,
             filters={
@@ -1527,13 +1712,16 @@ def register_immigration_routes(app, helpers):
         conn = get_db_connection()
         ensure_immigration_ready(conn)
         model_id = current_model_id()
-        applicant = None
+        applicant = build_default_applicant()
         if applicant_id:
             applicant = row_to_dict(
                 conn.execute('SELECT * FROM applicants WHERE id = ? AND model_id = ?', (applicant_id, model_id)).fetchone()
             )
             if not applicant:
                 return redirect(url_for('immigration_applicants'))
+        else:
+            applicant['company_id'] = None
+            applicant['contact_id'] = None
         companies = get_companies(conn, model_id)
         contacts = get_company_contacts(conn, model_id, applicant.get('company_id') if applicant else None)
         documents = []
@@ -1554,17 +1742,19 @@ def register_immigration_routes(app, helpers):
             all_contacts=get_company_contacts(conn, model_id),
             applicant_titles=APPLICANT_TITLES,
             passport_types=PASSPORT_TYPES,
-            genders=GENDERS,
-            marital_statuses=MARITAL_STATUSES,
-            visa_types=VISA_TYPES,
+            gender_options=GENDER_OPTIONS,
+            marital_status_options=MARITAL_STATUS_OPTIONS,
+            visa_categories=VISA_CATEGORIES,
             journey_purposes=JOURNEY_PURPOSES,
             reasons=REASONS,
             statuses=APPLICANT_STATUSES,
             arrival_channels=ARRIVAL_CHANNELS,
-            ports_by_channel=PORTS_BY_CHANNEL,
+            ports_by_channel=get_entry_ports_map(conn),
             travel_carriers=TRAVEL_CARRIERS,
             documents=documents,
-            default_countries=DEFAULT_COUNTRIES,
+            nationality_options=NATIONALITY_OPTIONS,
+            country_options=COUNTRY_OPTIONS,
+            success_message=request.args.get('message', ''),
         )
 
     @app.route('/immigration/applicants/save', methods=['POST'])
@@ -1575,29 +1765,87 @@ def register_immigration_routes(app, helpers):
         ensure_immigration_ready(conn)
         model_id = current_model_id()
         payload = parse_applicant_form(request.form)
-        if not payload['surname'] or not payload['first_name']:
+
+        def render_form_error(message):
             return render_template(
                 'immigration/applicant_form.html',
                 page_title='Applicant Form',
-                error='Surname and First Name are required.',
+                error=message,
                 applicant=payload,
                 companies=get_companies(conn, model_id),
                 contacts=get_company_contacts(conn, model_id, payload.get('company_id')),
                 all_contacts=get_company_contacts(conn, model_id),
                 applicant_titles=APPLICANT_TITLES,
                 passport_types=PASSPORT_TYPES,
-                genders=GENDERS,
-                marital_statuses=MARITAL_STATUSES,
-                visa_types=VISA_TYPES,
+                gender_options=GENDER_OPTIONS,
+                marital_status_options=MARITAL_STATUS_OPTIONS,
+                visa_categories=VISA_CATEGORIES,
                 journey_purposes=JOURNEY_PURPOSES,
                 reasons=REASONS,
                 statuses=APPLICANT_STATUSES,
                 arrival_channels=ARRIVAL_CHANNELS,
-                ports_by_channel=PORTS_BY_CHANNEL,
+                ports_by_channel=get_entry_ports_map(conn),
                 travel_carriers=TRAVEL_CARRIERS,
                 documents=[],
-                default_countries=DEFAULT_COUNTRIES,
+                nationality_options=NATIONALITY_OPTIONS,
+                country_options=COUNTRY_OPTIONS,
+                success_message='',
             )
+
+        required_fields = [
+            ('nationality', 'Nationality is required.'),
+            ('visa_type', 'Visa Category is required.'),
+            ('passport_type', 'Passport Type is required.'),
+            ('title', 'Title is required.'),
+            ('surname', 'Surname is required.'),
+            ('first_name', 'First Name is required.'),
+            ('date_of_birth', 'Date of Birth is required.'),
+            ('place_of_birth', 'Place of Birth is required.'),
+            ('gender', 'Gender is required.'),
+            ('marital_status', 'Marital Status is required.'),
+            ('passport_number', 'Passport Number is required.'),
+            ('passport_expiry', 'Passport Expiry Date is required.'),
+            ('nigerian_passport', 'Nigerian Passport selection is required.'),
+            ('reason', 'Purpose of Journey is required.'),
+            ('travel_carrier', 'Travel Carrier is required.'),
+            ('flight_number', 'Flight Number is required.'),
+            ('country_of_departure', 'Country of Departure is required.'),
+            ('departure_date', 'Departure Date is required.'),
+            ('arrival_date', 'Arrival Date is required.'),
+            ('arrival_channel', 'Arrival Channel is required.'),
+            ('duration_of_stay', 'Duration of Stay is required.'),
+            ('port_of_entry', 'Port of Entry is required.'),
+            ('contact_name', 'Contact Name is required.'),
+            ('contact_phone', 'Contact Phone is required.'),
+            ('contact_address', 'Contact Address is required.'),
+            ('contact_city', 'Contact City is required.'),
+            ('contact_state', 'Contact State is required.'),
+            ('contact_email', 'Contact Email is required.'),
+            ('contact_country', 'Contact Country is required.'),
+        ]
+        for field_name, message in required_fields:
+            if not payload.get(field_name):
+                return render_form_error(message)
+
+        dob_dt = parse_iso_date(payload.get('date_of_birth'))
+        passport_expiry_dt = parse_iso_date(payload.get('passport_expiry'))
+        departure_dt = parse_iso_date(payload.get('departure_date'))
+        arrival_dt = parse_iso_date(payload.get('arrival_date'))
+        today = nigeria_now().date()
+
+        if dob_dt and dob_dt.date() > today:
+            return render_form_error('Date of Birth cannot be in the future.')
+        if passport_expiry_dt and passport_expiry_dt.date() <= today:
+            return render_form_error('Passport Expiry Date must be later than today.')
+        if departure_dt and arrival_dt and arrival_dt.date() < departure_dt.date():
+            return render_form_error('Arrival Date cannot be earlier than Departure Date.')
+
+        duplicate_row = conn.execute(
+            'SELECT id FROM applicants WHERE model_id = ? AND passport_number = ? AND (? IS NULL OR id != ?)',
+            (model_id, payload['passport_number'], applicant_id, applicant_id),
+        ).fetchone()
+        if duplicate_row:
+            return render_form_error('An applicant with this Passport Number already exists.')
 
         values = (
             model_id,
@@ -1684,7 +1932,8 @@ def register_immigration_routes(app, helpers):
         if request.form.get('next_action') == 'visa_letter':
             target_id = applicant_id or inserted_id
             return redirect(url_for('immigration_visa_letters', applicant_id=target_id))
-        return redirect(url_for('immigration_applicants'))
+        target_id = applicant_id or inserted_id
+        return redirect(url_for('immigration_applicant_form', applicant_id=target_id, message='Applicant saved successfully.'))
 
     @app.route('/immigration/applicants/<int:applicant_id>/duplicate', methods=['POST'])
     def duplicate_immigration_applicant(applicant_id):
@@ -2318,7 +2567,7 @@ def register_immigration_routes(app, helpers):
             companies=companies,
             letterheads=letterheads,
             reasons=REASONS,
-            visa_types=VISA_TYPES,
+            visa_types=VISA_CATEGORIES,
             letters=letters,
             preview=preview,
         )
@@ -2531,7 +2780,7 @@ def register_immigration_routes(app, helpers):
             rows=rows[:60],
             summary=summary,
             companies=get_companies(conn, model_id),
-            visa_types=VISA_TYPES,
+            visa_types=VISA_CATEGORIES,
             filters=request.args,
         )
 

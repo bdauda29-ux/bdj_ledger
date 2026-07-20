@@ -8,56 +8,35 @@
     <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
     {% endif %}
 
-    <div class="applicant-form-shell">
-        <form method="POST" action="{% if applicant %}{{ url_for('save_immigration_applicant', applicant_id=applicant.id) }}{% else %}{{ url_for('save_immigration_applicant') }}{% endif %}" id="applicantForm" novalidate>
-            <section class="applicant-form-hero">
-                <div>
-                    <span class="badge-soft"><i class="fas fa-passport"></i> Applicant Information</span>
-                    <h2>Create or edit an immigration applicant.</h2>
-                    <p>Premium keyboard-first applicant entry with quick fill, OCR passport capture, smart contact matching, travel automation, and responsive multi-section layout.</p>
-                </div>
-                <div class="applicant-form-hero-side">
-                    <div class="hero-status-card">
-                        <div class="hero-status-head">
-                            <div>
-                                <span class="hero-eyebrow">Application Status</span>
-                                <strong>{{ applicant.status if applicant and applicant.status else 'Draft' }}</strong>
-                            </div>
-                            <span class="status-pill {{ ((applicant.status if applicant else 'Draft') or 'Draft')|lower|replace(' ', '-') }}">{{ applicant.status if applicant and applicant.status else 'Draft' }}</span>
-                        </div>
-                        <div class="status-choice-group" id="statusGroup">
-                            {% for item in statuses %}
-                            <label class="status-choice">
-                                <input type="radio" name="status" value="{{ item }}" {% if applicant and applicant.status == item %}checked{% elif not applicant and item == 'Draft' %}checked{% endif %}>
-                                <span>{{ item }}</span>
-                            </label>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <div class="hero-action-stack">
-                        <a href="{{ url_for('immigration_applicants') }}" class="btn btn-secondary btn-sm">Cancel</a>
-                        <button type="submit" class="btn btn-secondary btn-sm" name="save_mode" value="draft">Save Draft</button>
-                        <button type="submit" class="btn btn-primary btn-sm" name="save_mode" value="final">Save Applicant</button>
-                    </div>
-                </div>
-            </section>
+    <div class="applicant-form-shell applicant-form-exact-shell">
+        <section class="applicant-form-hero applicant-form-hero-compact">
+            <div>
+                <span class="badge-soft"><i class="fas fa-passport"></i> Applicant Information</span>
+                <h2>Immigration Applicant Form</h2>
+                <p>Responsive three-column applicant entry with equal-width controls, searchable dropdowns, clean validation, and premium BDJ Ledger styling.</p>
+            </div>
+            <div class="applicant-hero-status">
+                <span class="hero-eyebrow">Current Status</span>
+                <div class="status-pill {{ (applicant.status or 'Draft')|lower|replace(' ', '-') }}">{{ applicant.status or 'Draft' }}</div>
+            </div>
+        </section>
 
-            <section class="applicant-utility-grid">
-                <div class="applicant-utility-card">
-                    <div class="workspace-toolbar">
-                        <div>
-                            <h3>Quick Fill</h3>
-                            <p class="card-subtitle">Paste 10 lines, press <kbd>Ctrl</kbd> + <kbd>Enter</kbd>, and populate the premium form instantly.</p>
-                        </div>
-                        <div class="toolbar-actions">
-                            <button type="button" class="btn btn-secondary btn-sm" id="clearQuickFill">Clear</button>
-                            <button type="button" class="btn btn-primary btn-sm" id="applyQuickFill">Auto Fill Applicant Form</button>
-                        </div>
+        <section class="applicant-utility-grid">
+            <div class="applicant-utility-card">
+                <div class="workspace-toolbar">
+                    <div>
+                        <h3>Quick Fill</h3>
+                        <p class="card-subtitle">Paste 10 lines, press <kbd>Ctrl</kbd> + <kbd>Enter</kbd>, and populate the exact applicant form from the keyboard.</p>
                     </div>
-                    <div class="quick-fill-shell">
-                        <div class="quick-fill-lines" id="quickFillLineNumbers" aria-hidden="true">1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9<br>10</div>
-                        <div class="quick-fill-input-area">
-                            <textarea id="quickFillTextarea" class="quick-fill-textarea" rows="10" spellcheck="false" placeholder="Mr.
+                    <div class="toolbar-actions">
+                        <button type="button" class="btn btn-secondary btn-sm" id="clearQuickFill">Clear</button>
+                        <button type="button" class="btn btn-primary btn-sm" id="applyQuickFill">Auto Fill Applicant Form</button>
+                    </div>
+                </div>
+                <div class="quick-fill-shell">
+                    <div class="quick-fill-lines" id="quickFillLineNumbers" aria-hidden="true">1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9<br>10</div>
+                    <div class="quick-fill-input-area">
+                        <textarea id="quickFillTextarea" class="quick-fill-textarea" rows="10" spellcheck="false" placeholder="Mr.
 DAUDA
 BUNYAMEEN
 ABDUL
@@ -67,515 +46,423 @@ WJ2I333333
 30/01/2029
 TK720
 BOS"></textarea>
-                            <div class="quick-fill-hint">Order: Title, Surname, First Name, Other Names, Date of Birth, Place of Birth, Passport Number, Passport Expiry, Flight Number, Contact Search</div>
-                        </div>
-                        <div class="quick-fill-feedback" id="quickFillFeedback">
-                            <div class="quick-fill-feedback-title">Validation</div>
-                            <div class="quick-fill-feedback-body" id="quickFillFeedbackBody">Ready for keyboard-only entry.</div>
-                        </div>
+                        <div class="quick-fill-hint">Order: Title, Surname, First Name, Other Names, Date of Birth, Place of Birth, Passport Number, Passport Expiry Date, Flight Number, Contact Search</div>
                     </div>
-                    <div class="quick-fill-shortcuts">
-                        <span><kbd>Ctrl</kbd> + <kbd>V</kbd> Paste complete details</span>
-                        <span><kbd>Ctrl</kbd> + <kbd>Enter</kbd> Parse</span>
-                        <span><kbd>Esc</kbd> Clear after confirmation</span>
+                    <div class="quick-fill-feedback" id="quickFillFeedback">
+                        <div class="quick-fill-feedback-title">Validation</div>
+                        <div class="quick-fill-feedback-body" id="quickFillFeedbackBody">Ready for keyboard-first entry.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="applicant-utility-card">
+                <div class="workspace-toolbar">
+                    <div>
+                        <h3>OCR Passport</h3>
+                        <p class="card-subtitle">Upload a passport image and continue inside the same form.</p>
+                    </div>
+                </div>
+                <form id="ocrForm" class="dropzone" enctype="multipart/form-data">
+                    <div class="form-group" style="margin-bottom: 0.8rem;">
+                        <label for="passportImage">Passport Image</label>
+                        <input type="file" id="passportImage" name="passport_image" accept=".png,.jpg,.jpeg,.webp" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-camera"></i> OCR Passport</button>
+                    <div id="ocrMessage" style="margin-top: 1rem; color: var(--text-secondary);"></div>
+                    <div id="ocrPreview" style="margin-top: 1rem;"></div>
+                </form>
+            </div>
+        </section>
+
+        <form method="POST" action="{% if applicant and applicant.id %}{{ url_for('save_immigration_applicant', applicant_id=applicant.id) }}{% else %}{{ url_for('save_immigration_applicant') }}{% endif %}" id="applicantForm" novalidate>
+            <input type="hidden" id="status" name="status" value="{{ applicant.status or 'Draft' }}">
+            <input type="hidden" id="contact_name" name="contact_name" value="{{ applicant.contact_name or '' }}">
+
+            <section class="applicant-form-card exact-form-card">
+                <div class="workspace-toolbar applicant-form-toolbar">
+                    <div>
+                        <h3>Applicant Information</h3>
+                        <p class="card-subtitle">Create or edit an immigration applicant using the exact desktop row map and responsive tablet/mobile behaviour.</p>
                     </div>
                 </div>
 
-                <div class="applicant-utility-card">
-                    <div class="workspace-toolbar">
-                        <div>
-                            <h3>OCR Passport</h3>
-                            <p class="card-subtitle">Capture passport details automatically and continue editing in the same form.</p>
-                        </div>
+                <div class="applicant-grid">
+                    <div class="form-field">
+                        <label for="reference_number">Application ID</label>
+                        <input class="read-only-input" type="text" id="reference_number" name="reference_number" value="{{ applicant.reference_number or '' }}" readonly>
+                        <div class="field-meta"><span class="field-error"></span></div>
                     </div>
-                    <form id="ocrForm" class="dropzone" enctype="multipart/form-data">
-                        <div class="form-group" style="margin-bottom: 0.8rem;">
-                            <label for="passportImage">Passport Image</label>
-                            <input type="file" id="passportImage" name="passport_image" accept=".png,.jpg,.jpeg,.webp" required>
+                    <div class="form-field" data-field="nationality">
+                        <label for="nationality">Nationality</label>
+                        <select id="nationality" name="nationality" class="js-search-select" data-placeholder="Select nationality" data-clearable="true" required>
+                            <option value=""></option>
+                            {% for item in nationality_options %}
+                            <option value="{{ item }}" {% if applicant.nationality == item %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="visa_type">
+                        <label for="visa_type">Visa Category</label>
+                        <select id="visa_type" name="visa_type" class="js-search-select" data-placeholder="Select visa category" data-clearable="true" required>
+                            <option value=""></option>
+                            {% for item in visa_categories %}
+                            <option value="{{ item }}" {% if applicant.visa_type == item %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+
+                    <div class="form-field" data-field="passport_type">
+                        <label for="passport_type">Passport Type</label>
+                        <select id="passport_type" name="passport_type" required>
+                            {% for item in passport_types %}
+                            <option value="{{ item }}" {% if applicant.passport_type == item %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="title">
+                        <label for="title">Title</label>
+                        <select id="title" name="title" required>
+                            <option value="">Select title</option>
+                            {% for item in applicant_titles %}
+                            <option value="{{ item }}" {% if applicant.title == item %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="surname">
+                        <label for="surname">Surname</label>
+                        <input type="text" id="surname" name="surname" value="{{ applicant.surname or '' }}" maxlength="120" required>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+
+                    <div class="form-field" data-field="first_name">
+                        <label for="first_name">First Name</label>
+                        <input type="text" id="first_name" name="first_name" value="{{ applicant.first_name or '' }}" maxlength="120" required>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="middle_name">
+                        <label for="middle_name">Other Names</label>
+                        <input type="text" id="middle_name" name="middle_name" value="{{ applicant.middle_name or '' }}" maxlength="160">
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="date_of_birth">
+                        <label for="date_of_birth">Date of Birth</label>
+                        <div class="date-field-shell">
+                            <input type="text" id="date_of_birth" name="date_of_birth" value="{{ applicant.date_of_birth or '' }}" class="js-date-field" placeholder="dd/mm/yyyy" autocomplete="off" required>
+                            <button type="button" class="date-icon-button" data-date-trigger="date_of_birth" aria-label="Open date picker for date of birth"><i class="fas fa-calendar-alt"></i></button>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-camera"></i> OCR Passport</button>
-                        <div id="ocrMessage" style="margin-top: 1rem; color: var(--text-secondary);"></div>
-                        <div id="ocrPreview" style="margin-top: 1rem;"></div>
-                    </form>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+
+                    <div class="form-field" data-field="place_of_birth">
+                        <label for="place_of_birth">Place of Birth</label>
+                        <input type="text" id="place_of_birth" name="place_of_birth" value="{{ applicant.place_of_birth or '' }}" required>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="gender">
+                        <label for="gender">Gender</label>
+                        <select id="gender" name="gender" required>
+                            <option value="">Select gender</option>
+                            {% for value, label in gender_options %}
+                            <option value="{{ value }}" {% if applicant.gender == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="marital_status">
+                        <label for="marital_status">Marital Status</label>
+                        <select id="marital_status" name="marital_status" required>
+                            {% for value, label in marital_status_options %}
+                            <option value="{{ value }}" {% if applicant.marital_status == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+
+                    <div class="form-field" data-field="passport_number">
+                        <label for="passport_number">Passport Number</label>
+                        <input type="text" id="passport_number" name="passport_number" value="{{ applicant.passport_number or '' }}" required>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="passport_expiry">
+                        <label for="passport_expiry">Passport Expiry Date</label>
+                        <div class="date-field-shell">
+                            <input type="text" id="passport_expiry" name="passport_expiry" value="{{ applicant.passport_expiry or '' }}" class="js-date-field" placeholder="dd/mm/yyyy" autocomplete="off" required>
+                            <button type="button" class="date-icon-button" data-date-trigger="passport_expiry" aria-label="Open date picker for passport expiry"><i class="fas fa-calendar-alt"></i></button>
+                        </div>
+                        <div class="field-meta"><span class="field-warning" id="passportExpiryWarning"></span><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="nigerian_passport">
+                        <label for="nigerian_passport">Nigerian Passport</label>
+                        <select id="nigerian_passport" name="nigerian_passport" required>
+                            <option value="No" {% if applicant.nigerian_passport != 'Yes' %}selected{% endif %}>No</option>
+                            <option value="Yes" {% if applicant.nigerian_passport == 'Yes' %}selected{% endif %}>Yes</option>
+                        </select>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+
+                    <div class="form-field" data-field="reason">
+                        <label for="reason">Purpose of Journey</label>
+                        <select id="reason" name="reason" class="js-search-select js-create-select" data-placeholder="Select or type purpose" data-clearable="true" required>
+                            <option value=""></option>
+                            {% for item in journey_purposes %}
+                            <option value="{{ item }}" {% if applicant.reason == item %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                            {% if applicant.reason and applicant.reason not in journey_purposes %}
+                            <option value="{{ applicant.reason }}" selected>{{ applicant.reason }}</option>
+                            {% endif %}
+                        </select>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="travel_carrier">
+                        <label for="travel_carrier">Travel Carrier</label>
+                        <select id="travel_carrier" name="travel_carrier" class="js-search-select" data-placeholder="Select carrier" data-clearable="true" required>
+                            <option value=""></option>
+                            {% for item in travel_carriers %}
+                            <option value="{{ item }}" {% if applicant.travel_carrier == item %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="flight_number">
+                        <label for="flight_number">Flight Number</label>
+                        <input type="text" id="flight_number" name="flight_number" value="{{ applicant.flight_number or '' }}" placeholder="EK783" required>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+
+                    <div class="form-field" data-field="country_of_departure">
+                        <label for="country_of_departure">Country of Departure</label>
+                        <select id="country_of_departure" name="country_of_departure" class="js-search-select" data-placeholder="Select country of departure" data-clearable="true" required>
+                            <option value=""></option>
+                            {% for item in country_options %}
+                            <option value="{{ item }}" {% if applicant.country_of_departure == item %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="departure_date">
+                        <label for="departure_date">Departure Date</label>
+                        <div class="date-field-shell">
+                            <input type="text" id="departure_date" name="departure_date" value="{{ applicant.departure_date or '' }}" class="js-date-field" placeholder="dd/mm/yyyy" autocomplete="off" required>
+                            <button type="button" class="date-icon-button" data-date-trigger="departure_date" aria-label="Open date picker for departure date"><i class="fas fa-calendar-alt"></i></button>
+                        </div>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="arrival_date">
+                        <label for="arrival_date">Arrival Date</label>
+                        <div class="date-field-shell">
+                            <input type="text" id="arrival_date" name="arrival_date" value="{{ applicant.arrival_date or '' }}" class="js-date-field" placeholder="dd/mm/yyyy" autocomplete="off" required>
+                            <button type="button" class="date-icon-button" data-date-trigger="arrival_date" aria-label="Open date picker for arrival date"><i class="fas fa-calendar-alt"></i></button>
+                        </div>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+
+                    <div class="form-field" data-field="arrival_channel">
+                        <label for="arrival_channel">Arrival Channel</label>
+                        <select id="arrival_channel" name="arrival_channel" required>
+                            {% for item in arrival_channels %}
+                            <option value="{{ item }}" {% if applicant.arrival_channel == item %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="duration_of_stay">
+                        <label for="duration_of_stay">Duration of Stay</label>
+                        <div class="duration-field-shell">
+                            <input type="number" id="duration_of_stay" name="duration_of_stay" value="{{ applicant.duration_of_stay or '' }}" min="1" step="1" required>
+                            <span>days</span>
+                        </div>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="port_of_entry">
+                        <label for="port_of_entry">Port of Entry</label>
+                        <select id="port_of_entry" name="port_of_entry" class="js-search-select" data-placeholder="Select port of entry" data-clearable="true" required>
+                            <option value=""></option>
+                            {% for item in ports_by_channel.get(applicant.arrival_channel or 'Air', []) %}
+                            <option value="{{ item }}" {% if applicant.port_of_entry == item %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+
+                    <div class="form-field" data-field="contact_id">
+                        <label for="contact_id">Contact Name</label>
+                        <div class="contact-select-shell">
+                            <select id="contact_id" name="contact_id" class="js-search-select" data-placeholder="Search contact name" data-clearable="true" required>
+                                <option value=""></option>
+                                {% for item in contacts %}
+                                <option value="{{ item.id }}" {% if applicant.contact_id|string == item.id|string %}selected{% endif %}
+                                    data-name="{{ item.contact_name }}"
+                                    data-company-id="{{ item.company_id or '' }}"
+                                    data-company-name="{{ item.company_name or '' }}"
+                                    data-phone="{{ item.phone or '' }}"
+                                    data-email="{{ item.email or '' }}"
+                                    data-address="{{ item.address or '' }}"
+                                    data-city="{{ item.city or '' }}"
+                                    data-state="{{ item.state or '' }}"
+                                    data-postal="{{ item.postal_code or '' }}"
+                                    data-country="{{ item.country or '' }}">
+                                    {{ item.contact_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" class="contact-add-btn" id="openContactDialog" aria-label="Add contact">+</button>
+                        </div>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="contact_phone">
+                        <label for="contact_phone">Contact Phone</label>
+                        <input type="tel" id="contact_phone" name="contact_phone" value="{{ applicant.contact_phone or '' }}" required>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="contact_address">
+                        <label for="contact_address">Contact Address</label>
+                        <input type="text" id="contact_address" name="contact_address" value="{{ applicant.contact_address or '' }}" required>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+
+                    <div class="form-field" data-field="contact_city">
+                        <label for="contact_city">Contact City</label>
+                        <input type="text" id="contact_city" name="contact_city" value="{{ applicant.contact_city or '' }}" required>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="contact_state">
+                        <label for="contact_state">Contact State</label>
+                        <input type="text" id="contact_state" name="contact_state" value="{{ applicant.contact_state or '' }}" required>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="contact_email">
+                        <label for="contact_email">Contact Email</label>
+                        <input type="email" id="contact_email" name="contact_email" value="{{ applicant.contact_email or '' }}" required>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+
+                    <div class="form-field" data-field="contact_postal_code">
+                        <label for="contact_postal_code">Postal Code</label>
+                        <input type="text" id="contact_postal_code" name="contact_postal_code" value="{{ applicant.contact_postal_code or '' }}">
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="contact_country">
+                        <label for="contact_country">Contact Country</label>
+                        <select id="contact_country" name="contact_country" class="js-search-select" data-placeholder="Select contact country" data-clearable="true" required>
+                            <option value=""></option>
+                            {% for item in country_options %}
+                            <option value="{{ item }}" {% if (applicant.contact_country or 'Nigeria') == item %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
+                    <div class="form-field" data-field="company_id">
+                        <label for="company_id">Company</label>
+                        <select id="company_id" name="company_id" class="js-search-select" data-placeholder="Select company" data-clearable="true">
+                            <option value=""></option>
+                            {% for item in companies %}
+                            <option value="{{ item.id }}" {% if applicant.company_id|string == item.id|string %}selected{% endif %}>{{ item.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="field-meta"><span class="field-error"></span></div>
+                    </div>
                 </div>
             </section>
 
-            <div class="applicant-section-stack">
-                <section class="applicant-section-card">
-                    <div class="applicant-section-head">
-                        <div>
-                            <span class="section-kicker">Section 1</span>
-                            <h3>Application Details</h3>
-                        </div>
-                        <p>Auto-generated identifiers, searchable categories, and sponsor context.</p>
-                    </div>
-                    <div class="form-grid three-column">
-                        <div class="form-group">
-                            <label for="reference_number">Application ID</label>
-                            <input type="text" id="reference_number" name="reference_number" value="{{ applicant.reference_number if applicant else '' }}" placeholder="Auto generated on save" readonly>
-                            <div class="field-help">Read only</div>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="nationality">Nationality</label>
-                            <div class="combo-shell">
-                                <input type="text" id="nationality" name="nationality" value="{{ applicant.nationality if applicant else '' }}" list="countryOptions" autocomplete="off" required>
-                                <span class="combo-icon"><i class="fas fa-search"></i></span>
-                            </div>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="visa_type">Visa Category</label>
-                            <div class="combo-shell">
-                                <input type="text" id="visa_type" name="visa_type" value="{{ applicant.visa_type if applicant else '' }}" list="visaTypeOptions" autocomplete="off" required>
-                                <span class="combo-icon"><i class="fas fa-chevron-down"></i></span>
-                            </div>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="passport_type">Passport Type</label>
-                            <div class="combo-shell">
-                                <input type="text" id="passport_type" name="passport_type" value="{{ applicant.passport_type if applicant else '' }}" list="passportTypeOptions" autocomplete="off" required>
-                                <span class="combo-icon"><i class="fas fa-chevron-down"></i></span>
-                            </div>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="company_id">Company / Sponsor</label>
-                            <select id="company_id" name="company_id">
-                                <option value="">Select company</option>
-                                {% for item in companies %}
-                                <option value="{{ item.id }}" {% if applicant and applicant.company_id|string == item.id|string %}selected{% endif %}>{{ item.name }}</option>
-                                {% endfor %}
-                            </select>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="statusSummary">Current Status</label>
-                            <input type="text" id="statusSummary" value="{{ applicant.status if applicant and applicant.status else 'Draft' }}" readonly>
-                            <div class="field-help">Controlled by the status pills above.</div>
-                            <div class="field-error"></div>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="applicant-section-card">
-                    <div class="applicant-section-head">
-                        <div>
-                            <span class="section-kicker">Section 2</span>
-                            <h3>Personal Information</h3>
-                        </div>
-                        <p>Names, birth details, and personal profile with accessible keyboard navigation.</p>
-                    </div>
-                    <div class="form-grid three-column">
-                        <div class="form-group">
-                            <label for="title">Title</label>
-                            <div class="combo-shell">
-                                <input type="text" id="title" name="title" value="{{ applicant.title if applicant else '' }}" list="titleOptions" autocomplete="off">
-                                <span class="combo-icon"><i class="fas fa-chevron-down"></i></span>
-                            </div>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="surname">Surname</label>
-                            <input type="text" id="surname" name="surname" value="{{ applicant.surname if applicant else '' }}" required>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="first_name">First Name</label>
-                            <input type="text" id="first_name" name="first_name" value="{{ applicant.first_name if applicant else '' }}" required>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="middle_name">Other Names</label>
-                            <input type="text" id="middle_name" name="middle_name" value="{{ applicant.middle_name if applicant else '' }}">
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="date_of_birth">Date of Birth</label>
-                            <div class="date-input-shell">
-                                <input type="text" id="date_of_birth" name="date_of_birth" value="{{ applicant.date_of_birth if applicant else '' }}" data-date-field placeholder="dd/mm/yyyy" autocomplete="off">
-                                <button type="button" class="date-picker-btn" data-date-target="date_of_birth" aria-label="Open date picker for date of birth"><i class="fas fa-calendar-alt"></i></button>
-                                <input type="date" class="native-date-picker" data-native-for="date_of_birth" tabindex="-1" aria-hidden="true">
-                            </div>
-                            <div class="field-help">Accepts `dd/mm/yyyy`, `dd-mm-yyyy`, `dd.mm.yyyy`</div>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="place_of_birth">Place of Birth</label>
-                            <input type="text" id="place_of_birth" name="place_of_birth" value="{{ applicant.place_of_birth if applicant else '' }}">
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="gender">Gender</label>
-                            <div class="combo-shell">
-                                <input type="text" id="gender" name="gender" value="{{ applicant.gender if applicant else '' }}" list="genderOptions" autocomplete="off">
-                                <span class="combo-icon"><i class="fas fa-chevron-down"></i></span>
-                            </div>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="marital_status">Marital Status</label>
-                            <div class="combo-shell">
-                                <input type="text" id="marital_status" name="marital_status" value="{{ applicant.marital_status if applicant else '' }}" list="maritalStatusOptions" autocomplete="off">
-                                <span class="combo-icon"><i class="fas fa-chevron-down"></i></span>
-                            </div>
-                            <div class="field-error"></div>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="applicant-section-card">
-                    <div class="applicant-section-head">
-                        <div>
-                            <span class="section-kicker">Section 3</span>
-                            <h3>Passport Details</h3>
-                        </div>
-                        <p>Uppercase passport capture, expiry validation, and Nigerian passport classification.</p>
-                    </div>
-                    <div class="form-grid three-column">
-                        <div class="form-group">
-                            <label for="passport_number">Passport Number</label>
-                            <input type="text" id="passport_number" name="passport_number" value="{{ applicant.passport_number if applicant else '' }}" required>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="passport_expiry">Passport Expiry Date</label>
-                            <div class="date-input-shell">
-                                <input type="text" id="passport_expiry" name="passport_expiry" value="{{ applicant.passport_expiry if applicant else '' }}" data-date-field placeholder="dd/mm/yyyy" autocomplete="off" required>
-                                <button type="button" class="date-picker-btn" data-date-target="passport_expiry" aria-label="Open date picker for passport expiry"><i class="fas fa-calendar-alt"></i></button>
-                                <input type="date" class="native-date-picker" data-native-for="passport_expiry" tabindex="-1" aria-hidden="true">
-                            </div>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="nigerian_passport">Nigerian Passport</label>
-                            <div class="combo-shell">
-                                <input type="text" id="nigerian_passport" name="nigerian_passport" value="{{ applicant.nigerian_passport if applicant else '' }}" list="yesNoOptions" autocomplete="off">
-                                <span class="combo-icon"><i class="fas fa-chevron-down"></i></span>
-                            </div>
-                            <div class="field-error"></div>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="applicant-section-card">
-                    <div class="applicant-section-head">
-                        <div>
-                            <span class="section-kicker">Section 4</span>
-                            <h3>Travel Information</h3>
-                        </div>
-                        <p>Searchable travel fields with automatic flight-carrier and port-of-entry support.</p>
-                    </div>
-                    <div class="form-grid three-column">
-                        <div class="form-group">
-                            <label for="reason">Purpose of Journey</label>
-                            <div class="combo-shell">
-                                <input type="text" id="reason" name="reason" value="{{ applicant.reason if applicant else '' }}" list="journeyPurposeOptions" autocomplete="off" required>
-                                <span class="combo-icon"><i class="fas fa-chevron-down"></i></span>
-                            </div>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="travel_carrier">Travel Carrier</label>
-                            <div class="combo-shell">
-                                <input type="text" id="travel_carrier" name="travel_carrier" value="{{ applicant.travel_carrier if applicant else '' }}" list="travelCarrierOptions" autocomplete="off">
-                                <span class="combo-icon"><i class="fas fa-plane"></i></span>
-                            </div>
-                            <div class="field-help">Auto-selected from Flight Number when recognised.</div>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="flight_number">Flight Number</label>
-                            <input type="text" id="flight_number" name="flight_number" value="{{ applicant.flight_number if applicant else '' }}" placeholder="EK783">
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="country_of_departure">Country of Departure</label>
-                            <div class="combo-shell">
-                                <input type="text" id="country_of_departure" name="country_of_departure" value="{{ applicant.country_of_departure if applicant else '' }}" list="countryOptions" autocomplete="off">
-                                <span class="combo-icon"><i class="fas fa-search"></i></span>
-                            </div>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="departure_date">Departure Date</label>
-                            <div class="date-input-shell">
-                                <input type="text" id="departure_date" name="departure_date" value="{{ applicant.departure_date if applicant else '' }}" data-date-field placeholder="dd/mm/yyyy" autocomplete="off">
-                                <button type="button" class="date-picker-btn" data-date-target="departure_date" aria-label="Open departure date picker"><i class="fas fa-calendar-alt"></i></button>
-                                <input type="date" class="native-date-picker" data-native-for="departure_date" tabindex="-1" aria-hidden="true">
-                            </div>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="arrival_date">Arrival Date</label>
-                            <div class="date-input-shell">
-                                <input type="text" id="arrival_date" name="arrival_date" value="{{ applicant.arrival_date if applicant else '' }}" data-date-field placeholder="dd/mm/yyyy" autocomplete="off">
-                                <button type="button" class="date-picker-btn" data-date-target="arrival_date" aria-label="Open arrival date picker"><i class="fas fa-calendar-alt"></i></button>
-                                <input type="date" class="native-date-picker" data-native-for="arrival_date" tabindex="-1" aria-hidden="true">
-                            </div>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="arrival_channel">Arrival Channel</label>
-                            <div class="combo-shell">
-                                <input type="text" id="arrival_channel" name="arrival_channel" value="{{ applicant.arrival_channel if applicant else '' }}" list="arrivalChannelOptions" autocomplete="off">
-                                <span class="combo-icon"><i class="fas fa-chevron-down"></i></span>
-                            </div>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="duration_of_stay">Duration of Stay</label>
-                            <div class="inline-input-badge">
-                                <input type="number" id="duration_of_stay" name="duration_of_stay" value="{{ applicant.duration_of_stay if applicant else '' }}" min="0">
-                                <span>Days</span>
-                            </div>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="port_of_entry">Port of Entry</label>
-                            <div class="combo-shell">
-                                <input type="text" id="port_of_entry" name="port_of_entry" value="{{ applicant.port_of_entry if applicant else '' }}" list="portEntryOptions" autocomplete="off">
-                                <span class="combo-icon"><i class="fas fa-map-marker-alt"></i></span>
-                            </div>
-                            <div class="field-help">Reloads according to the selected arrival channel.</div>
-                            <div class="field-error"></div>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="applicant-section-card">
-                    <div class="applicant-section-head">
-                        <div>
-                            <span class="section-kicker">Section 5</span>
-                            <h3>Contact Information</h3>
-                        </div>
-                        <p>Search contacts instantly, create new ones inline, and auto-populate editable contact fields.</p>
-                    </div>
-                    <div class="form-grid three-column">
-                        <div class="form-group">
-                            <label for="contact_name">Contact Name</label>
-                            <div class="contact-search-shell">
-                                <input type="text" id="contact_name" name="contact_name" value="{{ applicant.contact_name if applicant else '' }}" autocomplete="off" placeholder="Type to search contacts">
-                                <button type="button" class="btn btn-secondary btn-sm" id="openContactDialog">+</button>
-                                <div id="contactAutocomplete" class="contact-autocomplete" style="display:none;"></div>
-                            </div>
-                            <div class="field-help">Starts With, Contains, then Fuzzy Match.</div>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="contact_phone">Contact Phone</label>
-                            <input type="text" id="contact_phone" name="contact_phone" value="{{ applicant.contact_phone if applicant else '' }}">
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="contact_email">Contact Email</label>
-                            <input type="email" id="contact_email" name="contact_email" value="{{ applicant.contact_email if applicant else '' }}">
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group full-span">
-                            <label for="contact_address">Contact Address</label>
-                            <input type="text" id="contact_address" name="contact_address" value="{{ applicant.contact_address if applicant else '' }}">
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="contact_city">Contact City</label>
-                            <input type="text" id="contact_city" name="contact_city" value="{{ applicant.contact_city if applicant else '' }}">
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="contact_state">Contact State</label>
-                            <input type="text" id="contact_state" name="contact_state" value="{{ applicant.contact_state if applicant else '' }}">
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="contact_postal_code">Postal Code</label>
-                            <input type="text" id="contact_postal_code" name="contact_postal_code" value="{{ applicant.contact_postal_code if applicant else '' }}">
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="contact_country">Country</label>
-                            <div class="combo-shell">
-                                <input type="text" id="contact_country" name="contact_country" value="{{ applicant.contact_country if applicant else '' }}" list="countryOptions" autocomplete="off">
-                                <span class="combo-icon"><i class="fas fa-search"></i></span>
-                            </div>
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="email">Applicant Email</label>
-                            <input type="email" id="email" name="email" value="{{ applicant.email if applicant else '' }}">
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="phone">Applicant Phone</label>
-                            <input type="text" id="phone" name="phone" value="{{ applicant.phone if applicant else '' }}">
-                            <div class="field-error"></div>
-                        </div>
-                        <div class="form-group full-span">
-                            <label for="notes">Internal Notes</label>
-                            <textarea id="notes" name="notes" rows="4">{{ applicant.notes if applicant else '' }}</textarea>
-                            <div class="field-error"></div>
-                        </div>
-                    </div>
-                    <select id="contact_id" name="contact_id" class="visually-hidden" tabindex="-1" aria-hidden="true">
-                        <option value="">Select contact</option>
-                        {% for item in contacts %}
-                        <option value="{{ item.id }}" {% if applicant and applicant.contact_id|string == item.id|string %}selected{% endif %}
-                            data-company-id="{{ item.company_id or '' }}"
-                            data-phone="{{ item.phone or '' }}"
-                            data-email="{{ item.email or '' }}"
-                            data-address="{{ item.address or '' }}"
-                            data-city="{{ item.city or '' }}"
-                            data-state="{{ item.state or '' }}"
-                            data-postal="{{ item.postal_code or '' }}"
-                            data-country="{{ item.country or '' }}">
-                            {{ item.contact_name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </section>
-            </div>
-
             <div class="sticky-action-bar">
                 <div class="sticky-action-meta">
-                    <strong id="draftStatus">Draft auto-save ready.</strong>
-                    <span>Required fields validate inline and the action bar stays visible while scrolling.</span>
+                    <strong id="validationStatus">Validation ready.</strong>
+                    <span id="draftStatus">Draft auto-save ready.</span>
                 </div>
                 <div class="sticky-action-buttons">
                     <a href="{{ url_for('immigration_applicants') }}" class="btn btn-secondary btn-sm">Cancel</a>
                     <button type="submit" class="btn btn-secondary btn-sm" name="save_mode" value="draft">Save Draft</button>
                     <button type="submit" class="btn btn-primary btn-sm" name="save_mode" value="final">Save Applicant</button>
-                    <button type="submit" class="btn btn-primary btn-sm" name="save_mode" value="final" data-next-action="visa_letter">
-                        Generate Visa Letter
-                    </button>
+                    {% if applicant and applicant.id %}
+                    <a href="{{ url_for('immigration_visa_letters', applicant_id=applicant.id, preset_visa='F4A - Business') }}" class="btn btn-secondary btn-sm">Create F4A Letter</a>
+                    {% else %}
+                    <button type="button" class="btn btn-secondary btn-sm" disabled>Create F4A Letter</button>
+                    {% endif %}
                 </div>
             </div>
-            <input type="hidden" id="next_action" name="next_action" value="">
         </form>
 
-        {% if applicant %}
+        {% if applicant and applicant.id %}
         <section class="glass-card">
             <div class="workspace-toolbar">
                 <div>
                     <h3>Applicant Documents</h3>
-                    <p class="card-subtitle">Every applicant has a dedicated document folder for upload, preview, rename, delete, and validation status.</p>
+                    <p class="card-subtitle">Open the full document manager for uploads, preview, validation, and document tracking.</p>
                 </div>
                 <a href="{{ url_for('immigration_documents', applicant_id=applicant.id) }}" class="btn btn-secondary btn-sm">Open Full Document Manager</a>
-            </div>
-            <div class="stack-list">
-                {% for doc in documents %}
-                <div class="stack-item">
-                    <div class="stack-item-title">{{ doc.document_type }} - {{ doc.original_name }}</div>
-                    <div class="stack-item-meta">
-                        <span>{{ doc.mime_type or 'file' }}</span>
-                        <span>{{ doc.created_at }}</span>
-                        <span class="status-pill {{ (doc.validation_status or 'pending')|lower|replace(' ', '-') }}">{{ doc.validation_status or 'Pending' }}</span>
-                        {% if doc.file_path %}
-                        <a href="{{ immigration_file_url(doc.file_path) }}" target="_blank">Preview</a>
-                        {% endif %}
-                    </div>
-                </div>
-                {% else %}
-                <div class="stack-item">No documents uploaded for this applicant yet.</div>
-                {% endfor %}
             </div>
         </section>
         {% endif %}
     </div>
-
-    <datalist id="countryOptions">
-        {% for item in default_countries %}
-        <option value="{{ item }}"></option>
-        {% endfor %}
-    </datalist>
-    <datalist id="visaTypeOptions">
-        {% for item in visa_types %}
-        <option value="{{ item }}"></option>
-        {% endfor %}
-    </datalist>
-    <datalist id="passportTypeOptions">
-        {% for item in passport_types %}
-        <option value="{{ item }}"></option>
-        {% endfor %}
-    </datalist>
-    <datalist id="titleOptions">
-        {% for item in applicant_titles %}
-        <option value="{{ item }}"></option>
-        {% endfor %}
-    </datalist>
-    <datalist id="genderOptions">
-        {% for item in genders %}
-        <option value="{{ item }}"></option>
-        {% endfor %}
-    </datalist>
-    <datalist id="maritalStatusOptions">
-        {% for item in marital_statuses %}
-        <option value="{{ item }}"></option>
-        {% endfor %}
-    </datalist>
-    <datalist id="journeyPurposeOptions">
-        {% for item in journey_purposes %}
-        <option value="{{ item }}"></option>
-        {% endfor %}
-    </datalist>
-    <datalist id="travelCarrierOptions">
-        {% for item in travel_carriers %}
-        <option value="{{ item }}"></option>
-        {% endfor %}
-    </datalist>
-    <datalist id="arrivalChannelOptions">
-        {% for item in arrival_channels %}
-        <option value="{{ item }}"></option>
-        {% endfor %}
-    </datalist>
-    <datalist id="portEntryOptions"></datalist>
-    <datalist id="yesNoOptions">
-        <option value="Yes"></option>
-        <option value="No"></option>
-    </datalist>
 </div>
 
 <div class="modal-overlay" id="contactDialog" style="display:none;">
-    <div class="custom-modal" style="max-width: 720px;">
+    <div class="custom-modal" style="max-width: 880px;">
         <div class="modal-header" style="display:flex; align-items:center; justify-content:space-between;">
             <h3 style="margin:0;">New Contact</h3>
             <button type="button" id="closeContactDialog" class="btn-icon"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
-            <form id="quickContactForm" class="form-grid">
-                <div class="form-group">
+            <form id="quickContactForm" class="contact-modal-grid">
+                <div class="form-field">
+                    <label for="quick_contact_company_id">Company</label>
+                    <select id="quick_contact_company_id" name="company_id" class="js-contact-modal-select">
+                        <option value="">Select company</option>
+                        {% for item in companies %}
+                        <option value="{{ item.id }}">{{ item.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="field-meta"><span class="field-error"></span></div>
+                </div>
+                <div class="form-field">
                     <label for="quick_contact_name">Contact Name</label>
                     <input type="text" id="quick_contact_name" name="contact_name" required>
+                    <div class="field-meta"><span class="field-error"></span></div>
                 </div>
-                <div class="form-group">
+                <div class="form-field">
                     <label for="quick_contact_phone">Phone</label>
-                    <input type="text" id="quick_contact_phone" name="phone">
+                    <input type="tel" id="quick_contact_phone" name="phone">
+                    <div class="field-meta"><span class="field-error"></span></div>
                 </div>
-                <div class="form-group">
+                <div class="form-field">
                     <label for="quick_contact_email">Email</label>
                     <input type="email" id="quick_contact_email" name="email">
+                    <div class="field-meta"><span class="field-error"></span></div>
                 </div>
-                <div class="form-group">
+                <div class="form-field contact-modal-address">
                     <label for="quick_contact_address">Address</label>
                     <input type="text" id="quick_contact_address" name="address">
+                    <div class="field-meta"><span class="field-error"></span></div>
                 </div>
-                <div class="form-group">
+                <div class="form-field">
                     <label for="quick_contact_city">City</label>
                     <input type="text" id="quick_contact_city" name="city">
+                    <div class="field-meta"><span class="field-error"></span></div>
                 </div>
-                <div class="form-group">
+                <div class="form-field">
                     <label for="quick_contact_state">State</label>
                     <input type="text" id="quick_contact_state" name="state">
+                    <div class="field-meta"><span class="field-error"></span></div>
                 </div>
-                <div class="form-group">
+                <div class="form-field">
                     <label for="quick_contact_postal">Postal Code</label>
                     <input type="text" id="quick_contact_postal" name="postal_code">
+                    <div class="field-meta"><span class="field-error"></span></div>
                 </div>
-                <div class="form-group">
+                <div class="form-field">
                     <label for="quick_contact_country">Country</label>
-                    <input type="text" id="quick_contact_country" name="country">
+                    <select id="quick_contact_country" name="country" class="js-contact-modal-select">
+                        <option value="">Select country</option>
+                        {% for item in country_options %}
+                        <option value="{{ item }}" {% if item == 'Nigeria' %}selected{% endif %}>{{ item }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="field-meta"><span class="field-error"></span></div>
                 </div>
-                <input type="hidden" name="company_id" id="quick_contact_company_id">
             </form>
         </div>
         <div class="modal-actions">
@@ -584,635 +471,789 @@ BOS"></textarea>
         </div>
     </div>
 </div>
+
+<div class="applicant-toast" id="applicantToast" {% if not success_message %}hidden{% endif %}>
+    <i class="fas fa-check-circle"></i>
+    <span id="applicantToastMessage">{{ success_message }}</span>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const quickFillTextarea = document.getElementById('quickFillTextarea');
-        const quickFillLineNumbers = document.getElementById('quickFillLineNumbers');
-        const quickFillFeedbackBody = document.getElementById('quickFillFeedbackBody');
-        const contactNameField = document.getElementById('contact_name');
-        const contactAutocomplete = document.getElementById('contactAutocomplete');
-        const flightNumberField = document.getElementById('flight_number');
-        const travelCarrierField = document.getElementById('travel_carrier');
-        const arrivalChannelField = document.getElementById('arrival_channel');
-        const portOfEntryField = document.getElementById('port_of_entry');
-        const portEntryOptions = document.getElementById('portEntryOptions');
-        const companySelect = document.getElementById('company_id');
-        const contactSelect = document.getElementById('contact_id');
-        const phoneField = document.getElementById('phone');
-        const emailField = document.getElementById('email');
-        const statusSummary = document.getElementById('statusSummary');
-        const nextActionField = document.getElementById('next_action');
-        const allContacts = {{ all_contacts|tojson|safe }};
-        const portsByChannel = {{ ports_by_channel|tojson|safe }};
-        const applicantExists = {{ 'true' if applicant else 'false' }};
-        const airlinePrefixes = {
-            TK: 'Turkish Airlines',
-            QR: 'Qatar Airways',
-            ET: 'Ethiopian Airlines',
-            BA: 'British Airways',
-            LH: 'Lufthansa',
-            EK: 'Emirates',
-            KL: 'KLM',
-            AF: 'Air France',
-            MS: 'EgyptAir',
-            SN: 'Brussels Airlines',
-            WB: 'RwandAir',
-            KQ: 'Kenya Airways',
-            P4: 'Air Peace',
-            Q9: 'Ibom Air',
-            VM: 'Max Air',
-            W3: 'Arik Air',
-            N2: 'Aero Contractors',
-            AJ: 'Azman Air'
+document.addEventListener('DOMContentLoaded', function() {
+    const applicantForm = document.getElementById('applicantForm');
+    const draftStatus = document.getElementById('draftStatus');
+    const validationStatus = document.getElementById('validationStatus');
+    const quickFillTextarea = document.getElementById('quickFillTextarea');
+    const quickFillLineNumbers = document.getElementById('quickFillLineNumbers');
+    const quickFillFeedbackBody = document.getElementById('quickFillFeedbackBody');
+    const toast = document.getElementById('applicantToast');
+    const applicantExists = {{ 'true' if applicant and applicant.id else 'false' }};
+    const portsByChannel = {{ ports_by_channel|tojson|safe }};
+    const allContacts = {{ all_contacts|tojson|safe }};
+    const airlinePrefixes = {{ {
+        'EK': 'Emirates',
+        'TK': 'Turkish Airlines',
+        'QR': 'Qatar Airways',
+        'ET': 'Ethiopian Airlines',
+        'BA': 'British Airways',
+        'LH': 'Lufthansa',
+        'KL': 'KLM',
+        'AF': 'Air France',
+        'MS': 'EgyptAir',
+        'SN': 'Brussels Airlines',
+        'WB': 'RwandAir',
+        'KQ': 'Kenya Airways',
+        'P4': 'Air Peace',
+        'Q9': 'Ibom Air',
+        'W3': 'Arik Air',
+        'N2': 'Aero Contractors',
+        'AJ': 'Azman Air',
+        'VM': 'Max Air'
+    }|tojson|safe }};
+    const requiredNames = [
+        'nationality', 'visa_type', 'passport_type', 'title', 'surname', 'first_name', 'date_of_birth',
+        'place_of_birth', 'gender', 'marital_status', 'passport_number', 'passport_expiry', 'nigerian_passport',
+        'reason', 'travel_carrier', 'flight_number', 'country_of_departure', 'departure_date', 'arrival_date',
+        'arrival_channel', 'duration_of_stay', 'port_of_entry', 'contact_id', 'contact_phone', 'contact_address',
+        'contact_city', 'contact_state', 'contact_email', 'contact_country'
+    ];
+    const tomSelects = {};
+    let arrivalDateManuallyEdited = false;
+
+    function normalizeText(value) {
+        return (value || '').trim().replace(/\s+/g, ' ');
+    }
+
+    function normalizeUpper(value) {
+        return normalizeText(value).toUpperCase();
+    }
+
+    function normalizeTitle(value) {
+        const raw = normalizeText(value).toLowerCase();
+        const map = {
+            'mr': 'Mr.',
+            'mr.': 'Mr.',
+            'mrs': 'Mrs.',
+            'mrs.': 'Mrs.',
+            'miss': 'Miss',
+            'ms': 'Ms.',
+            'ms.': 'Ms.',
+            'master': 'Master',
+            'dr': 'Doctor',
+            'dr.': 'Doctor',
+            'doctor': 'Doctor',
+            'prof': 'Prof',
+            'prof.': 'Prof',
+            'professor': 'Prof'
         };
-        let contactMatches = [];
-        let activeContactIndex = -1;
+        return map[raw] || value;
+    }
 
-        function normalizeText(value) {
-            return (value || '').trim().replace(/\s+/g, ' ');
+    function parseFlexibleDate(value) {
+        const raw = normalizeText(value);
+        if (!raw) return null;
+        const normalized = raw.replace(/\./g, '/').replace(/-/g, '/');
+        let match = normalized.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (match) {
+            const day = String(match[1]).padStart(2, '0');
+            const month = String(match[2]).padStart(2, '0');
+            const year = match[3];
+            const iso = `${year}-${month}-${day}`;
+            const dt = new Date(`${iso}T00:00:00`);
+            return Number.isNaN(dt.getTime()) ? null : dt;
+        }
+        const dt = new Date(raw);
+        return Number.isNaN(dt.getTime()) ? null : dt;
+    }
+
+    function formatDateDisplay(date) {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    }
+
+    function todayInNigeria() {
+        const now = new Date();
+        const nigeriaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Africa/Lagos' }));
+        nigeriaTime.setHours(0, 0, 0, 0);
+        return nigeriaTime;
+    }
+
+    function showToast(message) {
+        if (!message) return;
+        document.getElementById('applicantToastMessage').textContent = message;
+        toast.hidden = false;
+        toast.classList.add('show');
+        window.setTimeout(function() {
+            toast.classList.remove('show');
+            window.setTimeout(function() {
+                toast.hidden = true;
+            }, 250);
+        }, 3200);
+    }
+
+    if (!toast.hidden) {
+        showToast(document.getElementById('applicantToastMessage').textContent);
+    }
+
+    function resizeQuickFill() {
+        quickFillTextarea.style.height = 'auto';
+        quickFillTextarea.style.height = Math.max(260, quickFillTextarea.scrollHeight) + 'px';
+        const lines = quickFillTextarea.value.split('\n');
+        const lineCount = Math.max(lines.length, 10);
+        quickFillLineNumbers.innerHTML = Array.from({ length: lineCount }, (_, index) => index + 1).join('<br>');
+    }
+
+    function fieldElement(name) {
+        return applicantForm.querySelector(`[name="${name}"]`);
+    }
+
+    function fieldWrapper(name) {
+        return applicantForm.querySelector(`.form-field[data-field="${name}"]`);
+    }
+
+    function setFieldError(name, message, valid) {
+        const wrapper = fieldWrapper(name);
+        if (!wrapper) return;
+        const error = wrapper.querySelector('.field-error');
+        wrapper.classList.remove('has-error', 'has-valid');
+        if (message) {
+            wrapper.classList.add('has-error');
+            if (error) error.textContent = message;
+            return false;
+        }
+        if (valid) wrapper.classList.add('has-valid');
+        if (error) error.textContent = '';
+        return true;
+    }
+
+    function setLoadingState(name, loading, text) {
+        const wrapper = fieldWrapper(name);
+        if (!wrapper) return;
+        wrapper.classList.toggle('is-loading', loading);
+        const meta = wrapper.querySelector('.field-error');
+        if (loading && meta) meta.textContent = text || 'Loading...';
+        if (!loading && meta && meta.textContent === (text || 'Loading...')) meta.textContent = '';
+    }
+
+    function updateValidationStatus() {
+        const invalidCount = applicantForm.querySelectorAll('.form-field.has-error').length;
+        validationStatus.textContent = invalidCount ? `${invalidCount} field${invalidCount > 1 ? 's' : ''} need attention.` : 'Validation ready.';
+    }
+
+    function validateFieldByName(name, force) {
+        const element = fieldElement(name);
+        const wrapper = fieldWrapper(name);
+        if (!element || !wrapper) return true;
+        const value = normalizeText(element.value);
+        const touched = force || wrapper.classList.contains('is-touched');
+        if (!touched) return true;
+
+        if (requiredNames.includes(name) && !value) {
+            updateValidationStatus();
+            return setFieldError(name, 'Required', false);
         }
 
-        function toTitleCase(value) {
-            return normalizeText(value).toLowerCase().split(' ').filter(Boolean).map(function(part) {
-                return part.charAt(0).toUpperCase() + part.slice(1);
-            }).join(' ');
+        if (name === 'passport_number' && value && !/^[A-Z0-9]{6,20}$/.test(value)) {
+            updateValidationStatus();
+            return setFieldError(name, 'Enter a valid passport number', false);
         }
-
-        function normalizeDate(value) {
-            const raw = normalizeText(value);
-            if (!raw) return '';
-            const normalized = raw.replace(/\./g, '/').replace(/-/g, '/');
-            const dayFirst = normalized.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-            if (dayFirst) return dayFirst[1] + '/' + dayFirst[2] + '/' + dayFirst[3];
-            const yearFirst = normalized.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
-            if (yearFirst) return yearFirst[3] + '/' + yearFirst[2] + '/' + yearFirst[1];
-            const dt = new Date(raw);
-            if (!Number.isNaN(dt.getTime())) {
-                const day = String(dt.getDate()).padStart(2, '0');
-                const month = String(dt.getMonth() + 1).padStart(2, '0');
-                const year = dt.getFullYear();
-                return day + '/' + month + '/' + year;
+        if (name === 'flight_number' && value && !/^[A-Z0-9]{2,4}\d{2,5}$/.test(value)) {
+            updateValidationStatus();
+            return setFieldError(name, 'Enter a valid flight number', false);
+        }
+        if ((name === 'date_of_birth' || name === 'passport_expiry' || name === 'departure_date' || name === 'arrival_date') && value) {
+            const dt = parseFlexibleDate(value);
+            if (!dt) {
+                updateValidationStatus();
+                return setFieldError(name, 'Enter a valid date', false);
             }
-            return '';
-        }
-
-        function toIsoDate(displayDate) {
-            const match = normalizeText(displayDate).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-            return match ? (match[3] + '-' + match[2] + '-' + match[1]) : '';
-        }
-
-        function fromIsoDate(value) {
-            const match = normalizeText(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
-            return match ? (match[3] + '/' + match[2] + '/' + match[1]) : value;
-        }
-
-        function normalizeTitle(value) {
-            return toTitleCase(value).replace(/^Mr$/, 'Mr.').replace(/^Mrs$/, 'Mrs.').replace(/^Dr$/, 'Dr.').replace(/^Prof$/, 'Prof.');
-        }
-
-        function detectCarrier(flightNumber) {
-            const normalized = normalizeText(flightNumber).replace(/\s+/g, '').toUpperCase();
-            const prefix = normalized.slice(0, 2);
-            return airlinePrefixes[prefix] || '';
-        }
-
-        function resizeQuickFill() {
-            quickFillTextarea.style.height = 'auto';
-            quickFillTextarea.style.height = Math.max(260, quickFillTextarea.scrollHeight) + 'px';
-            const lines = quickFillTextarea.value.split('\n');
-            const lineCount = Math.max(lines.length, 10);
-            quickFillLineNumbers.innerHTML = Array.from({ length: lineCount }, function(_, index) {
-                return index + 1;
-            }).join('<br>');
-        }
-
-        function setFieldState(field, message, valid) {
-            const group = field.closest('.form-group');
-            if (!group) return;
-            const error = group.querySelector('.field-error');
-            field.classList.remove('is-valid', 'is-invalid');
-            group.classList.remove('has-valid', 'has-error');
-            if (message) {
-                field.classList.add('is-invalid');
-                group.classList.add('has-error');
-                field.setAttribute('aria-invalid', 'true');
-                if (error) error.textContent = message;
-                return;
+            if (name === 'date_of_birth' && dt > todayInNigeria()) {
+                updateValidationStatus();
+                return setFieldError(name, 'Future dates are not allowed', false);
             }
-            field.setAttribute('aria-invalid', 'false');
-            if (valid) {
-                field.classList.add('is-valid');
-                group.classList.add('has-valid');
+            if (name === 'passport_expiry' && dt <= todayInNigeria()) {
+                updateValidationStatus();
+                return setFieldError(name, 'Passport expiry must be later than today', false);
             }
-            if (error) error.textContent = '';
         }
-
-        function validateField(field) {
-            const name = field.name;
-            const value = normalizeText(field.value);
-            const requiredNames = ['surname', 'first_name', 'nationality', 'visa_type', 'passport_type', 'passport_number', 'passport_expiry', 'reason'];
-            if (!name) return true;
-            if (requiredNames.includes(name) && !value) {
-                setFieldState(field, 'Required', false);
-                return false;
-            }
-            if (name === 'passport_number' && value && !/^[A-Z0-9]{6,20}$/i.test(value.replace(/\s+/g, ''))) {
-                setFieldState(field, 'Enter a valid passport number', false);
-                return false;
-            }
-            if ((name === 'flight_number') && value && !/^[A-Z0-9]{2,4}\d{2,5}$/i.test(value.replace(/\s+/g, ''))) {
-                setFieldState(field, 'Enter a valid flight number', false);
-                return false;
-            }
-            if (field.hasAttribute('data-date-field') && value && !normalizeDate(value)) {
-                setFieldState(field, 'Enter a valid date', false);
-                return false;
-            }
-            if (name === 'contact_email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-                setFieldState(field, 'Enter a valid email', false);
-                return false;
-            }
-            setFieldState(field, '', Boolean(value));
-            return true;
+        if (name === 'duration_of_stay' && value && (!/^\d+$/.test(value) || Number(value) <= 0)) {
+            updateValidationStatus();
+            return setFieldError(name, 'Enter a positive whole number', false);
         }
-
-        function populatePortEntries() {
-            const channel = normalizeText(arrivalChannelField.value);
-            const options = portsByChannel[channel] || [];
-            portEntryOptions.innerHTML = options.map(function(item) {
-                return '<option value="' + item + '"></option>';
-            }).join('');
+        if (name === 'contact_email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+            updateValidationStatus();
+            return setFieldError(name, 'Enter a valid email address', false);
         }
-
-        function applyDateFieldFormatting() {
-            Array.from(document.querySelectorAll('[data-date-field]')).forEach(function(field) {
-                if (field.value) field.value = fromIsoDate(field.value);
-                validateField(field);
-            });
+        if (name === 'arrival_date') {
+            const departure = parseFlexibleDate(fieldElement('departure_date').value);
+            const arrival = parseFlexibleDate(value);
+            if (departure && arrival && arrival < departure) {
+                updateValidationStatus();
+                return setFieldError(name, 'Arrival Date cannot be earlier than Departure Date', false);
+            }
         }
+        setFieldError(name, '', Boolean(value));
+        updateValidationStatus();
+        return true;
+    }
 
-        function bindDatePickers() {
-            Array.from(document.querySelectorAll('.date-picker-btn')).forEach(function(button) {
-                const target = document.getElementById(button.dataset.dateTarget);
-                const nativePicker = document.querySelector('[data-native-for="' + button.dataset.dateTarget + '"]');
-                if (!target || !nativePicker) return;
-                if (target.value) nativePicker.value = toIsoDate(target.value);
-                button.addEventListener('click', function() {
-                    if (nativePicker.showPicker) nativePicker.showPicker();
-                    else nativePicker.focus();
-                });
-                nativePicker.addEventListener('change', function() {
-                    target.value = fromIsoDate(nativePicker.value);
-                    validateField(target);
-                });
-                target.addEventListener('blur', function() {
-                    const normalized = normalizeDate(target.value);
-                    if (normalized) {
-                        target.value = normalized;
-                        nativePicker.value = toIsoDate(normalized);
+    function markTouched(name) {
+        const wrapper = fieldWrapper(name);
+        if (wrapper) wrapper.classList.add('is-touched');
+    }
+
+    function initTomSelect(select) {
+        const isCreate = select.classList.contains('js-create-select');
+        const instance = new TomSelect(select, {
+            create: isCreate,
+            persist: false,
+            allowEmptyOption: true,
+            valueField: 'value',
+            labelField: 'text',
+            searchField: select.name === 'contact_id' ? ['text', 'company_name'] : ['text'],
+            placeholder: select.dataset.placeholder || '',
+            maxOptions: 200,
+            plugins: select.dataset.clearable === 'true' ? ['clear_button'] : [],
+            score: select.name === 'contact_id' ? function(search) {
+                const needle = normalizeText(search).toLowerCase();
+                return function(item) {
+                    const haystack = normalizeText(item.text || '').toLowerCase();
+                    const company = normalizeText(item.company_name || '').toLowerCase();
+                    if (!needle) return 1;
+                    if (haystack.startsWith(needle)) return 3;
+                    if (haystack.includes(needle)) return 2;
+                    if (company.includes(needle)) return 1.5;
+                    let fuzzyIndex = 0;
+                    for (let index = 0; index < haystack.length && fuzzyIndex < needle.length; index += 1) {
+                        if (haystack[index] === needle[fuzzyIndex]) fuzzyIndex += 1;
                     }
-                    validateField(target);
-                });
-            });
-        }
-
-        function syncStatusSummary() {
-            const selected = document.querySelector('input[name="status"]:checked');
-            statusSummary.value = selected ? selected.value : 'Draft';
-        }
-
-        function validateQuickFillLines(lines) {
-            const errors = [];
-            const passport = lines[6] || '';
-            const dob = lines[4] || '';
-            const expiry = lines[7] || '';
-            const flight = lines[8] || '';
-            if (dob && !normalizeDate(dob)) errors.push('Line 5: Invalid date of birth');
-            if (expiry && !normalizeDate(expiry)) errors.push('Line 8: Invalid passport expiry date');
-            if (passport && !/^[A-Z0-9]{6,20}$/i.test(normalizeText(passport).replace(/\s+/g, ''))) errors.push('Line 7: Invalid passport number');
-            if (flight && !/^[A-Z0-9]{2,4}\d{2,5}$/i.test(normalizeText(flight).replace(/\s+/g, ''))) errors.push('Line 9: Invalid flight number');
-            return errors;
-        }
-
-        function scoreContact(contact, query) {
-            const haystack = normalizeText(contact.contact_name || '').toLowerCase();
-            const needle = normalizeText(query).toLowerCase();
-            if (!needle) return -1;
-            if (haystack.startsWith(needle)) return 300 - haystack.length;
-            if (haystack.includes(needle)) return 200 - haystack.indexOf(needle);
-            let fuzzyIndex = 0;
-            for (let i = 0; i < haystack.length && fuzzyIndex < needle.length; i += 1) {
-                if (haystack[i] === needle[fuzzyIndex]) fuzzyIndex += 1;
+                    return fuzzyIndex === needle.length ? 1 : 0;
+                };
+            } : undefined,
+            render: {
+                no_results: function(data) {
+                    return `<div class="ts-empty-state">No matches for "${data.input}"</div>`;
+                },
+                option: function(data, escape) {
+                    return `<div class="ts-option-label" title="${escape(data.text)}">${escape(data.text)}</div>`;
+                },
+                item: function(data, escape) {
+                    return `<div class="ts-item-label" title="${escape(data.text)}">${escape(data.text)}</div>`;
+                }
+            },
+            onBlur: function() {
+                markTouched(select.name);
+                validateFieldByName(select.name, true);
+            },
+            onChange: function() {
+                markTouched(select.name);
+                validateFieldByName(select.name, true);
             }
-            return fuzzyIndex === needle.length ? 100 - haystack.length : -1;
-        }
+        });
+        tomSelects[select.name] = instance;
+        return instance;
+    }
 
-        function searchContacts(query) {
-            return allContacts
-                .map(function(contact) {
-                    return { contact: contact, score: scoreContact(contact, query) };
-                })
-                .filter(function(item) {
-                    return item.score >= 0;
-                })
-                .sort(function(a, b) {
-                    return b.score - a.score;
-                })
-                .map(function(item) {
-                    return item.contact;
-                });
-        }
-
-        function hideContactAutocomplete() {
-            contactAutocomplete.style.display = 'none';
-            activeContactIndex = -1;
-        }
-
-        function applyContactToForm(contact) {
-            if (!contact) return;
-            if (String(contact.company_id || '') && String(companySelect.value || '') !== String(contact.company_id || '')) {
-                companySelect.value = contact.company_id || '';
-            }
-            contactNameField.value = contact.contact_name || '';
-            document.getElementById('contact_phone').value = contact.phone || '';
-            document.getElementById('contact_email').value = contact.email || '';
-            document.getElementById('contact_address').value = contact.address || '';
-            document.getElementById('contact_city').value = contact.city || '';
-            document.getElementById('contact_state').value = contact.state || '';
-            document.getElementById('contact_country').value = contact.country || '';
-            document.getElementById('contact_postal_code').value = contact.postal_code || '';
-            Array.from(contactSelect.options).forEach(function(option) {
-                option.selected = String(option.value) === String(contact.id || '');
-            });
-            hideContactAutocomplete();
-            validateField(contactNameField);
-        }
-
-        function renderContactAutocomplete(matches) {
-            contactMatches = matches;
-            if (!matches.length) {
-                hideContactAutocomplete();
-                return;
-            }
-            activeContactIndex = -1;
-            contactAutocomplete.innerHTML = matches.map(function(item, index) {
-                return '<button type="button" class="contact-autocomplete-item" data-index="' + index + '">' +
-                    '<strong>' + (item.contact_name || '') + '</strong><span>' + (item.company_name || 'No company') + '</span></button>';
-            }).join('');
-            contactAutocomplete.style.display = 'block';
-            Array.from(contactAutocomplete.querySelectorAll('.contact-autocomplete-item')).forEach(function(button) {
-                button.addEventListener('click', function() {
-                    applyContactToForm(matches[Number(button.dataset.index)]);
-                });
-            });
-        }
-
-        function setActiveContact(index) {
-            const items = Array.from(contactAutocomplete.querySelectorAll('.contact-autocomplete-item'));
-            items.forEach(function(item, itemIndex) {
-                item.classList.toggle('is-active', itemIndex === index);
-            });
-            activeContactIndex = index;
-        }
-
-        async function refreshContacts(companyId, selectedId) {
-            const response = await fetch('/api/immigration/contacts?company_id=' + encodeURIComponent(companyId || ''));
-            const data = await response.json();
-            contactSelect.innerHTML = '<option value="">Select contact</option>';
-            (data.contacts || []).forEach(function(item) {
-                const option = document.createElement('option');
-                option.value = item.id;
-                option.textContent = item.contact_name;
-                option.dataset.companyId = item.company_id || '';
-                option.dataset.phone = item.phone || '';
-                option.dataset.email = item.email || '';
-                option.dataset.address = item.address || '';
-                option.dataset.city = item.city || '';
-                option.dataset.state = item.state || '';
-                option.dataset.postal = item.postal_code || '';
-                option.dataset.country = item.country || '';
-                if (String(selectedId || '') === String(item.id)) option.selected = true;
-                contactSelect.appendChild(option);
-            });
-        }
-
-        async function applyQuickFill() {
-            const lines = quickFillTextarea.value
-                .split('\n')
-                .map(function(line) { return normalizeText(line); })
-                .filter(function(line) { return line !== ''; });
-            const errors = validateQuickFillLines(lines);
-            quickFillTextarea.classList.toggle('has-errors', errors.length > 0);
-            quickFillFeedbackBody.innerHTML = errors.length
-                ? errors.map(function(error) { return '<div class="quick-fill-error">' + error + '</div>'; }).join('')
-                : 'Quick Fill parsed successfully.';
-
-            document.getElementById('title').value = normalizeTitle(lines[0] || '');
-            document.getElementById('surname').value = toTitleCase(lines[1] || '');
-            document.getElementById('first_name').value = toTitleCase(lines[2] || '');
-            document.getElementById('middle_name').value = toTitleCase(lines[3] || '');
-            document.getElementById('date_of_birth').value = normalizeDate(lines[4] || '');
-            document.getElementById('place_of_birth').value = toTitleCase(lines[5] || '');
-            document.getElementById('passport_number').value = normalizeText(lines[6] || '').replace(/\s+/g, '').toUpperCase();
-            document.getElementById('passport_expiry').value = normalizeDate(lines[7] || '');
-            flightNumberField.value = normalizeText(lines[8] || '').replace(/\s+/g, '').toUpperCase();
-            const carrier = detectCarrier(flightNumberField.value);
-            if (carrier) travelCarrierField.value = carrier;
-
-            const contactQuery = normalizeText(lines[9] || '');
-            if (contactQuery) {
-                const matches = searchContacts(contactQuery);
-                if (matches.length === 1) {
-                    await refreshContacts(companySelect.value || '', matches[0].id);
-                    applyContactToForm(matches[0]);
-                    quickFillFeedbackBody.innerHTML += '<div class="quick-fill-success">Contact matched automatically: ' + matches[0].contact_name + '</div>';
-                } else if (matches.length > 1) {
-                    contactNameField.value = contactQuery;
-                    renderContactAutocomplete(matches.slice(0, 6));
-                    quickFillFeedbackBody.innerHTML += '<div class="quick-fill-success">Multiple contacts found. Use arrow keys and Enter to select.</div>';
-                } else {
-                    contactNameField.value = contactQuery;
-                    quickFillFeedbackBody.innerHTML += '<div class="quick-fill-error">Line 10: No matching contact found.</div>';
+    document.querySelectorAll('.js-search-select').forEach(initTomSelect);
+    document.querySelectorAll('.js-contact-modal-select').forEach(function(select) {
+        new TomSelect(select, {
+            allowEmptyOption: true,
+            placeholder: 'Select option',
+            plugins: ['clear_button'],
+            render: {
+                no_results: function(data) {
+                    return `<div class="ts-empty-state">No matches for "${data.input}"</div>`;
                 }
             }
-
-            applyDateFieldFormatting();
-            Array.from(document.querySelectorAll('#applicantForm input, #applicantForm textarea')).forEach(function(field) {
-                if (field.name) validateField(field);
-            });
-            if (!errors.length) document.getElementById('nationality').focus();
-        }
-
-        document.getElementById('applyQuickFill').addEventListener('click', function() {
-            applyQuickFill();
-        });
-        document.getElementById('clearQuickFill').addEventListener('click', function() {
-            if (window.confirm('Clear the Quick Fill area?')) {
-                quickFillTextarea.value = '';
-                quickFillTextarea.classList.remove('has-errors');
-                quickFillFeedbackBody.textContent = 'Quick Fill cleared.';
-                resizeQuickFill();
-                quickFillTextarea.focus();
-            }
-        });
-        quickFillTextarea.addEventListener('input', resizeQuickFill);
-        quickFillTextarea.addEventListener('paste', function() {
-            setTimeout(function() {
-                resizeQuickFill();
-                applyQuickFill();
-            }, 0);
-        });
-        quickFillTextarea.addEventListener('keydown', function(event) {
-            if (event.ctrlKey && event.key === 'Enter') {
-                event.preventDefault();
-                applyQuickFill();
-            }
-            if (event.key === 'Escape') {
-                event.preventDefault();
-                document.getElementById('clearQuickFill').click();
-            }
-        });
-        resizeQuickFill();
-
-        const draftKey = 'immigration-applicant-draft-v2';
-        const form = document.getElementById('applicantForm');
-        const draftStatus = document.getElementById('draftStatus');
-        if (!applicantExists) {
-            try {
-                const data = JSON.parse(localStorage.getItem(draftKey) || '{}');
-                Object.keys(data).forEach(function(key) {
-                    const field = form.querySelector('[name="' + key + '"]');
-                    if (field && !field.value) field.value = data[key];
-                });
-            } catch (err) {}
-        }
-
-        Array.from(form.querySelectorAll('input, textarea, select')).forEach(function(field) {
-            if (!field.name || field.type === 'hidden' || field.classList.contains('native-date-picker')) return;
-            field.addEventListener('input', function() {
-                if (field.id === 'passport_number' || field.id === 'flight_number') {
-                    field.value = normalizeText(field.value).replace(/\s+/g, '').toUpperCase();
-                }
-                if (field.id === 'title') field.value = normalizeTitle(field.value);
-                validateField(field);
-            });
-            field.addEventListener('blur', function() {
-                if (field.id === 'surname' || field.id === 'first_name' || field.id === 'middle_name' || field.id === 'place_of_birth') {
-                    field.value = toTitleCase(field.value);
-                }
-                validateField(field);
-            });
-        });
-
-        form.addEventListener('input', function() {
-            const payload = {};
-            Array.from(form.elements).forEach(function(el) {
-                if (!el.name || el.type === 'hidden' || el.classList.contains('native-date-picker')) return;
-                if ((el.type === 'radio' || el.type === 'checkbox') && !el.checked) return;
-                payload[el.name] = el.value;
-            });
-            localStorage.setItem(draftKey, JSON.stringify(payload));
-            draftStatus.textContent = 'Draft saved locally.';
-        });
-
-        form.addEventListener('submit', function(event) {
-            let valid = true;
-            const submitter = event.submitter;
-            nextActionField.value = submitter && submitter.dataset.nextAction ? submitter.dataset.nextAction : '';
-            Array.from(form.querySelectorAll('input, textarea, select')).forEach(function(field) {
-                if (!field.name || field.type === 'hidden' || field.classList.contains('native-date-picker')) return;
-                if (!validateField(field)) valid = false;
-            });
-            if (!valid) {
-                event.preventDefault();
-                draftStatus.textContent = 'Please fix the highlighted fields.';
-                return;
-            }
-            localStorage.removeItem(draftKey);
-            draftStatus.textContent = 'Saving applicant...';
-        });
-
-        document.querySelectorAll('input[name="status"]').forEach(function(radio) {
-            radio.addEventListener('change', syncStatusSummary);
-        });
-        syncStatusSummary();
-
-        function hydrateContactMeta() {
-            const option = contactSelect.options[contactSelect.selectedIndex];
-            if (!option) return;
-            if (!phoneField.value && option.dataset.phone) phoneField.value = option.dataset.phone;
-            if (!emailField.value && option.dataset.email) emailField.value = option.dataset.email;
-            if (option.value) {
-                contactNameField.value = option.textContent.trim();
-                document.getElementById('contact_phone').value = option.dataset.phone || '';
-                document.getElementById('contact_email').value = option.dataset.email || '';
-                document.getElementById('contact_address').value = option.dataset.address || '';
-                document.getElementById('contact_city').value = option.dataset.city || '';
-                document.getElementById('contact_state').value = option.dataset.state || '';
-                document.getElementById('contact_country').value = option.dataset.country || '';
-                document.getElementById('contact_postal_code').value = option.dataset.postal || '';
-            }
-        }
-
-        companySelect.addEventListener('change', function() {
-            refreshContacts(companySelect.value, '');
-            document.getElementById('quick_contact_company_id').value = companySelect.value;
-        });
-        contactSelect.addEventListener('change', hydrateContactMeta);
-        contactNameField.addEventListener('input', function() {
-            const query = contactNameField.value;
-            const matches = searchContacts(query);
-            if (matches.length === 1 && normalizeText(matches[0].contact_name).toLowerCase() === normalizeText(query).toLowerCase()) {
-                applyContactToForm(matches[0]);
-                return;
-            }
-            renderContactAutocomplete(matches.slice(0, 6));
-        });
-        contactNameField.addEventListener('keydown', function(event) {
-            if (contactAutocomplete.style.display !== 'block' || !contactMatches.length) {
-                if (event.key === 'Escape') hideContactAutocomplete();
-                return;
-            }
-            if (event.key === 'ArrowDown') {
-                event.preventDefault();
-                setActiveContact((activeContactIndex + 1) % contactMatches.length);
-            } else if (event.key === 'ArrowUp') {
-                event.preventDefault();
-                setActiveContact(activeContactIndex <= 0 ? contactMatches.length - 1 : activeContactIndex - 1);
-            } else if (event.key === 'Enter' && activeContactIndex >= 0) {
-                event.preventDefault();
-                applyContactToForm(contactMatches[activeContactIndex]);
-            } else if (event.key === 'Escape') {
-                hideContactAutocomplete();
-            } else if (event.key === 'Tab') {
-                hideContactAutocomplete();
-            }
-        });
-        document.addEventListener('click', function(event) {
-            if (!contactAutocomplete.contains(event.target) && event.target !== contactNameField) {
-                hideContactAutocomplete();
-            }
-        });
-
-        flightNumberField.addEventListener('input', function() {
-            const carrier = detectCarrier(flightNumberField.value);
-            if (carrier) travelCarrierField.value = carrier;
-            validateField(flightNumberField);
-        });
-
-        arrivalChannelField.addEventListener('input', function() {
-            populatePortEntries();
-            validateField(arrivalChannelField);
-        });
-        populatePortEntries();
-
-        const generateLetterButtons = Array.from(document.querySelectorAll('button')).filter(function(button) {
-            return button.textContent.indexOf('Generate Visa Letter') >= 0;
-        });
-        generateLetterButtons.forEach(function(button) {
-            button.addEventListener('click', function() {
-                nextActionField.value = 'visa_letter';
-            });
-        });
-        Array.from(document.querySelectorAll('button[name="save_mode"]')).forEach(function(button) {
-            if (button.textContent.indexOf('Generate Visa Letter') === -1) {
-                button.addEventListener('click', function() {
-                    nextActionField.value = '';
-                });
-            }
-        });
-
-        hydrateContactMeta();
-        applyDateFieldFormatting();
-        bindDatePickers();
-
-        const dialog = document.getElementById('contactDialog');
-        const openDialog = document.getElementById('openContactDialog');
-        const closeDialog = document.getElementById('closeContactDialog');
-        const cancelDialog = document.getElementById('cancelContactDialog');
-        const saveQuickContact = document.getElementById('saveQuickContact');
-        const quickContactForm = document.getElementById('quickContactForm');
-
-        function showDialog() {
-            document.getElementById('quick_contact_company_id').value = companySelect.value;
-            dialog.style.display = 'flex';
-            dialog.classList.add('show');
-            document.getElementById('quick_contact_name').focus();
-        }
-
-        function hideDialog() {
-            dialog.classList.remove('show');
-            dialog.style.display = 'none';
-            quickContactForm.reset();
-        }
-
-        openDialog.addEventListener('click', showDialog);
-        closeDialog.addEventListener('click', hideDialog);
-        cancelDialog.addEventListener('click', hideDialog);
-        dialog.addEventListener('click', function(event) {
-            if (event.target === dialog) hideDialog();
-        });
-
-        saveQuickContact.addEventListener('click', async function() {
-            const formData = new FormData(quickContactForm);
-            formData.set('company_id', companySelect.value || '');
-            const response = await fetch('{{ url_for("quick_add_immigration_contact") }}', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
-            if (!response.ok || !data.ok) {
-                alert(data.error || 'Could not create contact.');
-                return;
-            }
-            await refreshContacts(companySelect.value || '', data.contact.id);
-            contactNameField.value = data.contact.contact_name || '';
-            applyContactToForm(data.contact);
-            hideDialog();
-        });
-
-        document.getElementById('ocrForm').addEventListener('submit', async function(event) {
-            event.preventDefault();
-            const formData = new FormData(event.target);
-            const message = document.getElementById('ocrMessage');
-            const preview = document.getElementById('ocrPreview');
-            message.textContent = 'Extracting passport data...';
-            preview.innerHTML = '<div class="skeleton-bar"></div><div class="skeleton-bar" style="margin-top:0.6rem;"></div>';
-            const response = await fetch('{{ url_for("ocr_immigration_passport") }}', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
-            if (!data.ok) {
-                message.textContent = data.error || 'OCR failed.';
-                preview.innerHTML = '';
-                return;
-            }
-            message.textContent = data.message || 'OCR completed.';
-            if (data.preview_path) {
-                preview.innerHTML = '<img src="' + data.preview_path + '" alt="OCR preview" style="max-width:180px; border-radius:18px; box-shadow:var(--card-shadow);">';
-            }
-            const map = {
-                surname: 'surname',
-                first_name: 'first_name',
-                middle_name: 'middle_name',
-                passport_number: 'passport_number',
-                nationality: 'nationality',
-                date_of_birth: 'date_of_birth',
-                expiry_date: 'passport_expiry',
-                place_of_birth: 'place_of_birth'
-            };
-            Object.keys(map).forEach(function(key) {
-                const field = document.getElementById(map[key]);
-                if (field && data.data && data.data[key]) {
-                    field.value = key.indexOf('date') >= 0 ? fromIsoDate(data.data[key]) : data.data[key];
-                    validateField(field);
-                }
-            });
         });
     });
+
+    function setSearchValue(name, value, text) {
+        const instance = tomSelects[name];
+        if (!instance) return;
+        if (value && !instance.options[value]) {
+            instance.addOption({ value: value, text: text || value });
+        }
+        instance.setValue(value || '', true);
+    }
+
+    function refreshPortOptions(channel, preferredValue) {
+        const portSelect = tomSelects.port_of_entry;
+        const options = portsByChannel[channel] || [];
+        if (!portSelect) return;
+        setLoadingState('port_of_entry', true, 'Loading ports...');
+        portSelect.clearOptions();
+        portSelect.addOption({ value: '', text: '' });
+        options.forEach(function(item) {
+            portSelect.addOption({ value: item, text: item });
+        });
+        const nextValue = options.includes(preferredValue) ? preferredValue : (options[0] || '');
+        portSelect.setValue(nextValue, true);
+        setLoadingState('port_of_entry', false, 'Loading ports...');
+        fieldElement('port_of_entry').value = nextValue;
+    }
+
+    function contactToOption(contact) {
+        return {
+            value: String(contact.id),
+            text: contact.contact_name || '',
+            company_id: contact.company_id || '',
+            company_name: contact.company_name || '',
+            phone: contact.phone || '',
+            email: contact.email || '',
+            address: contact.address || '',
+            city: contact.city || '',
+            state: contact.state || '',
+            postal: contact.postal_code || '',
+            country: contact.country || ''
+        };
+    }
+
+    function applyContact(contact) {
+        if (!contact) return;
+        fieldElement('contact_name').value = contact.contact_name || '';
+        fieldElement('contact_phone').value = contact.phone || '';
+        fieldElement('contact_address').value = contact.address || '';
+        fieldElement('contact_city').value = contact.city || '';
+        fieldElement('contact_state').value = contact.state || '';
+        fieldElement('contact_email').value = contact.email || '';
+        fieldElement('contact_postal_code').value = contact.postal_code || '';
+        setSearchValue('contact_country', contact.country || 'Nigeria', contact.country || 'Nigeria');
+        if (contact.company_id) setSearchValue('company_id', String(contact.company_id), contact.company_name || String(contact.company_id));
+        ['contact_id', 'contact_phone', 'contact_address', 'contact_city', 'contact_state', 'contact_email', 'contact_country'].forEach(function(name) {
+            markTouched(name);
+            validateFieldByName(name, true);
+        });
+    }
+
+    async function refreshContacts(companyId, selectedId) {
+        setLoadingState('contact_id', true, 'Loading contacts...');
+        const response = await fetch('/api/immigration/contacts?company_id=' + encodeURIComponent(companyId || ''));
+        const data = await response.json();
+        const contactSelect = tomSelects.contact_id;
+        contactSelect.clearOptions();
+        contactSelect.addOption({ value: '', text: '' });
+        (data.contacts || []).forEach(function(item) {
+            const option = contactToOption(item);
+            contactSelect.addOption(option);
+        });
+        if (selectedId) {
+            contactSelect.setValue(String(selectedId), true);
+        } else {
+            contactSelect.clear(true);
+        }
+        setLoadingState('contact_id', false, 'Loading contacts...');
+    }
+
+    function selectedContactFromControl() {
+        const contactSelect = tomSelects.contact_id;
+        const selectedValue = contactSelect ? contactSelect.getValue() : '';
+        if (!selectedValue) return null;
+        return allContacts.find(function(contact) {
+            return String(contact.id) === String(selectedValue);
+        }) || null;
+    }
+
+    function updatePassportWarning() {
+        const warning = document.getElementById('passportExpiryWarning');
+        const expiry = parseFlexibleDate(fieldElement('passport_expiry').value);
+        const travel = parseFlexibleDate(fieldElement('arrival_date').value || fieldElement('departure_date').value);
+        warning.textContent = '';
+        if (!expiry || !travel) return;
+        const diffDays = Math.round((expiry - travel) / (1000 * 60 * 60 * 24));
+        if (diffDays < 183) {
+            warning.textContent = 'Warning: passport validity is less than six months from travel date.';
+        }
+    }
+
+    function formatInitialDates() {
+        ['date_of_birth', 'passport_expiry', 'departure_date', 'arrival_date'].forEach(function(name) {
+            const input = fieldElement(name);
+            const value = normalizeText(input.value);
+            if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                const parsed = new Date(`${value}T00:00:00`);
+                input.value = formatDateDisplay(parsed);
+            }
+        });
+    }
+
+    function initFlatpickr(fieldId, options) {
+        const input = document.getElementById(fieldId);
+        const picker = flatpickr(input, Object.assign({
+            allowInput: true,
+            dateFormat: 'd/m/Y',
+            disableMobile: true,
+            clickOpens: false,
+            onClose: function() {
+                markTouched(fieldId);
+                validateFieldByName(fieldId, true);
+                updatePassportWarning();
+            }
+        }, options || {}));
+        const trigger = document.querySelector(`[data-date-trigger="${fieldId}"]`);
+        if (trigger) {
+            trigger.addEventListener('click', function() {
+                picker.open();
+            });
+        }
+        input.addEventListener('blur', function() {
+            const parsed = parseFlexibleDate(input.value);
+            if (parsed) {
+                input.value = formatDateDisplay(parsed);
+                picker.setDate(parsed, false, 'd/m/Y');
+            }
+            if (fieldId === 'arrival_date') arrivalDateManuallyEdited = true;
+            markTouched(fieldId);
+            validateFieldByName(fieldId, true);
+            updatePassportWarning();
+        });
+        return picker;
+    }
+
+    formatInitialDates();
+    const departurePicker = initFlatpickr('departure_date', {
+        defaultDate: fieldElement('departure_date').value || null,
+        onChange: function(selectedDates) {
+            if (!arrivalDateManuallyEdited && selectedDates[0]) {
+                fieldElement('arrival_date').value = formatDateDisplay(selectedDates[0]);
+                arrivalPicker.setDate(selectedDates[0], false, 'd/m/Y');
+            }
+            markTouched('departure_date');
+            validateFieldByName('departure_date', true);
+            validateFieldByName('arrival_date', true);
+            updatePassportWarning();
+        }
+    });
+    const arrivalPicker = initFlatpickr('arrival_date', {
+        defaultDate: fieldElement('arrival_date').value || null,
+        onChange: function() {
+            arrivalDateManuallyEdited = true;
+            markTouched('arrival_date');
+            validateFieldByName('arrival_date', true);
+            updatePassportWarning();
+        }
+    });
+    initFlatpickr('date_of_birth', {
+        maxDate: 'today',
+        defaultDate: fieldElement('date_of_birth').value || null
+    });
+    initFlatpickr('passport_expiry', {
+        minDate: 'today',
+        defaultDate: fieldElement('passport_expiry').value || null
+    });
+
+    refreshPortOptions(fieldElement('arrival_channel').value || 'Air', fieldElement('port_of_entry').value);
+
+    ['surname', 'first_name', 'middle_name', 'place_of_birth', 'passport_number', 'flight_number'].forEach(function(name) {
+        const input = fieldElement(name);
+        input.addEventListener('input', function() {
+            input.value = normalizeUpper(input.value);
+            if (name === 'flight_number') {
+                const carrier = airlinePrefixes[input.value.slice(0, 2)];
+                if (carrier) setSearchValue('travel_carrier', carrier, carrier);
+            }
+            markTouched(name);
+            validateFieldByName(name, true);
+        });
+    });
+
+    fieldElement('title').addEventListener('change', function() {
+        fieldElement('title').value = normalizeTitle(fieldElement('title').value);
+        markTouched('title');
+        validateFieldByName('title', true);
+    });
+
+    fieldElement('arrival_channel').addEventListener('change', function() {
+        markTouched('arrival_channel');
+        refreshPortOptions(fieldElement('arrival_channel').value || 'Air', fieldElement('port_of_entry').value);
+        validateFieldByName('arrival_channel', true);
+    });
+
+    fieldElement('duration_of_stay').addEventListener('input', function() {
+        const normalized = fieldElement('duration_of_stay').value.replace(/[^\d]/g, '');
+        fieldElement('duration_of_stay').value = normalized;
+        markTouched('duration_of_stay');
+        validateFieldByName('duration_of_stay', true);
+    });
+
+    fieldElement('company_id').addEventListener('change', async function() {
+        const selectedCompany = fieldElement('company_id').value;
+        document.getElementById('quick_contact_company_id').tomselect.setValue(selectedCompany || '', true);
+        await refreshContacts(selectedCompany, '');
+        fieldElement('contact_name').value = '';
+        ['contact_phone', 'contact_address', 'contact_city', 'contact_state', 'contact_email', 'contact_postal_code'].forEach(function(name) {
+            fieldElement(name).value = '';
+            setFieldError(name, '', false);
+        });
+    });
+
+    fieldElement('contact_id').addEventListener('change', function() {
+        const selected = selectedContactFromControl();
+        if (selected) {
+            applyContact(selected);
+        } else {
+            fieldElement('contact_name').value = '';
+        }
+        markTouched('contact_id');
+        validateFieldByName('contact_id', true);
+    });
+
+    document.querySelectorAll('#applicantForm input, #applicantForm select').forEach(function(control) {
+        if (!control.name || control.type === 'hidden') return;
+        control.addEventListener('blur', function() {
+            markTouched(control.name);
+            validateFieldByName(control.name, true);
+        });
+        control.addEventListener('change', function() {
+            markTouched(control.name);
+            validateFieldByName(control.name, true);
+        });
+    });
+
+    function syncDraftState() {
+        const payload = {};
+        new FormData(applicantForm).forEach(function(value, key) {
+            payload[key] = value;
+        });
+        localStorage.setItem('immigration-applicant-exact-draft', JSON.stringify(payload));
+        draftStatus.textContent = 'Draft saved locally.';
+    }
+
+    if (!applicantExists) {
+        try {
+            const savedDraft = JSON.parse(localStorage.getItem('immigration-applicant-exact-draft') || '{}');
+            Object.keys(savedDraft).forEach(function(key) {
+                const field = fieldElement(key);
+                if (!field || field.value) return;
+                if (tomSelects[key]) {
+                    setSearchValue(key, savedDraft[key], savedDraft[key]);
+                } else {
+                    field.value = savedDraft[key];
+                }
+            });
+        } catch (error) {}
+    }
+
+    applicantForm.addEventListener('input', syncDraftState);
+    applicantForm.addEventListener('change', syncDraftState);
+
+    applicantForm.addEventListener('submit', function(event) {
+        let isValid = true;
+        requiredNames.forEach(function(name) {
+            markTouched(name);
+            if (!validateFieldByName(name, true)) isValid = false;
+        });
+        updatePassportWarning();
+        if (!isValid) {
+            event.preventDefault();
+            validationStatus.textContent = 'Please fix the highlighted fields before saving.';
+            return;
+        }
+        localStorage.removeItem('immigration-applicant-exact-draft');
+        draftStatus.textContent = 'Saving applicant...';
+    });
+
+    const selectedContact = selectedContactFromControl();
+    if (selectedContact) {
+        applyContact(selectedContact);
+    }
+
+    function scoreContact(contact, query) {
+        const haystack = normalizeText(contact.contact_name || '').toLowerCase();
+        const needle = normalizeText(query).toLowerCase();
+        if (!needle) return -1;
+        if (haystack.startsWith(needle)) return 300 - haystack.length;
+        if (haystack.includes(needle)) return 200 - haystack.indexOf(needle);
+        let fuzzyIndex = 0;
+        for (let index = 0; index < haystack.length && fuzzyIndex < needle.length; index += 1) {
+            if (haystack[index] === needle[fuzzyIndex]) fuzzyIndex += 1;
+        }
+        return fuzzyIndex === needle.length ? 100 - haystack.length : -1;
+    }
+
+    async function applyQuickFill() {
+        const lines = quickFillTextarea.value.split('\n').map(normalizeText).filter(Boolean);
+        const errors = [];
+        if (lines[4] && !parseFlexibleDate(lines[4])) errors.push('Line 5: Invalid date of birth');
+        if (lines[7] && !parseFlexibleDate(lines[7])) errors.push('Line 8: Invalid passport expiry date');
+        if (lines[6] && !/^[A-Z0-9]{6,20}$/i.test(normalizeText(lines[6]).replace(/\s+/g, ''))) errors.push('Line 7: Invalid passport number');
+        if (lines[8] && !/^[A-Z0-9]{2,4}\d{2,5}$/i.test(normalizeText(lines[8]).replace(/\s+/g, ''))) errors.push('Line 9: Invalid flight number');
+        quickFillTextarea.classList.toggle('has-errors', errors.length > 0);
+        quickFillFeedbackBody.innerHTML = errors.length ? errors.map(function(item) {
+            return `<div class="quick-fill-error">${item}</div>`;
+        }).join('') : 'Quick Fill parsed successfully.';
+
+        fieldElement('title').value = normalizeTitle(lines[0] || '');
+        fieldElement('surname').value = normalizeUpper(lines[1] || '');
+        fieldElement('first_name').value = normalizeUpper(lines[2] || '');
+        fieldElement('middle_name').value = normalizeUpper(lines[3] || '');
+        const dob = parseFlexibleDate(lines[4] || '');
+        fieldElement('date_of_birth').value = dob ? formatDateDisplay(dob) : '';
+        fieldElement('place_of_birth').value = normalizeUpper(lines[5] || '');
+        fieldElement('passport_number').value = normalizeUpper(lines[6] || '').replace(/\s+/g, '');
+        const expiry = parseFlexibleDate(lines[7] || '');
+        fieldElement('passport_expiry').value = expiry ? formatDateDisplay(expiry) : '';
+        fieldElement('flight_number').value = normalizeUpper(lines[8] || '').replace(/\s+/g, '');
+        const carrier = airlinePrefixes[fieldElement('flight_number').value.slice(0, 2)];
+        if (carrier) setSearchValue('travel_carrier', carrier, carrier);
+
+        const contactQuery = normalizeText(lines[9] || '');
+        if (contactQuery) {
+            const matches = allContacts
+                .map(function(contact) { return { contact: contact, score: scoreContact(contact, contactQuery) }; })
+                .filter(function(item) { return item.score >= 0; })
+                .sort(function(a, b) { return b.score - a.score; })
+                .map(function(item) { return item.contact; });
+            if (matches.length === 1) {
+                await refreshContacts(matches[0].company_id || fieldElement('company_id').value, matches[0].id);
+                setSearchValue('contact_id', String(matches[0].id), matches[0].contact_name);
+                applyContact(matches[0]);
+                quickFillFeedbackBody.innerHTML += `<div class="quick-fill-success">Contact matched automatically: ${matches[0].contact_name}</div>`;
+            } else if (matches.length > 1) {
+                await refreshContacts(matches[0].company_id || fieldElement('company_id').value, '');
+                tomSelects.contact_id.setTextboxValue(contactQuery);
+                quickFillFeedbackBody.innerHTML += '<div class="quick-fill-success">Multiple contacts found. Use the Contact Name dropdown suggestions.</div>';
+            } else {
+                quickFillFeedbackBody.innerHTML += '<div class="quick-fill-error">Line 10: No matching contact found.</div>';
+            }
+        }
+
+        ['title', 'surname', 'first_name', 'middle_name', 'date_of_birth', 'place_of_birth', 'passport_number', 'passport_expiry', 'flight_number', 'travel_carrier'].forEach(function(name) {
+            markTouched(name);
+            validateFieldByName(name, true);
+        });
+        updatePassportWarning();
+    }
+
+    document.getElementById('applyQuickFill').addEventListener('click', applyQuickFill);
+    document.getElementById('clearQuickFill').addEventListener('click', function() {
+        if (!window.confirm('Clear the Quick Fill area?')) return;
+        quickFillTextarea.value = '';
+        quickFillTextarea.classList.remove('has-errors');
+        quickFillFeedbackBody.textContent = 'Quick Fill cleared.';
+        resizeQuickFill();
+        quickFillTextarea.focus();
+    });
+    quickFillTextarea.addEventListener('input', resizeQuickFill);
+    quickFillTextarea.addEventListener('paste', function() {
+        setTimeout(function() {
+            resizeQuickFill();
+            applyQuickFill();
+        }, 0);
+    });
+    quickFillTextarea.addEventListener('keydown', function(event) {
+        if (event.ctrlKey && event.key === 'Enter') {
+            event.preventDefault();
+            applyQuickFill();
+        }
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            document.getElementById('clearQuickFill').click();
+        }
+    });
+    resizeQuickFill();
+
+    const dialog = document.getElementById('contactDialog');
+    const openDialog = document.getElementById('openContactDialog');
+    const closeDialog = document.getElementById('closeContactDialog');
+    const cancelDialog = document.getElementById('cancelContactDialog');
+    const saveQuickContact = document.getElementById('saveQuickContact');
+    const quickContactForm = document.getElementById('quickContactForm');
+
+    function showDialog() {
+        dialog.style.display = 'flex';
+        dialog.classList.add('show');
+        const companyInstance = document.getElementById('quick_contact_company_id').tomselect;
+        companyInstance.setValue(fieldElement('company_id').value || '', true);
+        document.getElementById('quick_contact_name').focus();
+    }
+
+    function hideDialog() {
+        dialog.classList.remove('show');
+        dialog.style.display = 'none';
+        quickContactForm.reset();
+    }
+
+    openDialog.addEventListener('click', showDialog);
+    closeDialog.addEventListener('click', hideDialog);
+    cancelDialog.addEventListener('click', hideDialog);
+    dialog.addEventListener('click', function(event) {
+        if (event.target === dialog) hideDialog();
+    });
+
+    saveQuickContact.addEventListener('click', async function() {
+        const formData = new FormData(quickContactForm);
+        const response = await fetch('{{ url_for("quick_add_immigration_contact") }}', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (!response.ok || !data.ok) {
+            alert(data.error || 'Could not create contact.');
+            return;
+        }
+        allContacts.push(data.contact);
+        const companyId = data.contact.company_id || fieldElement('company_id').value || '';
+        if (companyId) setSearchValue('company_id', String(companyId), data.contact.company_name || String(companyId));
+        await refreshContacts(companyId, data.contact.id);
+        setSearchValue('contact_id', String(data.contact.id), data.contact.contact_name);
+        applyContact(data.contact);
+        showToast('Contact saved successfully.');
+        hideDialog();
+    });
+
+    document.getElementById('ocrForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const message = document.getElementById('ocrMessage');
+        const preview = document.getElementById('ocrPreview');
+        message.textContent = 'Extracting passport data...';
+        preview.innerHTML = '<div class="skeleton-bar"></div><div class="skeleton-bar" style="margin-top:0.6rem;"></div>';
+        const response = await fetch('{{ url_for("ocr_immigration_passport") }}', { method: 'POST', body: formData });
+        const data = await response.json();
+        if (!data.ok) {
+            message.textContent = data.error || 'OCR failed.';
+            preview.innerHTML = '';
+            return;
+        }
+        message.textContent = data.message || 'OCR completed.';
+        if (data.preview_path) {
+            preview.innerHTML = '<img src="' + data.preview_path + '" alt="OCR preview" style="max-width:180px; border-radius:18px; box-shadow:var(--card-shadow);">';
+        }
+        const mapping = {
+            surname: 'surname',
+            first_name: 'first_name',
+            middle_name: 'middle_name',
+            passport_number: 'passport_number',
+            nationality: 'nationality',
+            date_of_birth: 'date_of_birth',
+            expiry_date: 'passport_expiry',
+            place_of_birth: 'place_of_birth'
+        };
+        Object.keys(mapping).forEach(function(key) {
+            if (!data.data || !data.data[key]) return;
+            const field = fieldElement(mapping[key]);
+            if (!field) return;
+            if (mapping[key] === 'nationality') {
+                setSearchValue('nationality', data.data[key], data.data[key]);
+            } else if (mapping[key] === 'date_of_birth' || mapping[key] === 'passport_expiry') {
+                const parsed = parseFlexibleDate(data.data[key]);
+                field.value = parsed ? formatDateDisplay(parsed) : data.data[key];
+            } else if (mapping[key] === 'surname' || mapping[key] === 'first_name' || mapping[key] === 'middle_name' || mapping[key] === 'place_of_birth' || mapping[key] === 'passport_number') {
+                field.value = normalizeUpper(data.data[key]);
+            } else {
+                field.value = data.data[key];
+            }
+            markTouched(mapping[key]);
+            validateFieldByName(mapping[key], true);
+        });
+    });
+
+    updatePassportWarning();
+    updateValidationStatus();
+});
 </script>
 {% endblock %}
