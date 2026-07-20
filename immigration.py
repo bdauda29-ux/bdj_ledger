@@ -33,8 +33,19 @@ UPLOAD_ROOT = os.getenv('IMMIGRATION_UPLOAD_ROOT') or (
 )
 ALLOWED_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp'}
 ALLOWED_DOCUMENT_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.pdf', '.doc', '.docx', '.xls', '.xlsx'}
+APPLICANT_TITLES = ['Mr.', 'Mrs.', 'Miss', 'Ms.', 'Dr.', 'Prof.']
+PASSPORT_TYPES = ['Ordinary Passport', 'Official Passport', 'Diplomatic Passport', 'Service Passport', 'Travel Certificate']
+GENDERS = ['Male', 'Female']
+MARITAL_STATUSES = ['Single', 'Married', 'Divorced', 'Widowed']
 VISA_TYPES = ['Business Visa', 'Visiting Visa', 'Conference Visa', 'Transit Visa']
 REASONS = ['Business Meeting', 'Business Talks', 'Conference', 'Visit']
+JOURNEY_PURPOSES = ['Business Meeting', 'Business Talks', 'Conference', 'Tourism', 'Visit', 'Training']
+ARRIVAL_CHANNELS = ['Air', 'Land', 'Sea']
+PORTS_BY_CHANNEL = {
+    'Air': ['Murtala Muhammed International Airport', 'Nnamdi Azikiwe International Airport', 'Port Harcourt International Airport', 'Mallam Aminu Kano International Airport'],
+    'Land': ['Seme Border', 'Jibiya Border', 'Idiroko Border', 'Mfum Border'],
+    'Sea': ['Apapa Seaport', 'Tin Can Island Port', 'Onne Port', 'Calabar Port'],
+}
 DOCUMENT_TYPES = [
     'Passport',
     'Photograph',
@@ -71,6 +82,7 @@ AIRLINE_PREFIXES = {
     'N2': 'Aero Contractors',
     'AJ': 'Azman Air',
 }
+TRAVEL_CARRIERS = sorted(set(AIRLINE_PREFIXES.values()))
 
 
 def ensure_upload_dirs():
@@ -193,15 +205,25 @@ def ensure_immigration_schema(cursor, backend):
                 first_name TEXT NOT NULL,
                 middle_name TEXT,
                 full_name TEXT,
+                passport_type TEXT,
+                gender TEXT,
+                marital_status TEXT,
                 date_of_birth TEXT,
                 place_of_birth TEXT,
                 passport_number TEXT,
                 passport_expiry TEXT,
+                nigerian_passport TEXT,
                 flight_number TEXT,
                 travel_carrier TEXT,
                 nationality TEXT,
                 visa_type TEXT,
                 status TEXT DEFAULT 'Pending',
+                country_of_departure TEXT,
+                departure_date TEXT,
+                arrival_date TEXT,
+                arrival_channel TEXT,
+                duration_of_stay TEXT,
+                port_of_entry TEXT,
                 travel_date TEXT,
                 email TEXT,
                 phone TEXT,
@@ -379,15 +401,25 @@ def ensure_immigration_schema(cursor, backend):
                 first_name VARCHAR(255) NOT NULL,
                 middle_name VARCHAR(255),
                 full_name TEXT,
+                passport_type VARCHAR(255),
+                gender VARCHAR(64),
+                marital_status VARCHAR(64),
                 date_of_birth VARCHAR(64),
                 place_of_birth VARCHAR(255),
                 passport_number VARCHAR(255),
                 passport_expiry VARCHAR(64),
+                nigerian_passport VARCHAR(32),
                 flight_number VARCHAR(64),
                 travel_carrier VARCHAR(255),
                 nationality VARCHAR(255),
                 visa_type VARCHAR(255),
                 status VARCHAR(64) DEFAULT 'Pending',
+                country_of_departure VARCHAR(255),
+                departure_date VARCHAR(64),
+                arrival_date VARCHAR(64),
+                arrival_channel VARCHAR(64),
+                duration_of_stay VARCHAR(64),
+                port_of_entry VARCHAR(255),
                 travel_date VARCHAR(64),
                 email VARCHAR(255),
                 phone VARCHAR(255),
@@ -563,15 +595,25 @@ def ensure_immigration_schema(cursor, backend):
                 first_name TEXT NOT NULL,
                 middle_name TEXT,
                 full_name TEXT,
+                passport_type TEXT,
+                gender TEXT,
+                marital_status TEXT,
                 date_of_birth TEXT,
                 place_of_birth TEXT,
                 passport_number TEXT,
                 passport_expiry TEXT,
+                nigerian_passport TEXT,
                 flight_number TEXT,
                 travel_carrier TEXT,
                 nationality TEXT,
                 visa_type TEXT,
                 status TEXT DEFAULT 'Pending',
+                country_of_departure TEXT,
+                departure_date TEXT,
+                arrival_date TEXT,
+                arrival_channel TEXT,
+                duration_of_stay TEXT,
+                port_of_entry TEXT,
                 travel_date TEXT,
                 email TEXT,
                 phone TEXT,
@@ -682,8 +724,18 @@ def ensure_immigration_schema(cursor, backend):
                 raise
 
     required_applicant_columns = [
+        ('passport_type', 'TEXT' if backend != 'mysql' else 'VARCHAR(255)'),
+        ('gender', 'TEXT' if backend != 'mysql' else 'VARCHAR(64)'),
+        ('marital_status', 'TEXT' if backend != 'mysql' else 'VARCHAR(64)'),
+        ('nigerian_passport', 'TEXT' if backend != 'mysql' else 'VARCHAR(32)'),
         ('flight_number', 'TEXT' if backend != 'mysql' else 'VARCHAR(64)'),
         ('travel_carrier', 'TEXT' if backend != 'mysql' else 'VARCHAR(255)'),
+        ('country_of_departure', 'TEXT' if backend != 'mysql' else 'VARCHAR(255)'),
+        ('departure_date', 'TEXT' if backend != 'mysql' else 'VARCHAR(64)'),
+        ('arrival_date', 'TEXT' if backend != 'mysql' else 'VARCHAR(64)'),
+        ('arrival_channel', 'TEXT' if backend != 'mysql' else 'VARCHAR(64)'),
+        ('duration_of_stay', 'TEXT' if backend != 'mysql' else 'VARCHAR(64)'),
+        ('port_of_entry', 'TEXT' if backend != 'mysql' else 'VARCHAR(255)'),
         ('contact_name', 'TEXT' if backend != 'mysql' else 'VARCHAR(255)'),
         ('contact_email', 'TEXT' if backend != 'mysql' else 'VARCHAR(255)'),
         ('contact_phone', 'TEXT' if backend != 'mysql' else 'VARCHAR(255)'),
@@ -838,19 +890,38 @@ def text_or_dash(value):
     return normalize_whitespace(value) or '-'
 
 
+def normalize_yes_no(value):
+    raw = normalize_whitespace(value).lower()
+    if raw in ('yes', 'y', 'true', '1'):
+        return 'Yes'
+    if raw in ('no', 'n', 'false', '0'):
+        return 'No'
+    return ''
+
+
 def parse_applicant_form(form):
     data = {
         'title': normalize_title(form.get('title')),
         'surname': normalize_name(form.get('surname')),
         'first_name': normalize_name(form.get('first_name')),
         'middle_name': normalize_name(form.get('middle_name')),
+        'passport_type': normalize_whitespace(form.get('passport_type')),
+        'gender': normalize_whitespace(form.get('gender')),
+        'marital_status': normalize_whitespace(form.get('marital_status')),
         'date_of_birth': normalize_date(form.get('date_of_birth')),
         'place_of_birth': normalize_name(form.get('place_of_birth')),
         'passport_number': normalize_whitespace(form.get('passport_number')).upper(),
         'passport_expiry': normalize_date(form.get('passport_expiry')),
+        'nigerian_passport': normalize_yes_no(form.get('nigerian_passport')),
         'nationality': normalize_name(form.get('nationality')),
         'visa_type': normalize_whitespace(form.get('visa_type')),
         'status': normalize_whitespace(form.get('status')) or 'Pending',
+        'country_of_departure': normalize_name(form.get('country_of_departure')),
+        'departure_date': normalize_date(form.get('departure_date')),
+        'arrival_date': normalize_date(form.get('arrival_date')),
+        'arrival_channel': normalize_whitespace(form.get('arrival_channel')),
+        'duration_of_stay': normalize_whitespace(form.get('duration_of_stay')),
+        'port_of_entry': normalize_whitespace(form.get('port_of_entry')),
         'travel_date': normalize_date(form.get('travel_date')),
         'email': normalize_whitespace(form.get('email')).lower(),
         'phone': normalize_whitespace(form.get('phone')),
@@ -870,6 +941,11 @@ def parse_applicant_form(form):
         'reason': normalize_whitespace(form.get('reason')),
         'notes': normalize_whitespace(form.get('notes')),
     }
+    if form.get('save_mode') == 'draft':
+        data['status'] = 'Draft'
+    elif data['status'] == 'Draft' and form.get('save_mode') == 'final':
+        data['status'] = 'Validated'
+    data['travel_date'] = data['arrival_date'] or data['travel_date']
     if data['flight_number'] and not data['travel_carrier']:
         data['travel_carrier'] = detect_travel_carrier(data['flight_number'])
     data['full_name'] = build_full_name(data)
@@ -1476,9 +1552,17 @@ def register_immigration_routes(app, helpers):
             companies=companies,
             contacts=contacts,
             all_contacts=get_company_contacts(conn, model_id),
+            applicant_titles=APPLICANT_TITLES,
+            passport_types=PASSPORT_TYPES,
+            genders=GENDERS,
+            marital_statuses=MARITAL_STATUSES,
             visa_types=VISA_TYPES,
+            journey_purposes=JOURNEY_PURPOSES,
             reasons=REASONS,
             statuses=APPLICANT_STATUSES,
+            arrival_channels=ARRIVAL_CHANNELS,
+            ports_by_channel=PORTS_BY_CHANNEL,
+            travel_carriers=TRAVEL_CARRIERS,
             documents=documents,
             default_countries=DEFAULT_COUNTRIES,
         )
@@ -1500,9 +1584,17 @@ def register_immigration_routes(app, helpers):
                 companies=get_companies(conn, model_id),
                 contacts=get_company_contacts(conn, model_id, payload.get('company_id')),
                 all_contacts=get_company_contacts(conn, model_id),
+                applicant_titles=APPLICANT_TITLES,
+                passport_types=PASSPORT_TYPES,
+                genders=GENDERS,
+                marital_statuses=MARITAL_STATUSES,
                 visa_types=VISA_TYPES,
+                journey_purposes=JOURNEY_PURPOSES,
                 reasons=REASONS,
                 statuses=APPLICANT_STATUSES,
+                arrival_channels=ARRIVAL_CHANNELS,
+                ports_by_channel=PORTS_BY_CHANNEL,
+                travel_carriers=TRAVEL_CARRIERS,
                 documents=[],
                 default_countries=DEFAULT_COUNTRIES,
             )
@@ -1514,15 +1606,25 @@ def register_immigration_routes(app, helpers):
             payload['first_name'],
             payload['middle_name'],
             payload['full_name'],
+            payload['passport_type'],
+            payload['gender'],
+            payload['marital_status'],
             payload['date_of_birth'],
             payload['place_of_birth'],
             payload['passport_number'],
             payload['passport_expiry'],
+            payload['nigerian_passport'],
             payload['flight_number'],
             payload['travel_carrier'],
             payload['nationality'],
             payload['visa_type'],
             payload['status'],
+            payload['country_of_departure'],
+            payload['departure_date'],
+            payload['arrival_date'],
+            payload['arrival_channel'],
+            payload['duration_of_stay'],
+            payload['port_of_entry'],
             payload['travel_date'],
             payload['email'],
             payload['phone'],
@@ -1547,8 +1649,9 @@ def register_immigration_routes(app, helpers):
                 '''
                 UPDATE applicants SET
                     model_id = ?, title = ?, surname = ?, first_name = ?, middle_name = ?, full_name = ?,
-                    date_of_birth = ?, place_of_birth = ?, passport_number = ?, passport_expiry = ?,
-                    flight_number = ?, travel_carrier = ?, nationality = ?, visa_type = ?, status = ?, travel_date = ?, email = ?, phone = ?,
+                    passport_type = ?, gender = ?, marital_status = ?, date_of_birth = ?, place_of_birth = ?, passport_number = ?, passport_expiry = ?,
+                    nigerian_passport = ?, flight_number = ?, travel_carrier = ?, nationality = ?, visa_type = ?, status = ?,
+                    country_of_departure = ?, departure_date = ?, arrival_date = ?, arrival_channel = ?, duration_of_stay = ?, port_of_entry = ?, travel_date = ?, email = ?, phone = ?,
                     contact_name = ?, contact_email = ?, contact_phone = ?, contact_address = ?, contact_city = ?,
                     contact_state = ?, contact_country = ?, contact_postal_code = ?, reference_number = ?, company_id = ?, contact_id = ?, reason = ?, notes = ?,
                     draft_data = ?, created_by = ?, updated_at = CURRENT_TIMESTAMP
@@ -1561,12 +1664,13 @@ def register_immigration_routes(app, helpers):
             conn.execute(
                 '''
                 INSERT INTO applicants (
-                    model_id, title, surname, first_name, middle_name, full_name, date_of_birth, place_of_birth,
-                    passport_number, passport_expiry, flight_number, travel_carrier, nationality, visa_type, status, travel_date, email, phone,
+                    model_id, title, surname, first_name, middle_name, full_name, passport_type, gender, marital_status, date_of_birth, place_of_birth,
+                    passport_number, passport_expiry, nigerian_passport, flight_number, travel_carrier,
+                    nationality, visa_type, status, country_of_departure, departure_date, arrival_date, arrival_channel, duration_of_stay, port_of_entry, travel_date, email, phone,
                     contact_name, contact_email, contact_phone, contact_address, contact_city, contact_state, contact_country, contact_postal_code,
                     reference_number, company_id, contact_id, reason, notes, draft_data, created_by
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''',
                 values,
             )
@@ -1574,8 +1678,12 @@ def register_immigration_routes(app, helpers):
                 'SELECT id FROM applicants WHERE model_id = ? AND reference_number = ? ORDER BY id DESC LIMIT 1',
                 (model_id, payload['reference_number']),
             ).fetchone()
-            save_audit(conn, model_id, session.get('user_id'), 'create', 'applicant', scalar_value(inserted), payload)
+            inserted_id = scalar_value(inserted)
+            save_audit(conn, model_id, session.get('user_id'), 'create', 'applicant', inserted_id, payload)
         maybe_commit(conn)
+        if request.form.get('next_action') == 'visa_letter':
+            target_id = applicant_id or inserted_id
+            return redirect(url_for('immigration_visa_letters', applicant_id=target_id))
         return redirect(url_for('immigration_applicants'))
 
     @app.route('/immigration/applicants/<int:applicant_id>/duplicate', methods=['POST'])
@@ -1590,18 +1698,22 @@ def register_immigration_routes(app, helpers):
         conn.execute(
             '''
             INSERT INTO applicants (
-                model_id, title, surname, first_name, middle_name, full_name, date_of_birth, place_of_birth,
-                passport_number, passport_expiry, flight_number, travel_carrier, nationality, visa_type, status, travel_date, email, phone,
+                model_id, title, surname, first_name, middle_name, full_name, passport_type, gender, marital_status, date_of_birth, place_of_birth,
+                passport_number, passport_expiry, nigerian_passport, flight_number, travel_carrier,
+                nationality, visa_type, status, country_of_departure, departure_date, arrival_date, arrival_channel, duration_of_stay, port_of_entry, travel_date, email, phone,
                 contact_name, contact_email, contact_phone, contact_address, contact_city, contact_state, contact_country, contact_postal_code,
                 reference_number, company_id, contact_id, reason, notes, draft_data, created_by
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''',
             (
                 model_id, source.get('title'), source.get('surname'), source.get('first_name'), source.get('middle_name'),
-                source.get('full_name'), source.get('date_of_birth'), source.get('place_of_birth'),
-                source.get('passport_number'), source.get('passport_expiry'), source.get('flight_number'), source.get('travel_carrier'),
-                source.get('nationality'), source.get('visa_type'), 'Draft', source.get('travel_date'), source.get('email'), source.get('phone'),
+                source.get('full_name'), source.get('passport_type'), source.get('gender'), source.get('marital_status'),
+                source.get('date_of_birth'), source.get('place_of_birth'), source.get('passport_number'), source.get('passport_expiry'),
+                source.get('nigerian_passport'), source.get('flight_number'), source.get('travel_carrier'), source.get('nationality'),
+                source.get('visa_type'), 'Draft', source.get('country_of_departure'), source.get('departure_date'),
+                source.get('arrival_date'), source.get('arrival_channel'), source.get('duration_of_stay'), source.get('port_of_entry'),
+                source.get('travel_date'), source.get('email'), source.get('phone'),
                 source.get('contact_name'), source.get('contact_email'), source.get('contact_phone'), source.get('contact_address'),
                 source.get('contact_city'), source.get('contact_state'), source.get('contact_country'), source.get('contact_postal_code'),
                 new_ref, source.get('company_id'), source.get('contact_id'), source.get('reason'),
@@ -1663,15 +1775,25 @@ def register_immigration_routes(app, helpers):
                 'first_name': first_name,
                 'middle_name': normalize_name(row.get('middle_name')),
                 'full_name': normalize_whitespace(f"{surname} {first_name} {normalize_name(row.get('middle_name'))}"),
+                'passport_type': normalize_whitespace(row.get('passport_type')),
+                'gender': normalize_whitespace(row.get('gender')),
+                'marital_status': normalize_whitespace(row.get('marital_status')),
                 'date_of_birth': normalize_date(row.get('date_of_birth')),
                 'place_of_birth': normalize_name(row.get('place_of_birth')),
                 'passport_number': normalize_whitespace(row.get('passport_number')).upper(),
                 'passport_expiry': normalize_date(row.get('passport_expiry')),
+                'nigerian_passport': normalize_yes_no(row.get('nigerian_passport')),
                 'flight_number': normalize_flight_number(row.get('flight_number')),
                 'travel_carrier': normalize_whitespace(row.get('travel_carrier')) or detect_travel_carrier(row.get('flight_number')),
                 'nationality': normalize_name(row.get('nationality')),
                 'visa_type': normalize_whitespace(row.get('visa_type')) or 'Business Visa',
                 'status': normalize_whitespace(row.get('status')) or 'Pending',
+                'country_of_departure': normalize_name(row.get('country_of_departure')),
+                'departure_date': normalize_date(row.get('departure_date')),
+                'arrival_date': normalize_date(row.get('arrival_date')),
+                'arrival_channel': normalize_whitespace(row.get('arrival_channel')),
+                'duration_of_stay': normalize_whitespace(row.get('duration_of_stay')),
+                'port_of_entry': normalize_whitespace(row.get('port_of_entry')),
                 'travel_date': normalize_date(row.get('travel_date')),
                 'email': normalize_whitespace(row.get('email')).lower(),
                 'phone': normalize_whitespace(row.get('phone')),
@@ -1692,18 +1814,21 @@ def register_immigration_routes(app, helpers):
             conn.execute(
                 '''
                 INSERT INTO applicants (
-                    model_id, title, surname, first_name, middle_name, full_name, date_of_birth, place_of_birth,
-                    passport_number, passport_expiry, flight_number, travel_carrier, nationality, visa_type, status, travel_date, email, phone,
+                    model_id, title, surname, first_name, middle_name, full_name, passport_type, gender, marital_status, date_of_birth, place_of_birth,
+                    passport_number, passport_expiry, nigerian_passport, flight_number, travel_carrier, nationality, visa_type, status,
+                    country_of_departure, departure_date, arrival_date, arrival_channel, duration_of_stay, port_of_entry, travel_date, email, phone,
                     contact_name, contact_email, contact_phone, contact_address, contact_city, contact_state, contact_country, contact_postal_code,
                     reference_number, company_id, contact_id, reason, notes, draft_data, created_by
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''',
                 (
                     model_id, payload['title'], payload['surname'], payload['first_name'], payload['middle_name'],
-                    payload['full_name'], payload['date_of_birth'], payload['place_of_birth'], payload['passport_number'],
-                    payload['passport_expiry'], payload['flight_number'], payload['travel_carrier'], payload['nationality'], payload['visa_type'], payload['status'],
-                    payload['travel_date'], payload['email'], payload['phone'], payload['contact_name'], payload['contact_email'],
+                    payload['full_name'], payload['passport_type'], payload['gender'], payload['marital_status'], payload['date_of_birth'], payload['place_of_birth'],
+                    payload['passport_number'], payload['passport_expiry'], payload['nigerian_passport'], payload['flight_number'], payload['travel_carrier'],
+                    payload['nationality'], payload['visa_type'], payload['status'], payload['country_of_departure'], payload['departure_date'],
+                    payload['arrival_date'], payload['arrival_channel'], payload['duration_of_stay'], payload['port_of_entry'], payload['travel_date'],
+                    payload['email'], payload['phone'], payload['contact_name'], payload['contact_email'],
                     payload['contact_phone'], payload['contact_address'], payload['contact_city'], payload['contact_state'],
                     payload['contact_country'], payload['contact_postal_code'], payload['reference_number'],
                     payload['company_id'], payload['contact_id'], payload['reason'], payload['notes'],
