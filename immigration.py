@@ -4,6 +4,7 @@ import io
 import json
 import os
 import re
+import tempfile
 from datetime import datetime, timedelta
 
 from reportlab.lib.pagesizes import A4
@@ -24,7 +25,12 @@ except Exception:
 
 
 IMMIGRATION_WORKSPACE = 'immigration'
-UPLOAD_ROOT = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'immigration')
+BASE_DIR = os.path.dirname(__file__)
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+DEFAULT_UPLOAD_ROOT = os.path.join(STATIC_ROOT, 'uploads', 'immigration')
+UPLOAD_ROOT = os.getenv('IMMIGRATION_UPLOAD_ROOT') or (
+    DEFAULT_UPLOAD_ROOT if os.access(STATIC_ROOT, os.W_OK) else os.path.join(tempfile.gettempdir(), 'bdj-ledger', 'immigration')
+)
 ALLOWED_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp'}
 ALLOWED_DOCUMENT_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.pdf', '.doc', '.docx', '.xls', '.xlsx'}
 VISA_TYPES = ['Business Visa', 'Visiting Visa', 'Conference Visa', 'Transit Visa']
@@ -79,9 +85,36 @@ def ensure_upload_dirs():
         os.makedirs(folder, exist_ok=True)
 
 
-def ensure_immigration_schema(cursor, backend):
-    ensure_upload_dirs()
+def to_storage_key(folder_name, stored_name):
+    return f'{folder_name}/{stored_name}'.replace('\\', '/')
 
+
+def resolve_storage_path(stored_path):
+    normalized = (stored_path or '').replace('\\', '/').lstrip('/')
+    if not normalized:
+        return None
+    if os.path.isabs(stored_path):
+        return stored_path
+    candidates = []
+    if normalized.startswith('uploads/immigration/'):
+        candidates.append(os.path.join(STATIC_ROOT, normalized))
+    if normalized.startswith('static/'):
+        candidates.append(os.path.join(BASE_DIR, normalized))
+    candidates.append(os.path.join(UPLOAD_ROOT, normalized))
+    for candidate in candidates:
+        if os.path.exists(candidate):
+            return candidate
+    return candidates[-1]
+
+
+def build_file_url(stored_path):
+    if not stored_path:
+        return ''
+    normalized = stored_path.replace('\\', '/').lstrip('/')
+    return url_for('immigration_uploaded_file', stored_path=normalized)
+
+
+def ensure_immigration_schema(cursor, backend):
     if backend == 'postgres':
         statements = [
             '''
@@ -775,10 +808,9 @@ def upload_file(file_storage, folder_name, allowed_extensions):
     os.makedirs(folder, exist_ok=True)
     absolute_path = os.path.join(folder, stored_name)
     file_storage.save(absolute_path)
-    relative = os.path.relpath(absolute_path, os.path.join(os.path.dirname(__file__), 'static'))
     return {
         'absolute_path': absolute_path,
-        'relative_path': relative.replace('\\', '/'),
+        'relative_path': to_storage_key(folder_name, stored_name),
         'stored_name': stored_name,
         'original_name': file_storage.filename,
         'size_bytes': os.path.getsize(absolute_path) if os.path.exists(absolute_path) else 0,
@@ -1134,7 +1166,7 @@ def extract_passport_ocr(file_storage):
             message = 'OCR extraction completed. Review and apply the values before saving.'
         except Exception as exc:
             message = f'OCR could not complete automatic extraction: {exc}'
-    return {'ok': True, 'message': message, 'data': data, 'preview_path': uploaded['relative_path']}
+    return {'ok': True, 'message': message, 'data': data, 'preview_path': build_file_url(uploaded['relative_path'])}
 
 
 def register_immigration_routes(app, helpers):
@@ -1163,6 +1195,17 @@ def register_immigration_routes(app, helpers):
             init_db()
         conn.execute('SELECT 1 FROM applicants LIMIT 1')
         schema_ready['ready'] = True
+
+    @app.context_processor
+    def immigration_template_helpers():
+        return {'immigration_file_url': build_file_url}
+
+    @app.route('/immigration/files/<path:stored_path>')
+    def immigration_uploaded_file(stored_path):
+        absolute_path = resolve_storage_path(stored_path)
+        if not absolute_path or not os.path.exists(absolute_path):
+            return ('Not Found', 404)
+        return send_file(absolute_path)
 
     @app.route('/immigration')
     @app.route('/immigration/dashboard')
@@ -2100,7 +2143,7 @@ def register_immigration_routes(app, helpers):
         applicant_id = request.form.get('applicant_id')
         row = row_to_dict(conn.execute('SELECT * FROM documents WHERE id = ? AND model_id = ?', (document_id, model_id)).fetchone())
         if row:
-            absolute_path = os.path.join(os.path.dirname(__file__), 'static', row.get('file_path') or '')
+            absolute_path = resolve_storage_path(row.get('file_path'))
             if os.path.exists(absolute_path):
                 try:
                     os.remove(absolute_path)
@@ -2173,7 +2216,12 @@ def register_immigration_routes(app, helpers):
             normalize_whitespace(request.form.get('visa_type')) or 'Business Visa',
             bool(request.form.get('plain_paper')),
         )
-        return jsonify({'ok': True, 'preview': preview, 'signature_path': letterhead.get('signature_image_path'), 'background_path': letterhead.get('background_image_path')})
+        return jsonify({
+            'ok': True,
+            'preview': preview,
+            'signature_path': build_file_url(letterhead.get('signature_image_path')) if letterhead.get('signature_image_path') else '',
+            'background_path': build_file_url(letterhead.get('background_image_path')) if letterhead.get('background_image_path') else '',
+        })
 
     @app.route('/immigration/visa-letters/generate', methods=['POST'])
     def generate_immigration_visa_letter():
@@ -2196,7 +2244,7 @@ def register_immigration_routes(app, helpers):
         width, height = A4
         background = letterhead.get('background_image_path')
         if background:
-            background_abs = os.path.join(os.path.dirname(__file__), 'static', background)
+            background_abs = resolve_storage_path(background)
             if os.path.exists(background_abs):
                 try:
                     pdf.drawImage(ImageReader(background_abs), 0, 0, width=width, height=height, preserveAspectRatio=False, mask='auto')
@@ -2215,7 +2263,7 @@ def register_immigration_routes(app, helpers):
             y -= 16
         signature_path = letterhead.get('signature_image_path')
         if signature_path:
-            signature_abs = os.path.join(os.path.dirname(__file__), 'static', signature_path)
+            signature_abs = resolve_storage_path(signature_path)
             if os.path.exists(signature_abs):
                 try:
                     pdf.drawImage(ImageReader(signature_abs), 56, max(y - 24, 90), width=140, height=48, mask='auto')
@@ -2230,7 +2278,7 @@ def register_immigration_routes(app, helpers):
         pdf_path = os.path.join(storage_folder, pdf_name)
         with open(pdf_path, 'wb') as handle:
             handle.write(pdf_buffer.getvalue())
-        relative_pdf = os.path.relpath(pdf_path, os.path.join(os.path.dirname(__file__), 'static')).replace('\\', '/')
+        relative_pdf = to_storage_key('documents', pdf_name)
 
         conn.execute(
             '''

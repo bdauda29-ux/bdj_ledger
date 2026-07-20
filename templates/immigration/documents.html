@@ -98,7 +98,7 @@
                         <td><span class="status-pill {{ (row.validation_status or 'pending')|lower|replace(' ', '-') }}">{{ row.validation_status or 'Pending' }}</span></td>
                         <td>
                             {% if row.file_path %}
-                            <a href="{{ url_for('static', filename=row.file_path) }}" target="_blank" class="btn btn-secondary btn-sm">Preview</a>
+                            <a href="{{ immigration_file_url(row.file_path) }}" target="_blank" class="btn btn-secondary btn-sm">Preview</a>
                             {% else %}
                             -
                             {% endif %}

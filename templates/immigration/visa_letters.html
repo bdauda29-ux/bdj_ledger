@@ -130,7 +130,7 @@
                         <td>{{ row.created_at }}</td>
                         <td>
                             {% if row.pdf_path %}
-                            <a href="{{ url_for('static', filename=row.pdf_path) }}" target="_blank" class="btn btn-secondary btn-sm">Open PDF</a>
+                            <a href="{{ immigration_file_url(row.pdf_path) }}" target="_blank" class="btn btn-secondary btn-sm">Open PDF</a>
                             {% else %}
                             -
                             {% endif %}
@@ -171,13 +171,13 @@
             if (!data.ok) return;
             previewText.textContent = data.preview.body || '';
             if (data.signature_path) {
-                signaturePreview.src = '/static/' + data.signature_path;
+                signaturePreview.src = data.signature_path;
                 signaturePreview.style.display = 'block';
             } else {
                 signaturePreview.style.display = 'none';
             }
             if (data.background_path) {
-                previewSurface.style.backgroundImage = 'url(/static/' + data.background_path + ')';
+                previewSurface.style.backgroundImage = 'url(' + data.background_path + ')';
                 previewSurface.style.backgroundSize = 'cover';
             } else {
                 previewSurface.style.backgroundImage = 'none';

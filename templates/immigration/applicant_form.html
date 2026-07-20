@@ -284,7 +284,7 @@ BOS"></textarea>
                     <span>{{ doc.created_at }}</span>
                     <span class="status-pill {{ (doc.validation_status or 'pending')|lower|replace(' ', '-') }}">{{ doc.validation_status or 'Pending' }}</span>
                     {% if doc.file_path %}
-                    <a href="{{ url_for('static', filename=doc.file_path) }}" target="_blank">Preview</a>
+                    <a href="{{ immigration_file_url(doc.file_path) }}" target="_blank">Preview</a>
                     {% endif %}
                 </div>
             </div>
@@ -756,7 +756,7 @@ BOS"></textarea>
             }
             message.textContent = data.message || 'OCR completed.';
             if (data.preview_path) {
-                preview.innerHTML = '<img src="/static/' + data.preview_path + '" alt="OCR preview" style="max-width:180px; border-radius:18px; box-shadow:var(--card-shadow);">';
+                preview.innerHTML = '<img src="' + data.preview_path + '" alt="OCR preview" style="max-width:180px; border-radius:18px; box-shadow:var(--card-shadow);">';
             }
             const map = {
                 surname: 'surname',
