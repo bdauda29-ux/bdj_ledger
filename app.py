@@ -22,6 +22,7 @@ from reportlab.lib import colors
 from PIL import Image, ImageFilter, ImageEnhance, ImageOps
 from email.message import EmailMessage
 from dotenv import load_dotenv
+from immigration import ensure_immigration_schema, register_immigration_routes, IMMIGRATION_WORKSPACE
 
 load_dotenv()
 
@@ -89,6 +90,12 @@ if psycopg2 is None:
     POSTGRES_URL = None
 if pymysql is None:
     MYSQL_URL = None
+
+FINANCE_WORKSPACE = 'finance'
+WORKSPACE_OPTIONS = [
+    {'value': FINANCE_WORKSPACE, 'label': 'Finance'},
+    {'value': IMMIGRATION_WORKSPACE, 'label': 'Immigration'},
+]
 
 @app.template_filter('comma2')
 def comma2(val):
@@ -465,6 +472,8 @@ def init_db():
         for table, col, dtype in required_columns:
             ensure_column(table, col, dtype)
 
+        ensure_immigration_schema(cursor, 'postgres')
+
         # Migrate app_id to BIGINT if it is INTEGER
         for table in ['transactions', 'deleted_transactions']:
             try:
@@ -765,6 +774,8 @@ def init_db():
 
         for table, col, dtype in required_columns:
             ensure_column(table, col, dtype)
+
+        ensure_immigration_schema(cursor, 'mysql')
 
         conn.commit()
 
@@ -1216,6 +1227,8 @@ def init_db():
     except sqlite3.OperationalError:
         pass
 
+    ensure_immigration_schema(cursor, 'sqlite')
+
     conn.commit()
     conn.close()
 
@@ -1268,6 +1281,150 @@ def can(permission):
     perms = session.get('permissions', {})
     return bool(perms.get(permission)) or bool(perms.get('is_admin'))
 
+def valid_workspace(value):
+    return value if value in {FINANCE_WORKSPACE, IMMIGRATION_WORKSPACE} else FINANCE_WORKSPACE
+
+def get_user_preference(user_id, pref_key, default=None):
+    if not user_id:
+        return default
+    try:
+        conn = get_db_connection()
+        row = conn.execute(
+            'SELECT pref_value FROM user_preferences WHERE user_id = ? AND pref_key = ?',
+            (user_id, pref_key),
+        ).fetchone()
+        if not row:
+            return default
+        if isinstance(row, (tuple, list)):
+            return row[0]
+        if hasattr(row, 'keys'):
+            keys = list(row.keys())
+            return row[keys[0]] if keys else default
+        return row
+    except Exception:
+        return default
+
+def set_user_preference(user_id, pref_key, pref_value):
+    if not user_id:
+        return
+    conn = get_db_connection()
+    existing = conn.execute(
+        'SELECT id FROM user_preferences WHERE user_id = ? AND pref_key = ?',
+        (user_id, pref_key),
+    ).fetchone()
+    existing_id = None
+    if existing:
+        if isinstance(existing, (tuple, list)):
+            existing_id = existing[0]
+        elif hasattr(existing, 'keys'):
+            keys = list(existing.keys())
+            existing_id = existing[keys[0]] if keys else None
+        else:
+            existing_id = existing
+    if existing_id:
+        conn.execute(
+            'UPDATE user_preferences SET pref_value = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            (pref_value, existing_id),
+        )
+    else:
+        conn.execute(
+            'INSERT INTO user_preferences (user_id, pref_key, pref_value) VALUES (?, ?, ?)',
+            (user_id, pref_key, pref_value),
+        )
+    conn.commit()
+
+def get_active_workspace():
+    return valid_workspace(session.get('workspace') or FINANCE_WORKSPACE)
+
+def set_active_workspace(workspace, persist=True):
+    selected = valid_workspace(workspace)
+    session['workspace'] = selected
+    if persist and session.get('user_id'):
+        try:
+            set_user_preference(session['user_id'], 'active_workspace', selected)
+        except Exception:
+            pass
+    return selected
+
+def workspace_home_endpoint(workspace=None):
+    return 'immigration_dashboard' if valid_workspace(workspace or get_active_workspace()) == IMMIGRATION_WORKSPACE else 'index'
+
+def build_sidebar_nav_items():
+    endpoint = request.endpoint or ''
+    active_workspace = get_active_workspace()
+    items = []
+    if active_workspace == IMMIGRATION_WORKSPACE:
+        immigration_items = [
+            ('immigration_dashboard', 'Dashboard', 'fas fa-th-large'),
+            ('immigration_applicants', 'Applicants', 'fas fa-passport'),
+            ('immigration_documents', 'Documents', 'fas fa-folder-open'),
+            ('immigration_contacts', 'Contacts', 'fas fa-address-book'),
+            ('immigration_companies', 'Companies', 'fas fa-building'),
+            ('immigration_letterheads', 'Letterheads', 'fas fa-signature'),
+            ('immigration_visa_letters', 'Visa Letters', 'fas fa-file-lines'),
+            ('immigration_automation', 'Automation', 'fas fa-robot'),
+            ('immigration_reports', 'Reports', 'fas fa-chart-line'),
+            ('immigration_settings', 'Settings', 'fas fa-gear'),
+        ]
+        for route_name, label, icon in immigration_items:
+            items.append({
+                'type': 'item',
+                'url': url_for(route_name),
+                'label': label,
+                'icon': icon,
+                'active': endpoint == route_name,
+            })
+        return items
+
+    finance_items = [
+        ('index', 'Dashboard', 'fas fa-th-large', True),
+        ('transactions', 'Transactions', 'fas fa-exchange-alt', True),
+        ('clients', 'Clients', 'fas fa-users', bool(session.get('permissions', {}).get('can_view_clients'))),
+        ('countries', 'Countries', 'fas fa-globe', True),
+        (None, None, None, True),
+        ('image_processing', 'Image Tools', 'fas fa-images', True),
+        ('pdf_tools', 'PDF Tools', 'fas fa-file-pdf', True),
+        ('barcode_generator', 'Barcode', 'fas fa-barcode', True),
+    ]
+    for route_name, label, icon, enabled in finance_items:
+        if not enabled:
+            continue
+        if route_name is None:
+            items.append({'type': 'divider'})
+            continue
+        items.append({
+            'type': 'item',
+            'url': url_for(route_name),
+            'label': label,
+            'icon': icon,
+            'active': endpoint == route_name,
+        })
+
+    if session.get('permissions', {}).get('is_admin'):
+        items.append({'type': 'divider'})
+        for route_name, label, icon in [
+            ('assets', 'Asset', 'fas fa-coins'),
+            ('wallet_view', 'Wallet', 'fas fa-wallet'),
+            ('models', 'Models', 'fas fa-cubes'),
+            ('list_users', 'Users', 'fas fa-user-cog'),
+        ]:
+            items.append({
+                'type': 'item',
+                'url': url_for(route_name),
+                'label': label,
+                'icon': icon,
+                'active': endpoint == route_name,
+            })
+    return items
+
+@app.context_processor
+def inject_workspace_context():
+    return {
+        'active_workspace': get_active_workspace(),
+        'workspace_options': WORKSPACE_OPTIONS,
+        'sidebar_nav_items': build_sidebar_nav_items() if session.get('user_id') else [],
+    }
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -1292,13 +1449,17 @@ def login():
                     'is_admin': bool(pv('is_admin', 0))
                 }
                 session.permanent = True
+                set_active_workspace(
+                    get_user_preference(user['id'], 'active_workspace', FINANCE_WORKSPACE),
+                    persist=False,
+                )
                 
                 # Auto-select model if only one exists
                 models = conn.execute('SELECT id, name FROM models').fetchall()
                 if len(models) == 1:
                     session['model_id'] = models[0]['id']
                     session['model_name'] = models[0]['name']
-                    return redirect(url_for('index'))
+                    return redirect(url_for(workspace_home_endpoint()))
                 
                 return redirect(url_for('models'))
         return render_template('login.html', error='Invalid credentials')
@@ -1308,6 +1469,15 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+@app.route('/workspace/select/<workspace>')
+def select_workspace(workspace):
+    selected = set_active_workspace(workspace, persist=True)
+    next_url = request.args.get('next', '').strip()
+    if next_url and next_url.startswith('/'):
+        return redirect(next_url)
+    return redirect(url_for(workspace_home_endpoint(selected)))
+
 @app.route('/account/password', methods=['GET','POST'])
 def change_password():
     if not login_required():
@@ -1405,7 +1575,7 @@ def add_model():
             if new_model:
                 session['model_id'] = new_model['id']
                 session['model_name'] = new_model['name']
-                return redirect(url_for('index'))
+                return redirect(url_for(workspace_home_endpoint()))
             
             return redirect(url_for('models'))
         except Exception as e:
@@ -1422,7 +1592,7 @@ def select_model(model_id):
         return redirect(url_for('models'))
     session['model_id'] = m['id']
     session['model_name'] = m['name']
-    return redirect(url_for('index'))
+    return redirect(url_for(workspace_home_endpoint()))
 
 @app.route('/models/clear', methods=['POST'])
 def clear_current_model():
@@ -5049,6 +5219,16 @@ def pdf_tools():
             return f"Error processing PDF: {str(e)}"
 
     return render_template('pdf_tools.html')
+
+register_immigration_routes(
+    app,
+    {
+        'get_db_connection': get_db_connection,
+        'current_model_id': current_model_id,
+        'comma2': comma2,
+        'set_active_workspace': set_active_workspace,
+    },
+)
 
 # Ensure database is initialized
 try:

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<div class="dashboard immigration-page">
+    <section class="immigration-hero">
+        <div>
+            <span class="badge-soft"><i class="fas fa-chart-line"></i> Immigration Reports</span>
+            <h2 style="margin-top: 0.9rem;">Generate daily, weekly, monthly, visa-type, nationality, company, travel-date, and validation-friendly applicant reports.</h2>
+            <p>Export current filtered results to Excel, CSV, or PDF.</p>
+        </div>
+        <div class="immigration-inline-stats">
+            <div class="immigration-inline-stat">
+                <span class="label">Daily</span>
+                <span class="value">{{ summary.daily }}</span>
+            </div>
+            <div class="immigration-inline-stat">
+                <span class="label">Weekly</span>
+                <span class="value">{{ summary.weekly }}</span>
+            </div>
+            <div class="immigration-inline-stat">
+                <span class="label">Monthly</span>
+                <span class="value">{{ summary.monthly }}</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="glass-card">
+        <form method="GET" class="table-toolbar">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="visa_type">Visa Type</label>
+                <select id="visa_type" name="visa_type">
+                    <option value="">All Visa Types</option>
+                    {% for item in visa_types %}
+                    <option value="{{ item }}" {% if filters.get('visa_type') == item %}selected{% endif %}>{{ item }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="company_id">Company</label>
+                <select id="company_id" name="company_id">
+                    <option value="">All Companies</option>
+                    {% for item in companies %}
+                    <option value="{{ item.id }}" {% if filters.get('company_id') == item.id|string %}selected{% endif %}>{{ item.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="travel_date">Travel Date</label>
+                <input type="date" id="travel_date" name="travel_date" value="{{ filters.get('travel_date', '') }}">
+            </div>
+            <div class="toolbar-actions" style="align-items:end;">
+                <button type="submit" class="btn btn-primary btn-sm">Generate</button>
+                <a href="{{ url_for('export_immigration_reports', format='xlsx', visa_type=filters.get('visa_type', ''), company_id=filters.get('company_id', ''), travel_date=filters.get('travel_date', '')) }}" class="btn btn-secondary btn-sm">Excel</a>
+                <a href="{{ url_for('export_immigration_reports', format='csv', visa_type=filters.get('visa_type', ''), company_id=filters.get('company_id', ''), travel_date=filters.get('travel_date', '')) }}" class="btn btn-secondary btn-sm">CSV</a>
+                <a href="{{ url_for('export_immigration_reports', format='pdf', visa_type=filters.get('visa_type', ''), company_id=filters.get('company_id', ''), travel_date=filters.get('travel_date', '')) }}" class="btn btn-secondary btn-sm">PDF</a>
+            </div>
+        </form>
+    </section>
+
+    <section class="glass-card">
+        <div class="table-container sticky-table-head">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>Applicant</th>
+                        <th>Passport</th>
+                        <th>Nationality</th>
+                        <th>Visa Type</th>
+                        <th>Company</th>
+                        <th>Travel Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td>{{ row.reference_number }}</td>
+                        <td>{{ row.full_name }}</td>
+                        <td>{{ row.passport_number or '-' }}</td>
+                        <td>{{ row.nationality or '-' }}</td>
+                        <td>{{ row.visa_type or '-' }}</td>
+                        <td>{{ row.company_name or '-' }}</td>
+                        <td>{{ row.travel_date or '-' }}</td>
+                        <td><span class="status-pill {{ (row.status or 'pending')|lower|replace(' ', '-') }}">{{ row.status or 'Pending' }}</span></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8">No rows match the current report filters.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

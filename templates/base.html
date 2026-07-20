@@ -29,59 +29,16 @@
 
             {% if session.get('user_id') %}
             <nav class="sidebar-nav">
-                <a href="{{ url_for('index') }}" class="nav-item {% if request.endpoint == 'index' %}active{% endif %}">
-                    <div class="nav-icon"><i class="fas fa-th-large"></i></div>
-                    <span class="nav-text">Dashboard</span>
-                </a>
-                <a href="{{ url_for('transactions') }}" class="nav-item {% if request.endpoint == 'transactions' %}active{% endif %}">
-                    <div class="nav-icon"><i class="fas fa-exchange-alt"></i></div>
-                    <span class="nav-text">Transactions</span>
-                </a>
-                {% if session.permissions and session.permissions.can_view_clients %}
-                <a href="{{ url_for('clients') }}" class="nav-item {% if request.endpoint == 'clients' %}active{% endif %}">
-                    <div class="nav-icon"><i class="fas fa-users"></i></div>
-                    <span class="nav-text">Clients</span>
-                </a>
-                {% endif %}
-                <a href="{{ url_for('countries') }}" class="nav-item {% if request.endpoint == 'countries' %}active{% endif %}">
-                    <div class="nav-icon"><i class="fas fa-globe"></i></div>
-                    <span class="nav-text">Countries</span>
-                </a>
-                
-                <div class="nav-divider"></div>
-                
-                <a href="{{ url_for('image_processing') }}" class="nav-item {% if request.endpoint == 'image_processing' %}active{% endif %}">
-                    <div class="nav-icon"><i class="fas fa-images"></i></div>
-                    <span class="nav-text">Image Tools</span>
-                </a>
-                <a href="{{ url_for('pdf_tools') }}" class="nav-item {% if request.endpoint == 'pdf_tools' %}active{% endif %}">
-                    <div class="nav-icon"><i class="fas fa-file-pdf"></i></div>
-                    <span class="nav-text">PDF Tools</span>
-                </a>
-                <a href="{{ url_for('barcode_generator') }}" class="nav-item {% if request.endpoint == 'barcode_generator' %}active{% endif %}">
-                    <div class="nav-icon"><i class="fas fa-barcode"></i></div>
-                    <span class="nav-text">Barcode</span>
-                </a>
-
-                {% if session.permissions and session.permissions.is_admin %}
-                <div class="nav-divider"></div>
-                <a href="{{ url_for('assets') }}" class="nav-item {% if request.endpoint == 'assets' %}active{% endif %}">
-                    <div class="nav-icon"><i class="fas fa-coins"></i></div>
-                    <span class="nav-text">Asset</span>
-                </a>
-                <a href="{{ url_for('wallet_view') }}" class="nav-item {% if request.endpoint == 'wallet_view' %}active{% endif %}">
-                    <div class="nav-icon"><i class="fas fa-wallet"></i></div>
-                    <span class="nav-text">Wallet</span>
-                </a>
-                <a href="{{ url_for('models') }}" class="nav-item {% if request.endpoint == 'models' %}active{% endif %}">
-                    <div class="nav-icon"><i class="fas fa-cubes"></i></div>
-                    <span class="nav-text">Models</span>
-                </a>
-                <a href="{{ url_for('list_users') }}" class="nav-item {% if request.endpoint == 'list_users' %}active{% endif %}">
-                    <div class="nav-icon"><i class="fas fa-user-cog"></i></div>
-                    <span class="nav-text">Users</span>
-                </a>
-                {% endif %}
+                {% for item in sidebar_nav_items %}
+                    {% if item.type == 'divider' %}
+                    <div class="nav-divider"></div>
+                    {% else %}
+                    <a href="{{ item.url }}" class="nav-item {% if item.active %}active{% endif %}">
+                        <div class="nav-icon"><i class="{{ item.icon }}"></i></div>
+                        <span class="nav-text">{{ item.label }}</span>
+                    </a>
+                    {% endif %}
+                {% endfor %}
             </nav>
             {% endif %}
 
@@ -107,7 +64,8 @@
             <header class="top-header">
                 <div class="header-left">
                     <h2 class="page-title">
-                        {% if request.endpoint == 'index' %}Dashboard
+                        {% if page_title is defined and page_title %}{{ page_title }}
+                        {% elif request.endpoint == 'index' %}Dashboard
                         {% elif request.endpoint == 'transactions' %}Transactions
                         {% elif request.endpoint == 'clients' %}Client Management
                         {% elif request.endpoint == 'countries' %}Countries
@@ -117,6 +75,16 @@
                 </div>
                 
                 <div class="header-right">
+                    <div class="workspace-switcher">
+                        <label for="workspaceSelect">Workspace</label>
+                        <select id="workspaceSelect" class="workspace-select" data-current-path="{{ request.path }}">
+                            {% for workspace in workspace_options %}
+                            <option value="{{ workspace.value }}" {% if active_workspace == workspace.value %}selected{% endif %}>
+                                {{ workspace.label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     {% if session.model_name %}
                     <div class="model-badge">
                         <i class="fas fa-tag"></i> {{ session.model_name }}
@@ -326,6 +294,16 @@
                 appContainer.classList.toggle('sidebar-collapsed');
                 const isCollapsed = appContainer.classList.contains('sidebar-collapsed');
                 localStorage.setItem('sidebar-collapsed', isCollapsed);
+            });
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const workspaceSelect = document.getElementById('workspaceSelect');
+            if (!workspaceSelect) return;
+            workspaceSelect.addEventListener('change', function() {
+                const nextPath = encodeURIComponent(window.location.pathname + window.location.search);
+                window.location.href = '/workspace/select/' + workspaceSelect.value + '?next=' + nextPath;
             });
         });
     </script>

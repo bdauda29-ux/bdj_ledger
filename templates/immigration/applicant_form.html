@@ -1,0 +1,778 @@
+{% extends "base.html" %}
+
+{% block title %}Applicant Form{% endblock %}
+
+{% block content %}
+<div class="dashboard immigration-page">
+    <section class="immigration-hero">
+        <div>
+            <span class="badge-soft"><i class="fas fa-id-card"></i> Applicant Form</span>
+            <h2 style="margin-top: 0.9rem;">Quick Fill, OCR-assisted passport capture, auto-normalization, and contact integration in one workflow.</h2>
+            <p>Press Enter inside Quick Fill to move to the next field. The final Enter populates the main form and normalizes names, titles, and dates.</p>
+        </div>
+        <div class="immigration-inline-stats">
+            <div class="immigration-inline-stat">
+                <span class="label">Mode</span>
+                <span class="value" style="font-size: 1.05rem;">{{ 'Edit' if applicant else 'Create' }}</span>
+            </div>
+            <div class="immigration-inline-stat">
+                <span class="label">Reference</span>
+                <span class="value" style="font-size: 1.05rem;">{{ applicant.reference_number if applicant else 'Auto' }}</span>
+            </div>
+        </div>
+    </section>
+
+    {% if error %}
+    <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
+    {% endif %}
+
+    <div class="immigration-grid two-column">
+        <section class="glass-card">
+            <div class="workspace-toolbar">
+                <div>
+                    <h3>Quick Fill Panel</h3>
+                    <p class="card-subtitle">Use one multiline textarea, press Enter after each value, then press Ctrl + Enter to parse and populate the form.</p>
+                </div>
+                <div class="toolbar-actions">
+                    <button type="button" class="btn btn-secondary btn-sm" id="clearQuickFill">Clear</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="applyQuickFill">Auto Fill Applicant Form</button>
+                </div>
+            </div>
+            <div class="quick-fill-shell">
+                <div class="quick-fill-lines" id="quickFillLineNumbers" aria-hidden="true">1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9<br>10</div>
+                <div class="quick-fill-input-area">
+                    <textarea id="quickFillTextarea" class="quick-fill-textarea" rows="10" spellcheck="false" placeholder="Mr.
+DAUDA
+BUNYAMEEN
+ABDUL
+29/08/2007
+KANO
+WJ2I333333
+30/01/2029
+TK720
+BOS"></textarea>
+                    <div class="quick-fill-hint">Order: Title, Surname, First Name, Middle Name, Date of Birth, Place of Birth, Passport Number, Passport Expiry, Flight Number, Contact Search</div>
+                </div>
+                <div class="quick-fill-feedback" id="quickFillFeedback">
+                    <div class="quick-fill-feedback-title">Validation</div>
+                    <div class="quick-fill-feedback-body" id="quickFillFeedbackBody">Ready for keyboard-only entry.</div>
+                </div>
+            </div>
+            <div class="quick-fill-shortcuts">
+                <span><kbd>Ctrl</kbd> + <kbd>V</kbd> Paste details</span>
+                <span><kbd>Ctrl</kbd> + <kbd>Enter</kbd> Parse</span>
+                <span><kbd>Esc</kbd> Clear after confirmation</span>
+            </div>
+        </section>
+
+        <section class="glass-card">
+            <div class="workspace-toolbar">
+                <div>
+                    <h3>OCR Passport</h3>
+                    <p class="card-subtitle">Upload a passport image to extract editable fields automatically when OCR is available.</p>
+                </div>
+            </div>
+            <form id="ocrForm" class="dropzone" enctype="multipart/form-data">
+                <div class="form-group" style="margin-bottom: 0.8rem;">
+                    <label for="passportImage">Passport Image</label>
+                    <input type="file" id="passportImage" name="passport_image" accept=".png,.jpg,.jpeg,.webp" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-camera"></i> OCR Passport</button>
+                <div id="ocrMessage" style="margin-top: 1rem; color: var(--text-secondary);"></div>
+                <div id="ocrPreview" style="margin-top: 1rem;"></div>
+            </form>
+        </section>
+    </div>
+
+    <section class="glass-card">
+        <div class="workspace-toolbar">
+            <div>
+                <h3>Main Applicant Form</h3>
+                <p class="card-subtitle">Company-aware contact selection with inline contact creation and auto-populated contact details.</p>
+            </div>
+            <div class="toolbar-actions">
+                <a href="{{ url_for('immigration_applicants') }}" class="btn btn-secondary btn-sm">Back to Applicants</a>
+            </div>
+        </div>
+
+        <form method="POST" action="{% if applicant %}{{ url_for('save_immigration_applicant', applicant_id=applicant.id) }}{% else %}{{ url_for('save_immigration_applicant') }}{% endif %}" id="applicantForm">
+            <div class="form-grid three-column">
+                <div class="form-group">
+                    <label for="title">Title</label>
+                    <input type="text" id="title" name="title" value="{{ applicant.title if applicant else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="surname">Surname</label>
+                    <input type="text" id="surname" name="surname" value="{{ applicant.surname if applicant else '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="first_name">First Name</label>
+                    <input type="text" id="first_name" name="first_name" value="{{ applicant.first_name if applicant else '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="middle_name">Middle Name</label>
+                    <input type="text" id="middle_name" name="middle_name" value="{{ applicant.middle_name if applicant else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="date_of_birth">Date of Birth</label>
+                    <input type="date" id="date_of_birth" name="date_of_birth" value="{{ applicant.date_of_birth if applicant else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="place_of_birth">Place of Birth</label>
+                    <input type="text" id="place_of_birth" name="place_of_birth" value="{{ applicant.place_of_birth if applicant else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="passport_number">Passport Number</label>
+                    <input type="text" id="passport_number" name="passport_number" value="{{ applicant.passport_number if applicant else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="passport_expiry">Passport Expiry</label>
+                    <input type="date" id="passport_expiry" name="passport_expiry" value="{{ applicant.passport_expiry if applicant else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="flight_number">Flight Number</label>
+                    <input type="text" id="flight_number" name="flight_number" value="{{ applicant.flight_number if applicant else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="travel_carrier">Travel Carrier</label>
+                    <input type="text" id="travel_carrier" name="travel_carrier" value="{{ applicant.travel_carrier if applicant else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="nationality">Nationality</label>
+                    <input type="text" id="nationality" name="nationality" value="{{ applicant.nationality if applicant else '' }}" list="countryOptions">
+                    <datalist id="countryOptions">
+                        {% for item in default_countries %}
+                        <option value="{{ item }}"></option>
+                        {% endfor %}
+                    </datalist>
+                </div>
+                <div class="form-group">
+                    <label for="visa_type">Visa Type</label>
+                    <select id="visa_type" name="visa_type">
+                        <option value="">Select visa type</option>
+                        {% for item in visa_types %}
+                        <option value="{{ item }}" {% if applicant and applicant.visa_type == item %}selected{% endif %}>{{ item }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <select id="status" name="status">
+                        {% for item in statuses %}
+                        <option value="{{ item }}" {% if applicant and applicant.status == item %}selected{% elif not applicant and item == 'Pending' %}selected{% endif %}>{{ item }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="travel_date">Travel Date</label>
+                    <input type="date" id="travel_date" name="travel_date" value="{{ applicant.travel_date if applicant else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" value="{{ applicant.email if applicant else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone</label>
+                    <input type="text" id="phone" name="phone" value="{{ applicant.phone if applicant else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="reference_number">Reference Number</label>
+                    <input type="text" id="reference_number" name="reference_number" value="{{ applicant.reference_number if applicant else '' }}" placeholder="Auto-generated if blank">
+                </div>
+                <div class="form-group">
+                    <label for="company_id">Company</label>
+                    <select id="company_id" name="company_id">
+                        <option value="">Select company</option>
+                        {% for item in companies %}
+                        <option value="{{ item.id }}" {% if applicant and applicant.company_id|string == item.id|string %}selected{% endif %}>{{ item.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="contact_id">Contact Name</label>
+                    <div style="display:flex; gap:0.6rem;">
+                        <select id="contact_id" name="contact_id" style="flex:1;">
+                            <option value="">Select contact</option>
+                            {% for item in contacts %}
+                            <option value="{{ item.id }}" {% if applicant and applicant.contact_id|string == item.id|string %}selected{% endif %}
+                                data-phone="{{ item.phone or '' }}"
+                                data-email="{{ item.email or '' }}"
+                                data-address="{{ item.address or '' }}"
+                                data-city="{{ item.city or '' }}"
+                                data-state="{{ item.state or '' }}"
+                                data-postal="{{ item.postal_code or '' }}"
+                                data-country="{{ item.country or '' }}">
+                                {{ item.contact_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" class="btn btn-secondary btn-sm" id="openContactDialog">+</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="contact_name">Selected Contact Name</label>
+                    <input type="text" id="contact_name" name="contact_name" value="{{ applicant.contact_name if applicant else '' }}" autocomplete="off">
+                    <div id="contactAutocomplete" class="contact-autocomplete" style="display:none;"></div>
+                </div>
+                <div class="form-group">
+                    <label for="contact_phone">Contact Phone</label>
+                    <input type="text" id="contact_phone" name="contact_phone" value="{{ applicant.contact_phone if applicant else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="contact_email">Contact Email</label>
+                    <input type="email" id="contact_email" name="contact_email" value="{{ applicant.contact_email if applicant else '' }}">
+                </div>
+                <div class="form-group full-span">
+                    <label for="contact_address">Contact Address</label>
+                    <input type="text" id="contact_address" name="contact_address" value="{{ applicant.contact_address if applicant else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="contact_city">Contact City</label>
+                    <input type="text" id="contact_city" name="contact_city" value="{{ applicant.contact_city if applicant else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="contact_state">Contact State</label>
+                    <input type="text" id="contact_state" name="contact_state" value="{{ applicant.contact_state if applicant else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="contact_country">Contact Country</label>
+                    <input type="text" id="contact_country" name="contact_country" value="{{ applicant.contact_country if applicant else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="contact_postal_code">Postal Code</label>
+                    <input type="text" id="contact_postal_code" name="contact_postal_code" value="{{ applicant.contact_postal_code if applicant else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="reason">Reason</label>
+                    <select id="reason" name="reason">
+                        <option value="">Select reason</option>
+                        {% for item in reasons %}
+                        <option value="{{ item }}" {% if applicant and applicant.reason == item %}selected{% endif %}>{{ item }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group full-span">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes" rows="4">{{ applicant.notes if applicant else '' }}</textarea>
+                </div>
+            </div>
+            <div class="form-toolbar" style="margin-top: 1rem;">
+                <div class="toolbar-actions">
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Save Applicant</button>
+                    <a href="{{ url_for('immigration_applicants') }}" class="btn btn-secondary btn-sm">Cancel</a>
+                </div>
+                <span style="color: var(--text-secondary);" id="draftStatus">Draft auto-save ready.</span>
+            </div>
+        </form>
+    </section>
+
+    {% if applicant %}
+    <section class="glass-card">
+        <div class="workspace-toolbar">
+            <div>
+                <h3>Applicant Documents</h3>
+                <p class="card-subtitle">Every applicant has a dedicated document folder for upload, preview, rename, delete, and validation status.</p>
+            </div>
+            <a href="{{ url_for('immigration_documents', applicant_id=applicant.id) }}" class="btn btn-secondary btn-sm">Open Full Document Manager</a>
+        </div>
+        <div class="stack-list">
+            {% for doc in documents %}
+            <div class="stack-item">
+                <div class="stack-item-title">{{ doc.document_type }} - {{ doc.original_name }}</div>
+                <div class="stack-item-meta">
+                    <span>{{ doc.mime_type or 'file' }}</span>
+                    <span>{{ doc.created_at }}</span>
+                    <span class="status-pill {{ (doc.validation_status or 'pending')|lower|replace(' ', '-') }}">{{ doc.validation_status or 'Pending' }}</span>
+                    {% if doc.file_path %}
+                    <a href="{{ url_for('static', filename=doc.file_path) }}" target="_blank">Preview</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="stack-item">No documents uploaded for this applicant yet.</div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</div>
+
+<div class="modal-overlay" id="contactDialog" style="display:none;">
+    <div class="custom-modal" style="max-width: 720px;">
+        <div class="modal-header" style="display:flex; align-items:center; justify-content:space-between;">
+            <h3 style="margin:0;">New Contact</h3>
+            <button type="button" id="closeContactDialog" class="btn-icon"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <form id="quickContactForm" class="form-grid">
+                <div class="form-group">
+                    <label for="quick_contact_name">Contact Name</label>
+                    <input type="text" id="quick_contact_name" name="contact_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="quick_contact_phone">Phone</label>
+                    <input type="text" id="quick_contact_phone" name="phone">
+                </div>
+                <div class="form-group">
+                    <label for="quick_contact_email">Email</label>
+                    <input type="email" id="quick_contact_email" name="email">
+                </div>
+                <div class="form-group">
+                    <label for="quick_contact_address">Address</label>
+                    <input type="text" id="quick_contact_address" name="address">
+                </div>
+                <div class="form-group">
+                    <label for="quick_contact_city">City</label>
+                    <input type="text" id="quick_contact_city" name="city">
+                </div>
+                <div class="form-group">
+                    <label for="quick_contact_state">State</label>
+                    <input type="text" id="quick_contact_state" name="state">
+                </div>
+                <div class="form-group">
+                    <label for="quick_contact_postal">Postal Code</label>
+                    <input type="text" id="quick_contact_postal" name="postal_code">
+                </div>
+                <div class="form-group">
+                    <label for="quick_contact_country">Country</label>
+                    <input type="text" id="quick_contact_country" name="country">
+                </div>
+                <input type="hidden" name="company_id" id="quick_contact_company_id">
+            </form>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn-modal-secondary" id="cancelContactDialog">Cancel</button>
+            <button type="button" class="btn-modal-primary" id="saveQuickContact">Save Contact</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const quickFillTextarea = document.getElementById('quickFillTextarea');
+        const quickFillLineNumbers = document.getElementById('quickFillLineNumbers');
+        const quickFillFeedbackBody = document.getElementById('quickFillFeedbackBody');
+        const contactNameField = document.getElementById('contact_name');
+        const contactAutocomplete = document.getElementById('contactAutocomplete');
+        const flightNumberField = document.getElementById('flight_number');
+        const travelCarrierField = document.getElementById('travel_carrier');
+        const allContacts = {{ all_contacts|tojson|safe }};
+        const airlinePrefixes = {
+            TK: 'Turkish Airlines',
+            QR: 'Qatar Airways',
+            ET: 'Ethiopian Airlines',
+            BA: 'British Airways',
+            LH: 'Lufthansa',
+            EK: 'Emirates',
+            KL: 'KLM',
+            AF: 'Air France',
+            MS: 'EgyptAir',
+            SN: 'Brussels Airlines',
+            WB: 'RwandAir',
+            KQ: 'Kenya Airways',
+            P4: 'Air Peace',
+            Q9: 'Ibom Air',
+            VM: 'Max Air',
+            W3: 'Arik Air',
+            N2: 'Aero Contractors',
+            AJ: 'Azman Air'
+        };
+
+        function normalizeText(value) {
+            return (value || '').trim().replace(/\s+/g, ' ');
+        }
+
+        function toTitleCase(value) {
+            return normalizeText(value).toLowerCase().split(' ').filter(Boolean).map(function(part) {
+                return part.charAt(0).toUpperCase() + part.slice(1);
+            }).join(' ');
+        }
+
+        function normalizeDate(value) {
+            const raw = normalizeText(value);
+            if (!raw) return '';
+            const normalized = raw.replace(/\./g, '/').replace(/-/g, '/');
+            const dayFirst = normalized.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+            if (dayFirst) return dayFirst[1] + '/' + dayFirst[2] + '/' + dayFirst[3];
+            const yearFirst = normalized.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
+            if (yearFirst) return yearFirst[3] + '/' + yearFirst[2] + '/' + yearFirst[1];
+            const dt = new Date(raw);
+            if (!Number.isNaN(dt.getTime())) {
+                const day = String(dt.getDate()).padStart(2, '0');
+                const month = String(dt.getMonth() + 1).padStart(2, '0');
+                const year = dt.getFullYear();
+                return day + '/' + month + '/' + year;
+            }
+            return '';
+        }
+
+        function toIsoDate(displayDate) {
+            const match = normalizeText(displayDate).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+            return match ? (match[3] + '-' + match[2] + '-' + match[1]) : '';
+        }
+
+        function resizeQuickFill() {
+            quickFillTextarea.style.height = 'auto';
+            quickFillTextarea.style.height = Math.max(260, quickFillTextarea.scrollHeight) + 'px';
+            const lines = quickFillTextarea.value.split('\n');
+            const lineCount = Math.max(lines.length, 10);
+            quickFillLineNumbers.innerHTML = Array.from({ length: lineCount }, function(_, index) {
+                return index + 1;
+            }).join('<br>');
+        }
+
+        function detectCarrier(flightNumber) {
+            const normalized = normalizeText(flightNumber).replace(/\s+/g, '').toUpperCase();
+            const prefix = normalized.slice(0, 2);
+            return airlinePrefixes[prefix] || '';
+        }
+
+        function applyContactToForm(contact) {
+            if (!contact) return;
+            if (companySelect.value && String(contact.company_id || '') !== String(companySelect.value)) {
+                companySelect.value = contact.company_id || '';
+            }
+            contactNameField.value = contact.contact_name || '';
+            document.getElementById('contact_phone').value = contact.phone || '';
+            document.getElementById('contact_email').value = contact.email || '';
+            document.getElementById('contact_address').value = contact.address || '';
+            document.getElementById('contact_city').value = contact.city || '';
+            document.getElementById('contact_state').value = contact.state || '';
+            document.getElementById('contact_country').value = contact.country || '';
+            document.getElementById('contact_postal_code').value = contact.postal_code || '';
+            Array.from(contactSelect.options).forEach(function(option) {
+                option.selected = String(option.value) === String(contact.id || '');
+            });
+            contactAutocomplete.style.display = 'none';
+        }
+
+        function scoreContact(contact, query) {
+            const haystack = normalizeText(contact.contact_name || '').toLowerCase();
+            const needle = normalizeText(query).toLowerCase();
+            if (!needle) return -1;
+            if (haystack.startsWith(needle)) return 300 - haystack.length;
+            if (haystack.includes(needle)) return 200 - haystack.indexOf(needle);
+            let fuzzyIndex = 0;
+            for (let i = 0; i < haystack.length && fuzzyIndex < needle.length; i += 1) {
+                if (haystack[i] === needle[fuzzyIndex]) fuzzyIndex += 1;
+            }
+            return fuzzyIndex === needle.length ? 100 - haystack.length : -1;
+        }
+
+        function searchContacts(query) {
+            return allContacts
+                .map(function(contact) {
+                    return { contact: contact, score: scoreContact(contact, query) };
+                })
+                .filter(function(item) {
+                    return item.score >= 0;
+                })
+                .sort(function(a, b) {
+                    return b.score - a.score;
+                })
+                .map(function(item) {
+                    return item.contact;
+                });
+        }
+
+        function showContactAutocomplete(matches) {
+            if (!matches.length) {
+                contactAutocomplete.style.display = 'none';
+                return;
+            }
+            contactAutocomplete.innerHTML = matches.map(function(item, index) {
+                return '<button type="button" class="contact-autocomplete-item" data-index="' + index + '">' +
+                    '<strong>' + (item.contact_name || '') + '</strong><span>' + (item.company_name || 'No company') + '</span></button>';
+            }).join('');
+            contactAutocomplete.style.display = 'block';
+            Array.from(contactAutocomplete.querySelectorAll('.contact-autocomplete-item')).forEach(function(button) {
+                button.addEventListener('click', function() {
+                    applyContactToForm(matches[Number(button.dataset.index)]);
+                });
+            });
+        }
+
+        function validateQuickFillLines(lines) {
+            const errors = [];
+            const passport = lines[6] || '';
+            const dob = lines[4] || '';
+            const expiry = lines[7] || '';
+            const flight = lines[8] || '';
+            if (dob && !normalizeDate(dob)) errors.push('Line 5: Invalid date of birth');
+            if (expiry && !normalizeDate(expiry)) errors.push('Line 8: Invalid passport expiry date');
+            if (passport && !/^[A-Z0-9]{6,20}$/i.test(normalizeText(passport).replace(/\s+/g, ''))) errors.push('Line 7: Invalid passport number');
+            if (flight && !/^[A-Z0-9]{2,4}\d{2,5}$/i.test(normalizeText(flight).replace(/\s+/g, ''))) errors.push('Line 9: Invalid flight number');
+            return errors;
+        }
+
+        async function syncCompanyContacts(selectedId) {
+            await refreshContacts(companySelect.value, selectedId || '');
+        }
+
+        async function applyQuickFill() {
+            const lines = quickFillTextarea.value
+                .split('\n')
+                .map(function(line) { return normalizeText(line); })
+                .filter(function(line) { return line !== ''; });
+            const errors = validateQuickFillLines(lines);
+            quickFillTextarea.classList.toggle('has-errors', errors.length > 0);
+            quickFillFeedbackBody.innerHTML = errors.length
+                ? errors.map(function(error) { return '<div class="quick-fill-error">' + error + '</div>'; }).join('')
+                : 'Quick Fill parsed successfully.';
+
+            const title = normalizeText(lines[0] || '');
+            const surname = normalizeText(lines[1] || '');
+            const firstName = normalizeText(lines[2] || '');
+            const middleName = normalizeText(lines[3] || '');
+            const dob = normalizeDate(lines[4] || '');
+            const placeOfBirth = normalizeText(lines[5] || '');
+            const passportNumber = normalizeText(lines[6] || '').replace(/\s+/g, '').toUpperCase();
+            const passportExpiry = normalizeDate(lines[7] || '');
+            const flightNumber = normalizeText(lines[8] || '').replace(/\s+/g, '').toUpperCase();
+            const contactQuery = normalizeText(lines[9] || '');
+
+            document.getElementById('title').value = toTitleCase(title).replace(/^Mr$/, 'Mr.').replace(/^Mrs$/, 'Mrs.').replace(/^Dr$/, 'Dr.').replace(/^Prof$/, 'Prof.');
+            document.getElementById('surname').value = toTitleCase(surname);
+            document.getElementById('first_name').value = toTitleCase(firstName);
+            document.getElementById('middle_name').value = toTitleCase(middleName);
+            document.getElementById('date_of_birth').value = toIsoDate(dob);
+            document.getElementById('place_of_birth').value = toTitleCase(placeOfBirth);
+            document.getElementById('passport_number').value = passportNumber;
+            document.getElementById('passport_expiry').value = toIsoDate(passportExpiry);
+            flightNumberField.value = flightNumber;
+            const carrier = detectCarrier(flightNumber);
+            if (carrier) travelCarrierField.value = carrier;
+
+            if (contactQuery) {
+                const matches = searchContacts(contactQuery);
+                if (matches.length === 1) {
+                    await syncCompanyContacts(matches[0].id);
+                    applyContactToForm(matches[0]);
+                    quickFillFeedbackBody.innerHTML += '<div class="quick-fill-success">Contact matched automatically: ' + matches[0].contact_name + '</div>';
+                } else if (matches.length > 1) {
+                    showContactAutocomplete(matches.slice(0, 6));
+                    contactNameField.value = contactQuery;
+                    quickFillFeedbackBody.innerHTML += '<div class="quick-fill-success">Multiple contacts found. Use keyboard or click a suggestion.</div>';
+                } else {
+                    contactNameField.value = contactQuery;
+                    quickFillFeedbackBody.innerHTML += '<div class="quick-fill-error">Line 10: No matching contact found.</div>';
+                }
+            }
+
+            if (!errors.length) {
+                document.getElementById('nationality').focus();
+            }
+        }
+
+        document.getElementById('applyQuickFill').addEventListener('click', function() {
+            applyQuickFill();
+        });
+        document.getElementById('clearQuickFill').addEventListener('click', function() {
+            if (window.confirm('Clear the Quick Fill area?')) {
+                quickFillTextarea.value = '';
+                quickFillTextarea.classList.remove('has-errors');
+                quickFillFeedbackBody.textContent = 'Quick Fill cleared.';
+                resizeQuickFill();
+                quickFillTextarea.focus();
+            }
+        });
+        quickFillTextarea.addEventListener('input', resizeQuickFill);
+        quickFillTextarea.addEventListener('paste', function() {
+            setTimeout(function() {
+                resizeQuickFill();
+                applyQuickFill();
+            }, 0);
+        });
+        quickFillTextarea.addEventListener('keydown', function(event) {
+            if (event.ctrlKey && event.key === 'Enter') {
+                event.preventDefault();
+                applyQuickFill().then(function() {
+                    document.getElementById('nationality').focus();
+                });
+            }
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                document.getElementById('clearQuickFill').click();
+            }
+        });
+        resizeQuickFill();
+
+        const draftKey = 'immigration-applicant-draft';
+        const form = document.getElementById('applicantForm');
+        const draftStatus = document.getElementById('draftStatus');
+        const persisted = localStorage.getItem(draftKey);
+        if (!{{ 'true' if applicant else 'false' }}) {
+            try {
+                const data = JSON.parse(persisted || '{}');
+                Object.keys(data).forEach(function(key) {
+                    const field = form.querySelector('[name="' + key + '"]');
+                    if (field && !field.value) field.value = data[key];
+                });
+            } catch (err) {}
+        }
+
+        form.addEventListener('input', function() {
+            const payload = {};
+            Array.from(form.elements).forEach(function(el) {
+                if (!el.name) return;
+                payload[el.name] = el.value;
+            });
+            localStorage.setItem(draftKey, JSON.stringify(payload));
+            draftStatus.textContent = 'Draft saved locally.';
+        });
+
+        form.addEventListener('submit', function() {
+            localStorage.removeItem(draftKey);
+            draftStatus.textContent = 'Saving applicant...';
+        });
+
+        const companySelect = document.getElementById('company_id');
+        const contactSelect = document.getElementById('contact_id');
+        const phoneField = document.getElementById('phone');
+        const emailField = document.getElementById('email');
+
+        function hydrateContactMeta() {
+            const option = contactSelect.options[contactSelect.selectedIndex];
+            if (!option) return;
+            if (!phoneField.value && option.dataset.phone) phoneField.value = option.dataset.phone;
+            if (!emailField.value && option.dataset.email) emailField.value = option.dataset.email;
+            if (option.value) {
+                document.getElementById('contact_name').value = option.textContent.trim();
+                document.getElementById('contact_phone').value = option.dataset.phone || '';
+                document.getElementById('contact_email').value = option.dataset.email || '';
+                document.getElementById('contact_address').value = option.dataset.address || '';
+                document.getElementById('contact_city').value = option.dataset.city || '';
+                document.getElementById('contact_state').value = option.dataset.state || '';
+                document.getElementById('contact_country').value = option.dataset.country || '';
+                document.getElementById('contact_postal_code').value = option.dataset.postal || '';
+            }
+        }
+
+        async function refreshContacts(companyId, selectedId) {
+            const response = await fetch('/api/immigration/contacts?company_id=' + encodeURIComponent(companyId || ''));
+            const data = await response.json();
+            contactSelect.innerHTML = '<option value="">Select contact</option>';
+            (data.contacts || []).forEach(function(item) {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = item.contact_name;
+                option.dataset.phone = item.phone || '';
+                option.dataset.email = item.email || '';
+                option.dataset.address = item.address || '';
+                option.dataset.city = item.city || '';
+                option.dataset.state = item.state || '';
+                option.dataset.postal = item.postal_code || '';
+                option.dataset.country = item.country || '';
+                if (String(selectedId || '') === String(item.id)) option.selected = true;
+                contactSelect.appendChild(option);
+            });
+            hydrateContactMeta();
+        }
+
+        companySelect.addEventListener('change', function() {
+            refreshContacts(companySelect.value, '');
+            document.getElementById('quick_contact_company_id').value = companySelect.value;
+        });
+        contactSelect.addEventListener('change', hydrateContactMeta);
+        contactNameField.addEventListener('input', function() {
+            const query = contactNameField.value;
+            const matches = searchContacts(query);
+            if (matches.length === 1 && normalizeText(matches[0].contact_name).toLowerCase() === normalizeText(query).toLowerCase()) {
+                applyContactToForm(matches[0]);
+                return;
+            }
+            showContactAutocomplete(matches.slice(0, 6));
+        });
+        contactNameField.addEventListener('keydown', function(event) {
+            if (event.key === 'Tab') {
+                contactAutocomplete.style.display = 'none';
+            }
+        });
+        flightNumberField.addEventListener('input', function() {
+            const carrier = detectCarrier(flightNumberField.value);
+            if (carrier) travelCarrierField.value = carrier;
+        });
+        hydrateContactMeta();
+
+        const dialog = document.getElementById('contactDialog');
+        const openDialog = document.getElementById('openContactDialog');
+        const closeDialog = document.getElementById('closeContactDialog');
+        const cancelDialog = document.getElementById('cancelContactDialog');
+        const saveQuickContact = document.getElementById('saveQuickContact');
+        const quickContactForm = document.getElementById('quickContactForm');
+
+        function showDialog() {
+            document.getElementById('quick_contact_company_id').value = companySelect.value;
+            dialog.style.display = 'flex';
+            dialog.classList.add('show');
+        }
+
+        function hideDialog() {
+            dialog.classList.remove('show');
+            dialog.style.display = 'none';
+            quickContactForm.reset();
+        }
+
+        openDialog.addEventListener('click', showDialog);
+        closeDialog.addEventListener('click', hideDialog);
+        cancelDialog.addEventListener('click', hideDialog);
+        dialog.addEventListener('click', function(event) {
+            if (event.target === dialog) hideDialog();
+        });
+
+        saveQuickContact.addEventListener('click', async function() {
+            const formData = new FormData(quickContactForm);
+            formData.set('company_id', companySelect.value || '');
+            const response = await fetch('{{ url_for("quick_add_immigration_contact") }}', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (!response.ok || !data.ok) {
+                alert(data.error || 'Could not create contact.');
+                return;
+            }
+            await refreshContacts(companySelect.value || '', data.contact.id);
+            hideDialog();
+        });
+
+        document.getElementById('ocrForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const message = document.getElementById('ocrMessage');
+            const preview = document.getElementById('ocrPreview');
+            message.textContent = 'Extracting passport data...';
+            preview.innerHTML = '<div class="skeleton-bar"></div><div class="skeleton-bar" style="margin-top:0.6rem;"></div>';
+            const response = await fetch('{{ url_for("ocr_immigration_passport") }}', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (!data.ok) {
+                message.textContent = data.error || 'OCR failed.';
+                preview.innerHTML = '';
+                return;
+            }
+            message.textContent = data.message || 'OCR completed.';
+            if (data.preview_path) {
+                preview.innerHTML = '<img src="/static/' + data.preview_path + '" alt="OCR preview" style="max-width:180px; border-radius:18px; box-shadow:var(--card-shadow);">';
+            }
+            const map = {
+                surname: 'surname',
+                first_name: 'first_name',
+                middle_name: 'middle_name',
+                passport_number: 'passport_number',
+                nationality: 'nationality',
+                date_of_birth: 'date_of_birth',
+                expiry_date: 'passport_expiry',
+                place_of_birth: 'place_of_birth'
+            };
+            Object.keys(map).forEach(function(key) {
+                const field = document.getElementById(map[key]);
+                if (field && data.data && data.data[key]) field.value = data.data[key];
+            });
+        });
+    });
+</script>
+{% endblock %}
