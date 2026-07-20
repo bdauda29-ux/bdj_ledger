@@ -89,7 +89,7 @@ BOS"></textarea>
                 <div class="applicant-grid">
                     <div class="form-field">
                         <label for="reference_number">Application ID</label>
-                        <input class="read-only-input" type="text" id="reference_number" name="reference_number" value="{{ applicant.reference_number or '' }}" readonly>
+                        <input type="text" id="reference_number" name="reference_number" value="{{ applicant.reference_number or '' }}">
                         <div class="field-meta"><span class="field-error"></span></div>
                     </div>
                     <div class="form-field" data-field="nationality">
@@ -117,7 +117,7 @@ BOS"></textarea>
                         <label for="passport_type">Passport Type</label>
                         <select id="passport_type" name="passport_type" required>
                             {% for item in passport_types %}
-                            <option value="{{ item }}" {% if applicant.passport_type == item %}selected{% endif %}>{{ item }}</option>
+                            <option value="{{ item }}" {% if applicant.passport_type == item or ((not applicant.passport_type) and item == 'Standard') %}selected{% endif %}>{{ item }}</option>
                             {% endfor %}
                         </select>
                         <div class="field-meta"><span class="field-error"></span></div>
@@ -264,7 +264,7 @@ BOS"></textarea>
                         <label for="arrival_channel">Arrival Channel</label>
                         <select id="arrival_channel" name="arrival_channel" required>
                             {% for item in arrival_channels %}
-                            <option value="{{ item }}" {% if applicant.arrival_channel == item %}selected{% endif %}>{{ item }}</option>
+                            <option value="{{ item }}" {% if applicant.arrival_channel == item or ((not applicant.arrival_channel) and item == 'Air') %}selected{% endif %}>{{ item }}</option>
                             {% endfor %}
                         </select>
                         <div class="field-meta"><span class="field-error"></span></div>
@@ -548,6 +548,32 @@ document.addEventListener('DOMContentLoaded', function() {
             'professor': 'Prof'
         };
         return map[raw] || value;
+    }
+
+    function inferGenderFromTitle(titleValue) {
+        const normalized = normalizeTitle(titleValue);
+        const map = {
+            'Mr.': 'MALE',
+            'Master': 'MALE',
+            'Mrs.': 'FEMALE',
+            'Miss': 'FEMALE',
+            'Ms.': 'FEMALE'
+        };
+        return map[normalized] || '';
+    }
+
+    function applyTitleSelection(titleValue) {
+        const normalized = normalizeTitle(titleValue);
+        fieldElement('title').value = normalized;
+        const inferredGender = inferGenderFromTitle(normalized);
+        if (inferredGender) {
+            fieldElement('gender').value = inferredGender;
+            markTouched('gender');
+            validateFieldByName('gender', true);
+        }
+        markTouched('title');
+        validateFieldByName('title', true);
+        return normalized;
     }
 
     function parseFlexibleDate(value) {
@@ -961,9 +987,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     fieldElement('title').addEventListener('change', function() {
-        fieldElement('title').value = normalizeTitle(fieldElement('title').value);
-        markTouched('title');
-        validateFieldByName('title', true);
+        applyTitleSelection(fieldElement('title').value);
     });
 
     fieldElement('arrival_channel').addEventListener('change', function() {
@@ -1086,10 +1110,10 @@ document.addEventListener('DOMContentLoaded', function() {
             return `<div class="quick-fill-error">${item}</div>`;
         }).join('') : 'Quick Fill parsed successfully.';
 
-        fieldElement('title').value = normalizeTitle(lines[0] || '');
+        applyTitleSelection(lines[0] || '');
         fieldElement('surname').value = normalizeUpper(lines[1] || '');
         fieldElement('first_name').value = normalizeUpper(lines[2] || '');
-        fieldElement('middle_name').value = normalizeUpper(lines[3] || '');
+        fieldElement('middle_name').value = normalizeText(lines[3] || '') === '-' ? '' : normalizeUpper(lines[3] || '');
         const dob = parseFlexibleDate(lines[4] || '');
         fieldElement('date_of_birth').value = dob ? formatDateDisplay(dob) : '';
         fieldElement('place_of_birth').value = normalizeUpper(lines[5] || '');
@@ -1155,6 +1179,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     resizeQuickFill();
+    if (!fieldElement('gender').value && fieldElement('title').value) {
+        applyTitleSelection(fieldElement('title').value);
+    }
 
     const dialog = document.getElementById('contactDialog');
     const openDialog = document.getElementById('openContactDialog');

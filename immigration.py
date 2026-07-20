@@ -164,6 +164,7 @@ AIRLINE_PREFIXES = {
     'AJ': 'Azman Air',
 }
 TRAVEL_CARRIERS = sorted(set(AIRLINE_PREFIXES.values()))
+APPLICANT_INSERT_PLACEHOLDERS = ', '.join(['?'] * 43)
 
 
 def ensure_upload_dirs():
@@ -932,6 +933,11 @@ def normalize_upper_text(value):
     return normalize_whitespace(value).upper()
 
 
+def normalize_optional_name(value):
+    normalized = normalize_upper_text(value)
+    return '' if normalized == '-' else normalized
+
+
 def normalize_date(value):
     raw = normalize_whitespace(value)
     if not raw:
@@ -979,6 +985,17 @@ def detect_travel_carrier(flight_number):
         return ''
     prefix2 = normalized[:2]
     return AIRLINE_PREFIXES.get(prefix2, '')
+
+
+def infer_gender_from_title(title):
+    title_gender_map = {
+        'Mr.': 'MALE',
+        'Master': 'MALE',
+        'Mrs.': 'FEMALE',
+        'Miss': 'FEMALE',
+        'Ms.': 'FEMALE',
+    }
+    return title_gender_map.get(normalize_title(title), '')
 
 
 def get_entry_ports_map(conn):
@@ -1089,7 +1106,7 @@ def parse_applicant_form(form):
         'title': normalize_title(form.get('title')),
         'surname': normalize_upper_text(form.get('surname')),
         'first_name': normalize_upper_text(form.get('first_name')),
-        'middle_name': normalize_upper_text(form.get('middle_name')),
+        'middle_name': normalize_optional_name(form.get('middle_name')),
         'passport_type': normalize_whitespace(form.get('passport_type')),
         'gender': normalize_whitespace(form.get('gender')),
         'marital_status': normalize_whitespace(form.get('marital_status')),
@@ -1130,6 +1147,8 @@ def parse_applicant_form(form):
         data['status'] = 'Draft'
     elif data['status'] == 'Draft' and form.get('save_mode') == 'final':
         data['status'] = 'Validated'
+    if not data['gender']:
+        data['gender'] = infer_gender_from_title(data['title'])
     data['travel_date'] = data['arrival_date'] or data['travel_date']
     if data['flight_number'] and not data['travel_carrier']:
         data['travel_carrier'] = detect_travel_carrier(data['flight_number'])
@@ -1910,7 +1929,7 @@ def register_immigration_routes(app, helpers):
             save_audit(conn, model_id, session.get('user_id'), 'update', 'applicant', applicant_id, payload)
         else:
             conn.execute(
-                '''
+                f'''
                 INSERT INTO applicants (
                     model_id, title, surname, first_name, middle_name, full_name, passport_type, gender, marital_status, date_of_birth, place_of_birth,
                     passport_number, passport_expiry, nigerian_passport, flight_number, travel_carrier,
@@ -1918,7 +1937,7 @@ def register_immigration_routes(app, helpers):
                     contact_name, contact_email, contact_phone, contact_address, contact_city, contact_state, contact_country, contact_postal_code,
                     reference_number, company_id, contact_id, reason, notes, draft_data, created_by
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES ({APPLICANT_INSERT_PLACEHOLDERS})
                 ''',
                 values,
             )
@@ -1945,7 +1964,7 @@ def register_immigration_routes(app, helpers):
             return redirect(url_for('immigration_applicants'))
         new_ref = f"{source.get('reference_number') or generate_reference()}-COPY"
         conn.execute(
-            '''
+            f'''
             INSERT INTO applicants (
                 model_id, title, surname, first_name, middle_name, full_name, passport_type, gender, marital_status, date_of_birth, place_of_birth,
                 passport_number, passport_expiry, nigerian_passport, flight_number, travel_carrier,
@@ -1953,7 +1972,7 @@ def register_immigration_routes(app, helpers):
                 contact_name, contact_email, contact_phone, contact_address, contact_city, contact_state, contact_country, contact_postal_code,
                 reference_number, company_id, contact_id, reason, notes, draft_data, created_by
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES ({APPLICANT_INSERT_PLACEHOLDERS})
             ''',
             (
                 model_id, source.get('title'), source.get('surname'), source.get('first_name'), source.get('middle_name'),
@@ -2061,7 +2080,7 @@ def register_immigration_routes(app, helpers):
                 'notes': normalize_whitespace(row.get('notes')),
             }
             conn.execute(
-                '''
+                f'''
                 INSERT INTO applicants (
                     model_id, title, surname, first_name, middle_name, full_name, passport_type, gender, marital_status, date_of_birth, place_of_birth,
                     passport_number, passport_expiry, nigerian_passport, flight_number, travel_carrier, nationality, visa_type, status,
@@ -2069,7 +2088,7 @@ def register_immigration_routes(app, helpers):
                     contact_name, contact_email, contact_phone, contact_address, contact_city, contact_state, contact_country, contact_postal_code,
                     reference_number, company_id, contact_id, reason, notes, draft_data, created_by
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES ({APPLICANT_INSERT_PLACEHOLDERS})
                 ''',
                 (
                     model_id, payload['title'], payload['surname'], payload['first_name'], payload['middle_name'],
@@ -2237,7 +2256,7 @@ def register_immigration_routes(app, helpers):
         if not payload['contact_name']:
             return jsonify({'ok': False, 'error': 'Contact Name is required.'}), 400
         conn.execute(
-            '''
+            ''',
             INSERT INTO contacts (model_id, company_id, contact_name, phone, email, address, city, state, postal_code, country)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''',
