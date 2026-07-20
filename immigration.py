@@ -1139,15 +1139,37 @@ def extract_passport_ocr(file_storage):
 
 def register_immigration_routes(app, helpers):
     get_db_connection = helpers['get_db_connection']
+    init_db = helpers.get('init_db')
     current_model_id = helpers['current_model_id']
     comma2 = helpers['comma2']
     set_active_workspace = helpers['set_active_workspace']
+    schema_ready = {'ready': False}
+
+    def is_missing_table_error(exc):
+        message = str(exc).lower()
+        return 'does not exist' in message or 'undefinedtable' in message or 'no such table' in message
+
+    def ensure_immigration_ready(conn):
+        if schema_ready['ready']:
+            return
+        try:
+            conn.execute('SELECT 1 FROM applicants LIMIT 1')
+            schema_ready['ready'] = True
+            return
+        except Exception as exc:
+            if not is_missing_table_error(exc):
+                raise
+        if init_db is not None:
+            init_db()
+        conn.execute('SELECT 1 FROM applicants LIMIT 1')
+        schema_ready['ready'] = True
 
     @app.route('/immigration')
     @app.route('/immigration/dashboard')
     def immigration_dashboard():
         set_active_workspace(IMMIGRATION_WORKSPACE, persist=False)
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         total_applicants = scalar_value(conn.execute('SELECT COUNT(*) AS value FROM applicants WHERE model_id = ?', (model_id,)).fetchone(), 0)
         applications_today = scalar_value(
@@ -1281,6 +1303,7 @@ def register_immigration_routes(app, helpers):
     def immigration_applicants():
         set_active_workspace(IMMIGRATION_WORKSPACE, persist=False)
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         search = normalize_whitespace(request.args.get('q'))
         sort = normalize_whitespace(request.args.get('sort')) or 'newest'
@@ -1383,6 +1406,7 @@ def register_immigration_routes(app, helpers):
     def immigration_applicant_form(applicant_id=None):
         set_active_workspace(IMMIGRATION_WORKSPACE, persist=False)
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         applicant = None
         if applicant_id:
@@ -1421,6 +1445,7 @@ def register_immigration_routes(app, helpers):
     def save_immigration_applicant(applicant_id=None):
         set_active_workspace(IMMIGRATION_WORKSPACE, persist=False)
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         payload = parse_applicant_form(request.form)
         if not payload['surname'] or not payload['first_name']:
@@ -1513,6 +1538,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/applicants/<int:applicant_id>/duplicate', methods=['POST'])
     def duplicate_immigration_applicant(applicant_id):
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         source = row_to_dict(conn.execute('SELECT * FROM applicants WHERE id = ? AND model_id = ?', (applicant_id, model_id)).fetchone())
         if not source:
@@ -1550,6 +1576,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/applicants/<int:applicant_id>/delete', methods=['POST'])
     def delete_immigration_applicant(applicant_id):
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         conn.execute('DELETE FROM documents WHERE applicant_id = ? AND model_id = ?', (applicant_id, model_id))
         conn.execute('DELETE FROM applicants WHERE id = ? AND model_id = ?', (applicant_id, model_id))
@@ -1560,6 +1587,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/applicants/import', methods=['POST'])
     def import_immigration_applicants():
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         upload = request.files.get('file')
         if not upload or not upload.filename:
@@ -1645,6 +1673,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/applicants/export')
     def export_immigration_applicants():
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         rows = generate_report_rows(conn, current_model_id(), request.args)
         format_type = normalize_whitespace(request.args.get('format')) or 'csv'
         if format_type == 'xlsx':
@@ -1679,6 +1708,7 @@ def register_immigration_routes(app, helpers):
     def immigration_contacts():
         set_active_workspace(IMMIGRATION_WORKSPACE, persist=False)
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         edit_id = request.args.get('edit_id')
         rows = get_company_contacts(conn, model_id)
@@ -1698,6 +1728,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/contacts/<int:contact_id>/save', methods=['POST'])
     def save_immigration_contact(contact_id=None):
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         payload = {
             'company_id': request.form.get('company_id') or None,
@@ -1744,6 +1775,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/contacts/<int:contact_id>/duplicate', methods=['POST'])
     def duplicate_immigration_contact(contact_id):
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         row = row_to_dict(conn.execute('SELECT * FROM contacts WHERE id = ? AND model_id = ?', (contact_id, model_id)).fetchone())
         if row:
@@ -1763,6 +1795,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/contacts/<int:contact_id>/delete', methods=['POST'])
     def delete_immigration_contact(contact_id):
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         conn.execute('DELETE FROM contacts WHERE id = ? AND model_id = ?', (contact_id, model_id))
         maybe_commit(conn)
@@ -1771,6 +1804,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/contacts/quick-add', methods=['POST'])
     def quick_add_immigration_contact():
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         payload = {
             'company_id': request.form.get('company_id') or None,
@@ -1814,6 +1848,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/api/immigration/contacts')
     def immigration_contacts_api():
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         company_id = request.args.get('company_id') or None
         contacts = get_company_contacts(conn, model_id, company_id)
@@ -1823,6 +1858,7 @@ def register_immigration_routes(app, helpers):
     def immigration_companies():
         set_active_workspace(IMMIGRATION_WORKSPACE, persist=False)
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         edit_id = request.args.get('edit_id')
         companies = get_companies(conn, model_id)
@@ -1841,6 +1877,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/companies/<int:company_id>/save', methods=['POST'])
     def save_immigration_company(company_id=None):
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         logo = upload_file(request.files.get('logo'), 'companies', ALLOWED_IMAGE_EXTENSIONS)
         payload = {
@@ -1885,6 +1922,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/companies/<int:company_id>/delete', methods=['POST'])
     def delete_immigration_company(company_id):
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         conn.execute('DELETE FROM companies WHERE id = ? AND model_id = ?', (company_id, model_id))
         maybe_commit(conn)
@@ -1894,6 +1932,7 @@ def register_immigration_routes(app, helpers):
     def immigration_letterheads():
         set_active_workspace(IMMIGRATION_WORKSPACE, persist=False)
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         edit_id = request.args.get('edit_id')
         form_letterhead = None
@@ -1911,6 +1950,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/letterheads/<int:letterhead_id>/save', methods=['POST'])
     def save_immigration_letterhead(letterhead_id=None):
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         background = upload_file(request.files.get('background_image'), 'letterheads', ALLOWED_IMAGE_EXTENSIONS)
         signature = upload_file(request.files.get('signature_image'), 'signatures', ALLOWED_IMAGE_EXTENSIONS)
@@ -1970,6 +2010,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/letterheads/<int:letterhead_id>/delete', methods=['POST'])
     def delete_immigration_letterhead(letterhead_id):
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         conn.execute('DELETE FROM letterheads WHERE id = ? AND model_id = ?', (letterhead_id, model_id))
         maybe_commit(conn)
@@ -1979,6 +2020,7 @@ def register_immigration_routes(app, helpers):
     def immigration_documents():
         set_active_workspace(IMMIGRATION_WORKSPACE, persist=False)
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         applicant_id = request.args.get('applicant_id')
         applicants = [
@@ -2012,6 +2054,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/documents/upload', methods=['POST'])
     def upload_immigration_document():
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         applicant_id = request.form.get('applicant_id')
         document_type = normalize_whitespace(request.form.get('document_type')) or 'Additional Documents'
@@ -2038,6 +2081,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/documents/<int:document_id>/rename', methods=['POST'])
     def rename_immigration_document(document_id):
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         new_name = normalize_whitespace(request.form.get('original_name'))
         applicant_id = request.form.get('applicant_id')
@@ -2051,6 +2095,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/documents/<int:document_id>/delete', methods=['POST'])
     def delete_immigration_document(document_id):
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         applicant_id = request.form.get('applicant_id')
         row = row_to_dict(conn.execute('SELECT * FROM documents WHERE id = ? AND model_id = ?', (document_id, model_id)).fetchone())
@@ -2069,6 +2114,7 @@ def register_immigration_routes(app, helpers):
     def immigration_visa_letters():
         set_active_workspace(IMMIGRATION_WORKSPACE, persist=False)
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         applicants = [
             row_to_dict(row)
@@ -2112,6 +2158,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/visa-letters/preview', methods=['POST'])
     def preview_immigration_visa_letter():
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         applicant = row_to_dict(conn.execute('SELECT * FROM applicants WHERE id = ? AND model_id = ?', (request.form.get('applicant_id'), model_id)).fetchone()) or {}
         company = row_to_dict(conn.execute('SELECT * FROM companies WHERE id = ? AND model_id = ?', (request.form.get('company_id'), model_id)).fetchone()) or {}
@@ -2131,6 +2178,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/visa-letters/generate', methods=['POST'])
     def generate_immigration_visa_letter():
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         applicant = row_to_dict(conn.execute('SELECT * FROM applicants WHERE id = ? AND model_id = ?', (request.form.get('applicant_id'), model_id)).fetchone()) or {}
         company = row_to_dict(conn.execute('SELECT * FROM companies WHERE id = ? AND model_id = ?', (request.form.get('company_id'), model_id)).fetchone()) or {}
@@ -2209,6 +2257,7 @@ def register_immigration_routes(app, helpers):
     def immigration_automation():
         set_active_workspace(IMMIGRATION_WORKSPACE, persist=False)
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         current_session = row_to_dict(
             conn.execute(
@@ -2233,6 +2282,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/automation/connect', methods=['POST'])
     def connect_immigration_automation():
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         payload = {
             'status': 'Connected',
@@ -2263,6 +2313,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/automation/disconnect', methods=['POST'])
     def disconnect_immigration_automation():
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         conn.execute(
             '''
@@ -2283,6 +2334,7 @@ def register_immigration_routes(app, helpers):
     def immigration_reports():
         set_active_workspace(IMMIGRATION_WORKSPACE, persist=False)
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         model_id = current_model_id()
         rows = generate_report_rows(conn, model_id, request.args)
 
@@ -2313,6 +2365,7 @@ def register_immigration_routes(app, helpers):
     @app.route('/immigration/reports/export')
     def export_immigration_reports():
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         rows = generate_report_rows(conn, current_model_id(), request.args)
         format_type = normalize_whitespace(request.args.get('format')) or 'csv'
         if format_type == 'pdf':
@@ -2332,6 +2385,7 @@ def register_immigration_routes(app, helpers):
     def immigration_settings():
         set_active_workspace(IMMIGRATION_WORKSPACE, persist=False)
         conn = get_db_connection()
+        ensure_immigration_ready(conn)
         user_id = session.get('user_id')
         if request.method == 'POST':
             for key in ['travel_default_country', 'travel_default_reason', 'default_company_id', 'default_letterhead_id', 'automation_browser', 'theme_mode']:

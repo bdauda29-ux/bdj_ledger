@@ -5224,6 +5224,7 @@ register_immigration_routes(
     app,
     {
         'get_db_connection': get_db_connection,
+        'init_db': init_db,
         'current_model_id': current_model_id,
         'comma2': comma2,
         'set_active_workspace': set_active_workspace,
